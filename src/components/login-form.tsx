@@ -10,6 +10,11 @@ import { ForgotPasswordEmailState } from "@/components/auth/login-states/forgot-
 import { VerificationCodeState } from "@/components/auth/login-states/verification-code-state";
 import { SetNewPasswordState } from "@/components/auth/login-states/set-new-password-state";
 import { PasswordResetSuccessState } from "@/components/auth/login-states/password-reset-success-state";
+import {
+  forgotPasswordAction,
+  verifyCodeAction,
+  resetPasswordAction,
+} from "@/actions/auth";
 import type {
   LoginInput,
   ForgotPasswordEmailInput,
@@ -50,21 +55,16 @@ export function LoginForm({
     }
 
     if (result?.ok) {
-      // Redirect to dashboard on successful login
-      window.location.href = "/dashboard";
+      // Redirect to home on successful login
+      window.location.href = "/";
     }
   };
 
   const handleForgotPasswordSubmit = async (data: ForgotPasswordEmailInput) => {
-    const response = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    const result = await forgotPasswordAction(data.email);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to send verification code");
+    if (!result.success) {
+      throw new Error(result.error || "Failed to send verification code");
     }
 
     // Store email for subsequent steps
@@ -72,15 +72,10 @@ export function LoginForm({
   };
 
   const handleVerificationCodeSubmit = async (data: VerificationCodeInput) => {
-    const response = await fetch("/api/auth/verify-code", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code: data.code }),
-    });
+    const result = await verifyCodeAction(email, data.code);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Invalid verification code");
+    if (!result.success) {
+      throw new Error(result.error || "Invalid verification code");
     }
 
     // Store verification code for password reset
@@ -88,35 +83,25 @@ export function LoginForm({
   };
 
   const handleSetNewPasswordSubmit = async (data: SetNewPasswordInput) => {
-    const response = await fetch("/api/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        code: verificationCode,
-        password: data.password,
-        confirmPassword: data.confirmPassword,
-      }),
-    });
+    const result = await resetPasswordAction(
+      email,
+      verificationCode,
+      data.password,
+      data.confirmPassword
+    );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to reset password");
+    if (!result.success) {
+      throw new Error(result.error || "Failed to reset password");
     }
   };
 
   const handleResendCode = async () => {
     if (!email) return;
 
-    const response = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
+    const result = await forgotPasswordAction(email);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to resend verification code");
+    if (!result.success) {
+      throw new Error(result.error || "Failed to resend verification code");
     }
   };
 
@@ -130,6 +115,7 @@ export function LoginForm({
                 onForgotPassword={() => setFormState("forgot-password")}
                 onSubmit={handleLoginSubmit}
                 error={loginError}
+                onClearError={() => setLoginError(null)}
               />
             )}
             {formState === "forgot-password" && (

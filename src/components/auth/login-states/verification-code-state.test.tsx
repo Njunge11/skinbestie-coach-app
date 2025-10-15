@@ -66,12 +66,15 @@ describe('VerificationCodeState', () => {
     await user.type(screen.getByLabelText(/verification code/i), '123456');
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
+    // Wait for first assertion only
     await waitFor(() => {
       expect(handleSubmit).toHaveBeenCalledWith({
         code: '123456',
       });
-      expect(handleContinue).toHaveBeenCalledTimes(1);
     });
+
+    // Then check second assertion (no waiting needed)
+    expect(handleContinue).toHaveBeenCalledTimes(1);
   });
 
   it('shows loading state while submitting', async () => {

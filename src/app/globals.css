@@ -119,3 +119,93 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-to-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes zoom-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+[data-state="open"].animate-in {
+  animation: fade-in 200ms ease-out;
+}
+
+[data-state="closed"].animate-out {
+  animation: fade-out 200ms ease-in;
+}
+
+[data-state="open"].slide-in-from-right {
+  animation: slide-in-from-right 500ms ease-out;
+}
+
+[data-state="closed"].slide-out-to-right {
+  animation: slide-out-to-right 300ms ease-in;
+}
+
+[data-state="open"].zoom-in-95 {
+  animation: zoom-in 200ms ease-out;
+}
+
+[data-state="closed"].zoom-out-95 {
+  animation: zoom-out 200ms ease-in;
+}
+
+[data-state="open"].fade-in-0 {
+  animation: fade-in 200ms ease-out;
+}
+
+[data-state="closed"].fade-out-0 {
+  animation: fade-out 200ms ease-in;
+}

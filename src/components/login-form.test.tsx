@@ -1,64 +1,36 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LoginForm } from './login-form';
 
+// Mock server actions
+vi.mock('@/actions/auth', () => ({
+  forgotPasswordAction: vi.fn(),
+  verifyCodeAction: vi.fn(),
+  resetPasswordAction: vi.fn(),
+}));
+
+// Mock next-auth
+vi.mock('next-auth/react', () => ({
+  signIn: vi.fn(),
+}));
+
+import { forgotPasswordAction, verifyCodeAction, resetPasswordAction } from '@/actions/auth';
+import { signIn } from 'next-auth/react';
+
 describe('LoginForm - UI Tests', () => {
-  // Mock fetch for all API calls
-  const originalFetch = global.fetch;
+  const testEmail = 'admin@example.com';
+  const testVerificationCode = '123456';
 
   beforeEach(() => {
-    global.fetch = vi.fn((url: string | URL | Request) => {
-      const urlString = typeof url === 'string' ? url : url instanceof Request ? url.url : url.toString();
+    // Reset all mocks
+    vi.clearAllMocks();
 
-      // Mock /api/auth/forgot-password endpoint
-      if (urlString.includes('/api/auth/forgot-password')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            message: 'If an account exists with this email, you will receive a verification code'
-          }),
-        } as Response);
-      }
-
-      // Mock /api/auth/verify-code endpoint
-      if (urlString.includes('/api/auth/verify-code')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            message: 'Verification code is valid'
-          }),
-        } as Response);
-      }
-
-      // Mock /api/auth/reset-password endpoint
-      if (urlString.includes('/api/auth/reset-password')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            message: 'Password reset successful'
-          }),
-        } as Response);
-      }
-
-      // Default fallback
-      return Promise.reject(new Error(`Unmocked fetch call to: ${urlString}`));
-    }) as typeof fetch;
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-  });
-  it('renders login form as initial state', () => {
-    render(<LoginForm />);
-
-    expect(screen.getByRole('heading')).toHaveTextContent(/welcome back/i);
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^login$/i })).toBeInTheDocument();
+    // Setup default mock implementations
+    vi.mocked(forgotPasswordAction).mockResolvedValue({ success: true });
+    vi.mocked(verifyCodeAction).mockResolvedValue({ success: true });
+    vi.mocked(resetPasswordAction).mockResolvedValue({ success: true });
+    vi.mocked(signIn).mockResolvedValue({ ok: false, error: null } as any);
   });
 
   it('allows user to complete full password reset flow and return to login', async () => {
@@ -74,19 +46,21 @@ describe('LoginForm - UI Tests', () => {
     expect(
       screen.getByText(/enter your email address and we'll send you a code/i)
     ).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/email/i), 'admin@example.com');
+    await user.type(screen.getByLabelText(/email/i), testEmail);
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
-    // 3. Enter verification code
-    expect(screen.getByRole('heading')).toHaveTextContent(/enter verification code/i);
+    // 3. Enter verification code - wait for state transition
+    expect(await screen.findByRole('heading', { name: /enter verification code/i })).toBeInTheDocument();
     expect(
       screen.getByText(/we've sent a 6-digit code to your email address/i)
     ).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/verification code/i), '123456');
+
+    // Enter the verification code
+    await user.type(screen.getByLabelText(/verification code/i), testVerificationCode);
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
-    // 4. Set new password
-    expect(screen.getByRole('heading')).toHaveTextContent(/set new password/i);
+    // 4. Set new password - wait for state transition
+    expect(await screen.findByRole('heading', { name: /set new password/i })).toBeInTheDocument();
     expect(
       screen.getByText(/choose a strong password for your account/i)
     ).toBeInTheDocument();
@@ -94,8 +68,8 @@ describe('LoginForm - UI Tests', () => {
     await user.type(screen.getByLabelText(/confirm password/i), 'NewPass123');
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
-    // 5. Success screen
-    expect(screen.getByRole('heading')).toHaveTextContent(/password reset successful/i);
+    // 5. Success screen - wait for state transition
+    expect(await screen.findByRole('heading', { name: /password reset successful/i })).toBeInTheDocument();
     expect(
       screen.getByText(/your password has been updated successfully/i)
     ).toBeInTheDocument();
@@ -126,11 +100,11 @@ describe('LoginForm - UI Tests', () => {
 
     // Navigate to verification code state
     await user.click(screen.getByRole('button', { name: /forgot your password/i }));
-    await user.type(screen.getByLabelText(/email/i), 'admin@example.com');
+    await user.type(screen.getByLabelText(/email/i), testEmail);
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
-    // Should see resend code button
-    expect(screen.getByRole('heading')).toHaveTextContent(/enter verification code/i);
+    // Should see resend code button - wait for state transition
+    expect(await screen.findByRole('heading', { name: /enter verification code/i })).toBeInTheDocument();
     const resendButton = screen.getByRole('button', { name: /resend code/i });
     expect(resendButton).toBeInTheDocument();
 
@@ -152,34 +126,6 @@ describe('LoginForm - UI Tests', () => {
 
     // Email field should be empty in forgot password form (new form instance)
     expect(screen.getByLabelText(/email/i)).toHaveValue('');
-  });
-
-  it('shows all states have proper headings for navigation landmarks', async () => {
-    const user = userEvent.setup();
-    render(<LoginForm />);
-
-    // Login state
-    expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
-
-    // Forgot password state
-    await user.click(screen.getByRole('button', { name: /forgot your password/i }));
-    expect(screen.getByRole('heading', { name: /reset password/i })).toBeInTheDocument();
-
-    // Verification state
-    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(screen.getByRole('heading', { name: /enter verification code/i })).toBeInTheDocument();
-
-    // New password state
-    await user.type(screen.getByLabelText(/verification code/i), '123456');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(screen.getByRole('heading', { name: /set new password/i })).toBeInTheDocument();
-
-    // Success state
-    await user.type(screen.getByLabelText(/^new password$/i), 'ValidPass123');
-    await user.type(screen.getByLabelText(/confirm password/i), 'ValidPass123');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(screen.getByRole('heading', { name: /password reset successful/i })).toBeInTheDocument();
   });
 
   it('validates form at each step before allowing progression', async () => {

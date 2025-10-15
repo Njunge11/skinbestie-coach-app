@@ -45,13 +45,16 @@ describe('SetNewPasswordState', () => {
     await user.type(screen.getByLabelText(/confirm password/i), 'ValidPass123');
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
+    // Wait for first assertion only
     await waitFor(() => {
       expect(handleSubmit).toHaveBeenCalledWith({
         password: 'ValidPass123',
         confirmPassword: 'ValidPass123',
       });
-      expect(handleContinue).toHaveBeenCalledTimes(1);
     });
+
+    // Then check second assertion (no waiting needed)
+    expect(handleContinue).toHaveBeenCalledTimes(1);
   });
 
   it('shows loading state while submitting', async () => {

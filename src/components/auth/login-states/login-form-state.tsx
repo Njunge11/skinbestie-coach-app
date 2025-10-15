@@ -11,9 +11,10 @@ interface LoginFormStateProps {
   onForgotPassword: () => void;
   onSubmit?: (data: LoginInput) => Promise<void>;
   error?: string | null;
+  onClearError?: () => void;
 }
 
-export function LoginFormState({ onForgotPassword, onSubmit, error }: LoginFormStateProps) {
+export function LoginFormState({ onForgotPassword, onSubmit, error, onClearError }: LoginFormStateProps) {
   const [showPassword, setShowPassword] = useState(false);
   const {
     register,
@@ -22,6 +23,12 @@ export function LoginFormState({ onForgotPassword, onSubmit, error }: LoginFormS
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
+
+  const handleInputChange = () => {
+    if (error && onClearError) {
+      onClearError();
+    }
+  };
 
   const handleFormSubmit = async (data: LoginInput) => {
     await onSubmit?.(data);
@@ -43,7 +50,9 @@ export function LoginFormState({ onForgotPassword, onSubmit, error }: LoginFormS
             type="email"
             placeholder="m@example.com"
             className="border-[#030303] border-[0.5px]"
-            {...register("email")}
+            {...register("email", {
+              onChange: handleInputChange
+            })}
           />
           {errors.email && (
             <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
@@ -65,7 +74,9 @@ export function LoginFormState({ onForgotPassword, onSubmit, error }: LoginFormS
               id="password"
               type={showPassword ? "text" : "password"}
               className="border-[#030303] border-[0.5px] pr-10"
-              {...register("password")}
+              {...register("password", {
+                onChange: handleInputChange
+              })}
             />
             <button
               type="button"
