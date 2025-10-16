@@ -57,7 +57,11 @@ export function GoalItem({
   };
 
   const handleSave = () => {
-    if (editData.name.trim()) {
+    if (
+      editData.name.trim() &&
+      editData.description.trim() &&
+      editData.timeframe.trim()
+    ) {
       onEdit(goal.id, editData);
       setIsEditing(false);
     }
@@ -79,7 +83,7 @@ export function GoalItem({
           className="font-medium"
         />
         <Textarea
-          placeholder="Description (optional)"
+          placeholder="Description"
           value={editData.description}
           onChange={(e) =>
             setEditData((prev) => ({ ...prev, description: e.target.value }))

@@ -72,7 +72,11 @@ export function GoalsSection({
   };
 
   const handleSaveNew = () => {
-    if (newGoalData.name.trim()) {
+    if (
+      newGoalData.name.trim() &&
+      newGoalData.description.trim() &&
+      newGoalData.timeframe.trim()
+    ) {
       onAddGoal(newGoalData);
       setIsAdding(false);
       setNewGoalData({ name: "", description: "", timeframe: "" });
@@ -135,7 +139,7 @@ export function GoalsSection({
                   autoFocus
                 />
                 <Textarea
-                  placeholder="Description (optional)"
+                  placeholder="Description"
                   value={newGoalData.description}
                   onChange={(e) =>
                     setNewGoalData((prev) => ({

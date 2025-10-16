@@ -350,6 +350,239 @@ describe("GoalsSection - UI Tests", () => {
     expect(screen.getByText("Third goal")).toBeInTheDocument();
   });
 
+  it("user cannot add goal with empty description", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <GoalsSection
+        goals={[]}
+        onAddGoal={mockOnAddGoal}
+        onUpdateGoal={mockOnUpdateGoal}
+        onToggleGoal={mockOnToggleGoal}
+        onDeleteGoal={mockOnDeleteGoal}
+        onReorderGoals={mockOnReorderGoals}
+      />
+    );
+
+    // User clicks Add Goal
+    await user.click(screen.getByRole("button", { name: /add goal/i }));
+
+    // User fills in name and timeframe but not description
+    await user.type(screen.getByPlaceholderText(/goal name/i), "Clear skin");
+    await user.type(screen.getByPlaceholderText(/timeframe/i), "12 weeks");
+
+    // User tries to add goal
+    await user.click(screen.getByRole("button", { name: /add goal/i }));
+
+    // Server action not called because description is empty
+    expect(mockOnAddGoal).not.toHaveBeenCalled();
+  });
+
+  it("user cannot add goal with empty timeframe", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <GoalsSection
+        goals={[]}
+        onAddGoal={mockOnAddGoal}
+        onUpdateGoal={mockOnUpdateGoal}
+        onToggleGoal={mockOnToggleGoal}
+        onDeleteGoal={mockOnDeleteGoal}
+        onReorderGoals={mockOnReorderGoals}
+      />
+    );
+
+    // User clicks Add Goal
+    await user.click(screen.getByRole("button", { name: /add goal/i }));
+
+    // User fills in name and description but not timeframe
+    await user.type(screen.getByPlaceholderText(/goal name/i), "Clear skin");
+    await user.type(
+      screen.getByPlaceholderText(/description/i),
+      "Reduce acne"
+    );
+
+    // User tries to add goal
+    await user.click(screen.getByRole("button", { name: /add goal/i }));
+
+    // Server action not called because timeframe is empty
+    expect(mockOnAddGoal).not.toHaveBeenCalled();
+  });
+
+  it("user cannot add goal with empty name", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <GoalsSection
+        goals={[]}
+        onAddGoal={mockOnAddGoal}
+        onUpdateGoal={mockOnUpdateGoal}
+        onToggleGoal={mockOnToggleGoal}
+        onDeleteGoal={mockOnDeleteGoal}
+        onReorderGoals={mockOnReorderGoals}
+      />
+    );
+
+    // User clicks Add Goal
+    await user.click(screen.getByRole("button", { name: /add goal/i }));
+
+    // User fills in description and timeframe but not name
+    await user.type(
+      screen.getByPlaceholderText(/description/i),
+      "Reduce acne"
+    );
+    await user.type(screen.getByPlaceholderText(/timeframe/i), "12 weeks");
+
+    // User tries to add goal
+    await user.click(screen.getByRole("button", { name: /add goal/i }));
+
+    // Server action not called because name is empty
+    expect(mockOnAddGoal).not.toHaveBeenCalled();
+  });
+
+  it("user cannot add goal with whitespace-only fields", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <GoalsSection
+        goals={[]}
+        onAddGoal={mockOnAddGoal}
+        onUpdateGoal={mockOnUpdateGoal}
+        onToggleGoal={mockOnToggleGoal}
+        onDeleteGoal={mockOnDeleteGoal}
+        onReorderGoals={mockOnReorderGoals}
+      />
+    );
+
+    // User clicks Add Goal
+    await user.click(screen.getByRole("button", { name: /add goal/i }));
+
+    // User fills in fields with only whitespace
+    await user.type(screen.getByPlaceholderText(/goal name/i), "   ");
+    await user.type(screen.getByPlaceholderText(/description/i), "   ");
+    await user.type(screen.getByPlaceholderText(/timeframe/i), "   ");
+
+    // User tries to add goal
+    await user.click(screen.getByRole("button", { name: /add goal/i }));
+
+    // Server action not called because fields are only whitespace
+    expect(mockOnAddGoal).not.toHaveBeenCalled();
+  });
+
+  it("user cannot edit goal with empty description", async () => {
+    const user = userEvent.setup();
+
+    const existingGoals: Goal[] = [
+      {
+        id: "goal_1",
+        name: "Clear skin",
+        description: "Original description",
+        timeframe: "8 weeks",
+        complete: false,
+      },
+    ];
+
+    render(
+      <GoalsSection
+        goals={existingGoals}
+        onAddGoal={mockOnAddGoal}
+        onUpdateGoal={mockOnUpdateGoal}
+        onToggleGoal={mockOnToggleGoal}
+        onDeleteGoal={mockOnDeleteGoal}
+        onReorderGoals={mockOnReorderGoals}
+      />
+    );
+
+    // User clicks on goal to edit
+    await user.click(screen.getByText("Clear skin"));
+
+    // User clears description
+    const descInput = screen.getByPlaceholderText(/description/i);
+    await user.clear(descInput);
+
+    // User tries to save
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    // Server action not called because description is empty
+    expect(mockOnUpdateGoal).not.toHaveBeenCalled();
+  });
+
+  it("user cannot edit goal with empty timeframe", async () => {
+    const user = userEvent.setup();
+
+    const existingGoals: Goal[] = [
+      {
+        id: "goal_1",
+        name: "Clear skin",
+        description: "Description",
+        timeframe: "8 weeks",
+        complete: false,
+      },
+    ];
+
+    render(
+      <GoalsSection
+        goals={existingGoals}
+        onAddGoal={mockOnAddGoal}
+        onUpdateGoal={mockOnUpdateGoal}
+        onToggleGoal={mockOnToggleGoal}
+        onDeleteGoal={mockOnDeleteGoal}
+        onReorderGoals={mockOnReorderGoals}
+      />
+    );
+
+    // User clicks on goal to edit
+    await user.click(screen.getByText("Clear skin"));
+
+    // User clears timeframe
+    const timeframeInput = screen.getByPlaceholderText(/timeframe/i);
+    await user.clear(timeframeInput);
+
+    // User tries to save
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    // Server action not called because timeframe is empty
+    expect(mockOnUpdateGoal).not.toHaveBeenCalled();
+  });
+
+  it("user cannot edit goal with empty name", async () => {
+    const user = userEvent.setup();
+
+    const existingGoals: Goal[] = [
+      {
+        id: "goal_1",
+        name: "Clear skin",
+        description: "Description",
+        timeframe: "8 weeks",
+        complete: false,
+      },
+    ];
+
+    render(
+      <GoalsSection
+        goals={existingGoals}
+        onAddGoal={mockOnAddGoal}
+        onUpdateGoal={mockOnUpdateGoal}
+        onToggleGoal={mockOnToggleGoal}
+        onDeleteGoal={mockOnDeleteGoal}
+        onReorderGoals={mockOnReorderGoals}
+      />
+    );
+
+    // User clicks on goal to edit
+    await user.click(screen.getByText("Clear skin"));
+
+    // User clears name
+    const nameInput = screen.getByDisplayValue("Clear skin");
+    await user.clear(nameInput);
+
+    // User tries to save
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    // Server action not called because name is empty
+    expect(mockOnUpdateGoal).not.toHaveBeenCalled();
+  });
+
   it("user completes full workflow: add, edit, complete, and delete goals", async () => {
     const user = userEvent.setup();
 

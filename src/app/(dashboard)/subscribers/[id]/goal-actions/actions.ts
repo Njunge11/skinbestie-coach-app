@@ -79,8 +79,14 @@ export async function createGoal(
     return { success: false, error: "Invalid data" };
   }
 
-  // Validate input
+  // Validate input - all fields are required
   if (!input.name || input.name.trim() === "") {
+    return { success: false, error: "Invalid data" };
+  }
+  if (!input.description || input.description.trim() === "") {
+    return { success: false, error: "Invalid data" };
+  }
+  if (!input.timeframe || input.timeframe.trim() === "") {
     return { success: false, error: "Invalid data" };
   }
 
@@ -123,6 +129,17 @@ export async function updateGoal(
 
   // Validate goalId
   if (!validateId(goalId)) {
+    return { success: false, error: "Invalid data" };
+  }
+
+  // Validate updates - required fields cannot be empty
+  if (updates.name !== undefined && updates.name.trim() === "") {
+    return { success: false, error: "Invalid data" };
+  }
+  if (updates.description !== undefined && updates.description.trim() === "") {
+    return { success: false, error: "Invalid data" };
+  }
+  if (updates.timeframe !== undefined && updates.timeframe.trim() === "") {
     return { success: false, error: "Invalid data" };
   }
 

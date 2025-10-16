@@ -395,6 +395,90 @@ describe("Goal Actions - Unit Tests", () => {
         expect(result.error).toBe("Invalid data");
       }
     });
+
+    it("returns error when description is missing", async () => {
+      const deps: GoalDeps = {
+        repo: makeGoalsRepoFake(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const data = {
+        name: "Goal name",
+        description: "",
+        timeframe: "4 weeks",
+      };
+
+      const result = await createGoal("user_1", data, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
+
+    it("returns error when description is empty string after trim", async () => {
+      const deps: GoalDeps = {
+        repo: makeGoalsRepoFake(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const data = {
+        name: "Goal name",
+        description: "   ",
+        timeframe: "4 weeks",
+      };
+
+      const result = await createGoal("user_1", data, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
+
+    it("returns error when timeframe is missing", async () => {
+      const deps: GoalDeps = {
+        repo: makeGoalsRepoFake(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const data = {
+        name: "Goal name",
+        description: "Description",
+        timeframe: "",
+      };
+
+      const result = await createGoal("user_1", data, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
+
+    it("returns error when timeframe is empty string after trim", async () => {
+      const deps: GoalDeps = {
+        repo: makeGoalsRepoFake(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const data = {
+        name: "Goal name",
+        description: "Description",
+        timeframe: "   ",
+      };
+
+      const result = await createGoal("user_1", data, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
   });
 
   describe("updateGoal", () => {
@@ -622,6 +706,180 @@ describe("Goal Actions - Unit Tests", () => {
       const result = await updateGoal("goal_7", {}, deps);
 
       expect(result.success).toBe(true);
+    });
+
+    it("returns error when updating name to empty string", async () => {
+      const repo = makeGoalsRepoFake();
+
+      repo._store.set("goal_8", {
+        id: "goal_8",
+        userProfileId: "user_1",
+        name: "Valid name",
+        description: "Desc",
+        timeframe: "4w",
+        complete: false,
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const result = await updateGoal("goal_8", { name: "" }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
+
+    it("returns error when updating name to whitespace", async () => {
+      const repo = makeGoalsRepoFake();
+
+      repo._store.set("goal_9", {
+        id: "goal_9",
+        userProfileId: "user_1",
+        name: "Valid name",
+        description: "Desc",
+        timeframe: "4w",
+        complete: false,
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const result = await updateGoal("goal_9", { name: "   " }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
+
+    it("returns error when updating description to empty string", async () => {
+      const repo = makeGoalsRepoFake();
+
+      repo._store.set("goal_10", {
+        id: "goal_10",
+        userProfileId: "user_1",
+        name: "Goal",
+        description: "Valid description",
+        timeframe: "4w",
+        complete: false,
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const result = await updateGoal("goal_10", { description: "" }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
+
+    it("returns error when updating description to whitespace", async () => {
+      const repo = makeGoalsRepoFake();
+
+      repo._store.set("goal_11", {
+        id: "goal_11",
+        userProfileId: "user_1",
+        name: "Goal",
+        description: "Valid description",
+        timeframe: "4w",
+        complete: false,
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const result = await updateGoal("goal_11", { description: "   " }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
+
+    it("returns error when updating timeframe to empty string", async () => {
+      const repo = makeGoalsRepoFake();
+
+      repo._store.set("goal_12", {
+        id: "goal_12",
+        userProfileId: "user_1",
+        name: "Goal",
+        description: "Desc",
+        timeframe: "Valid timeframe",
+        complete: false,
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const result = await updateGoal("goal_12", { timeframe: "" }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
+    });
+
+    it("returns error when updating timeframe to whitespace", async () => {
+      const repo = makeGoalsRepoFake();
+
+      repo._store.set("goal_13", {
+        id: "goal_13",
+        userProfileId: "user_1",
+        name: "Goal",
+        description: "Desc",
+        timeframe: "Valid timeframe",
+        complete: false,
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => true,
+      };
+
+      const result = await updateGoal("goal_13", { timeframe: "   " }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid data");
+      }
     });
   });
 
