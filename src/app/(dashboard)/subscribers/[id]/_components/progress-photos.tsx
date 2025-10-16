@@ -11,7 +11,7 @@ import type { Photo } from "../types";
 
 interface ProgressPhotosProps {
   photos: Photo[];
-  onUpdateFeedback: (id: number, feedback: string) => void;
+  onUpdateFeedback: (id: string, feedback: string) => Promise<void>;
   isCompareMode: boolean;
   selectedPhotos: Photo[];
   onPhotoSelect: (photo: Photo) => void;
@@ -36,7 +36,7 @@ export function ProgressPhotos({
     }
   };
 
-  const isSelected = (photoId: number) => {
+  const isSelected = (photoId: string) => {
     return selectedPhotos.some((p) => p.id === photoId);
   };
 
@@ -77,8 +77,8 @@ export function ProgressPhotos({
                   }`}
                 >
                   <Image
-                    src={photo.image}
-                    alt={photo.month}
+                    src={photo.imageUrl}
+                    alt={`Week ${photo.weekNumber}`}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
@@ -91,10 +91,10 @@ export function ProgressPhotos({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900 mb-0.5">
-                    {photo.month}
+                    Week {photo.weekNumber}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {new Date(photo.date).toLocaleDateString("en-US", {
+                    {new Date(photo.uploadedAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                     })}

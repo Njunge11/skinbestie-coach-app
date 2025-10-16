@@ -19,7 +19,7 @@ interface PhotoDetailModalProps {
   photo: Photo | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: number, feedback: string) => void;
+  onSave: (id: string, feedback: string) => Promise<void>;
 }
 
 export function PhotoDetailModal({
@@ -32,13 +32,13 @@ export function PhotoDetailModal({
 
   useEffect(() => {
     if (photo) {
-      setEditingFeedback(photo.feedback);
+      setEditingFeedback(photo.feedback || "");
     }
   }, [photo]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (photo) {
-      onSave(photo.id, editingFeedback);
+      await onSave(photo.id, editingFeedback);
       onClose();
     }
   };
@@ -95,8 +95,8 @@ export function PhotoDetailModal({
                   <TransformComponent>
                     <div className="bg-gray-100 rounded-lg border border-gray-200 overflow-hidden">
                       <Image
-                        src={photo.image}
-                        alt={photo.month}
+                        src={photo.imageUrl}
+                        alt={`Week ${photo.weekNumber}`}
                         width={384}
                         height={512}
                         className="object-cover"
@@ -112,10 +112,10 @@ export function PhotoDetailModal({
           <div className="flex-1 min-w-0 space-y-4">
             <div>
               <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                {photo.month}
+                Week {photo.weekNumber}
               </h3>
               <p className="text-sm text-gray-500">
-                {new Date(photo.date).toLocaleDateString("en-US", {
+                {new Date(photo.uploadedAt).toLocaleDateString("en-US", {
                   month: "long",
                   day: "numeric",
                   year: "numeric",

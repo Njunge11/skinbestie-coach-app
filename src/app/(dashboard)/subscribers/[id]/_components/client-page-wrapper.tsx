@@ -25,6 +25,7 @@ import {
   updateCoachNote,
   deleteCoachNote,
 } from "../coach-notes-actions/actions";
+import { updatePhotoFeedback } from "../progress-photos-actions/actions";
 import type {
   Client,
   Goal,
@@ -80,10 +81,22 @@ export function ClientPageWrapper({
     }
   };
 
-  const handleUpdatePhotoFeedback = (id: number, feedback: string) => {
+  const handleUpdatePhotoFeedback = async (id: string, feedback: string) => {
+    // Optimistically update UI
+    const previousPhotos = photos;
     setPhotos((prev) =>
       prev.map((p) => (p.id === id ? { ...p, feedback } : p))
     );
+
+    // Call server action
+    const result = await updatePhotoFeedback(id, feedback);
+
+    if (!result.success) {
+      // Revert on error
+      setPhotos(previousPhotos);
+      console.error("Failed to update photo feedback:", result.error);
+      // TODO: Show error toast to user
+    }
   };
 
   const handlePhotoSelect = (photo: Photo) => {

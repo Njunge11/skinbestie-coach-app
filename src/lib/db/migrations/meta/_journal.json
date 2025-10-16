@@ -50,6 +50,13 @@
       "when": 1760611631010,
       "tag": "0006_dark_starjammers",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1760621540398,
+      "tag": "0007_nebulous_lionheart",
+      "breakpoints": true
     }
   ]
 }

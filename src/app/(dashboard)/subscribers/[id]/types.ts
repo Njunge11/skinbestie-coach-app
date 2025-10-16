@@ -23,11 +23,11 @@ export interface Goal {
 }
 
 export interface Photo {
-  id: number;
-  date: string;
-  month: string;
-  feedback: string;
-  image: string;
+  id: string;
+  weekNumber: number;
+  uploadedAt: Date;
+  feedback: string | null;
+  imageUrl: string;
 }
 
 export interface EditableClientData {

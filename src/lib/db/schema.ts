@@ -201,6 +201,52 @@ export const coachNotes = pgTable(
   })
 );
 
+export const progressPhotos = pgTable(
+  'progress_photos',
+  {
+    // Primary Key
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // Foreign Key to user
+    userProfileId: uuid('user_profile_id')
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: 'cascade' }),
+
+    // Image storage
+    imageUrl: text('image_url').notNull(),
+
+    // Metadata
+    weekNumber: integer('week_number').notNull(),
+    uploadedAt: timestamp('uploaded_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+
+    // Coach feedback
+    feedback: text('feedback'), // Nullable - can be added later
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user
+    userProfileIdx: index('progress_photos_user_profile_idx').on(table.userProfileId),
+
+    // Index for chronological ordering
+    uploadedAtIdx: index('progress_photos_uploaded_at_idx').on(table.uploadedAt),
+
+    // Composite index for user + week queries
+    userWeekIdx: index('progress_photos_user_week_idx').on(
+      table.userProfileId,
+      table.weekNumber
+    ),
+  })
+);
+
 // Type exports for TypeScript
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
@@ -214,3 +260,5 @@ export type SkincareRoutineProduct = typeof skincareRoutineProducts.$inferSelect
 export type NewSkincareRoutineProduct = typeof skincareRoutineProducts.$inferInsert;
 export type CoachNote = typeof coachNotes.$inferSelect;
 export type NewCoachNote = typeof coachNotes.$inferInsert;
+export type ProgressPhoto = typeof progressPhotos.$inferSelect;
+export type NewProgressPhoto = typeof progressPhotos.$inferInsert;
