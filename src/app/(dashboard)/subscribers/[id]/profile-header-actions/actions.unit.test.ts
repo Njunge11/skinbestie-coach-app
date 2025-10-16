@@ -1,46 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { getUserProfile, updateUserProfile, type SubscriberDeps } from "./actions";
-
-// Fake database
-function makeFakeDb() {
-  const store = new Map<string, any>();
-
-  return {
-    select: () => ({
-      from: () => ({
-        where: (condition: any) => ({
-          limit: async (n: number) => {
-            const entries = Array.from(store.values());
-            return entries.slice(0, n);
-          },
-        }),
-      }),
-    }),
-    update: () => ({
-      set: (data: any) => {
-        // Track what was set for assertions
-        return {
-          where: (condition: any) => {
-            // Apply update to first matching record
-            const entry = Array.from(store.values())[0];
-            if (entry) {
-              Object.assign(entry, data);
-            }
-            return Promise.resolve();
-          },
-          _updateData: data, // For test inspection
-        };
-      },
-    }),
-    _store: store, // For test setup
-  };
-}
+import { makeUserProfileRepoFake } from "./user-profile.repo.fake";
 
 describe("Subscriber Server Actions - Unit Tests", () => {
   describe("getUserProfile", () => {
     it("returns user profile data when valid userId provided", async () => {
-      const fakeDb = makeFakeDb() as any;
-      fakeDb._store.set("user_1", {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_1", {
         id: "user_1",
         firstName: "Sarah",
         lastName: "Chen",
@@ -52,20 +19,13 @@ describe("Subscriber Server Actions - Unit Tests", () => {
         occupation: "Software Engineer",
         bio: "Love skincare",
         createdAt: new Date("2024-01-01"),
-      });
-
-      fakeDb.select = () => ({
-        from: () => ({
-          where: () => ({
-            limit: async () => [fakeDb._store.get("user_1")],
-          }),
-        }),
+        updatedAt: new Date("2024-01-01"),
       });
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await getUserProfile("user_1", deps);
@@ -87,29 +47,27 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     });
 
     it("calculates age correctly from date of birth", async () => {
-      const fakeDb = makeFakeDb() as any;
-      fakeDb._store.set("user_2", {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_2", {
         id: "user_2",
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
         phoneNumber: "+1234567890",
         dateOfBirth: new Date("1997-05-15"),
+        skinType: null,
+        concerns: null,
+        occupation: null,
+        bio: null,
         createdAt: new Date("2024-01-01"),
-      });
-
-      fakeDb.select = () => ({
-        from: () => ({
-          where: () => ({
-            limit: async () => [fakeDb._store.get("user_2")],
-          }),
-        }),
+        updatedAt: new Date("2024-01-01"),
       });
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await getUserProfile("user_2", deps);
@@ -121,8 +79,9 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     });
 
     it("handles missing optional fields gracefully", async () => {
-      const fakeDb = makeFakeDb() as any;
-      fakeDb._store.set("user_3", {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_3", {
         id: "user_3",
         firstName: "Jane",
         lastName: "Smith",
@@ -134,20 +93,13 @@ describe("Subscriber Server Actions - Unit Tests", () => {
         occupation: null,
         bio: null,
         createdAt: new Date("2024-01-01"),
-      });
-
-      fakeDb.select = () => ({
-        from: () => ({
-          where: () => ({
-            limit: async () => [fakeDb._store.get("user_3")],
-          }),
-        }),
+        updatedAt: new Date("2024-01-01"),
       });
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await getUserProfile("user_3", deps);
@@ -162,29 +114,27 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     });
 
     it("combines firstName and lastName into name", async () => {
-      const fakeDb = makeFakeDb() as any;
-      fakeDb._store.set("user_4", {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_4", {
         id: "user_4",
         firstName: "Sarah",
         lastName: "Chen",
         email: "sarah@example.com",
         phoneNumber: "+1234567890",
         dateOfBirth: new Date("1990-01-01"),
+        skinType: null,
+        concerns: null,
+        occupation: null,
+        bio: null,
         createdAt: new Date("2024-01-01"),
-      });
-
-      fakeDb.select = () => ({
-        from: () => ({
-          where: () => ({
-            limit: async () => [fakeDb._store.get("user_4")],
-          }),
-        }),
+        updatedAt: new Date("2024-01-01"),
       });
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await getUserProfile("user_4", deps);
@@ -197,8 +147,9 @@ describe("Subscriber Server Actions - Unit Tests", () => {
 
     it("returns error when userId is invalid format", async () => {
       const deps: SubscriberDeps = {
-        db: makeFakeDb() as any,
+        repo: makeUserProfileRepoFake(),
         now: () => new Date("2025-01-15T12:00:00Z"),
+        validateId: () => false,
       };
 
       const result = await getUserProfile("not-a-uuid", deps);
@@ -210,22 +161,16 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     });
 
     it("returns error when user not found", async () => {
-      const fakeDb = makeFakeDb() as any;
-      fakeDb.select = () => ({
-        from: () => ({
-          where: () => ({
-            limit: async () => [], // No user found
-          }),
-        }),
-      });
+      const repo = makeUserProfileRepoFake();
+      // No user in store
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
-      const result = await getUserProfile("550e8400-e29b-41d4-a716-446655440000", deps);
+      const result = await getUserProfile("nonexistent_id", deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -236,63 +181,87 @@ describe("Subscriber Server Actions - Unit Tests", () => {
 
   describe("updateUserProfile", () => {
     it("updates occupation successfully", async () => {
-      const fakeDb = makeFakeDb() as any;
-      const user = {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_1", {
         id: "user_1",
+        firstName: "John",
+        lastName: "Doe",
+        email: "john@example.com",
+        phoneNumber: "+1234567890",
+        dateOfBirth: new Date("1990-01-01"),
+        skinType: null,
+        concerns: null,
         occupation: "Old Job",
         bio: "Old bio",
+        createdAt: new Date("2024-01-01"),
         updatedAt: new Date("2024-01-01"),
-      };
-      fakeDb._store.set("user_1", user);
+      });
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await updateUserProfile("user_1", { occupation: "Software Engineer" }, deps);
 
       expect(result.success).toBe(true);
-      expect(user.occupation).toBe("Software Engineer");
+      expect(repo._store.get("user_1")!.occupation).toBe("Software Engineer");
     });
 
     it("updates bio successfully", async () => {
-      const fakeDb = makeFakeDb() as any;
-      const user = {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_2", {
         id: "user_2",
+        firstName: "Jane",
+        lastName: "Smith",
+        email: "jane@example.com",
+        phoneNumber: "+1234567890",
+        dateOfBirth: new Date("1990-01-01"),
+        skinType: null,
+        concerns: null,
         occupation: "Job",
         bio: "Old bio",
+        createdAt: new Date("2024-01-01"),
         updatedAt: new Date("2024-01-01"),
-      };
-      fakeDb._store.set("user_2", user);
+      });
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await updateUserProfile("user_2", { bio: "Loves skincare" }, deps);
 
       expect(result.success).toBe(true);
-      expect(user.bio).toBe("Loves skincare");
+      expect(repo._store.get("user_2")!.bio).toBe("Loves skincare");
     });
 
     it("updates both occupation and bio successfully", async () => {
-      const fakeDb = makeFakeDb() as any;
-      const user = {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_3", {
         id: "user_3",
+        firstName: "Bob",
+        lastName: "Jones",
+        email: "bob@example.com",
+        phoneNumber: "+1234567890",
+        dateOfBirth: new Date("1990-01-01"),
+        skinType: null,
+        concerns: null,
         occupation: "Old Job",
         bio: "Old bio",
+        createdAt: new Date("2024-01-01"),
         updatedAt: new Date("2024-01-01"),
-      };
-      fakeDb._store.set("user_3", user);
+      });
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await updateUserProfile(
@@ -302,37 +271,46 @@ describe("Subscriber Server Actions - Unit Tests", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(user.occupation).toBe("Teacher");
-      expect(user.bio).toBe("New bio");
+      expect(repo._store.get("user_3")!.occupation).toBe("Teacher");
+      expect(repo._store.get("user_3")!.bio).toBe("New bio");
     });
 
     it("updates updatedAt timestamp", async () => {
-      const fakeDb = makeFakeDb() as any;
-      const user = {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_4", {
         id: "user_4",
+        firstName: "Alice",
+        lastName: "Brown",
+        email: "alice@example.com",
+        phoneNumber: "+1234567890",
+        dateOfBirth: new Date("1990-01-01"),
+        skinType: null,
+        concerns: null,
         occupation: "Job",
         bio: "Bio",
+        createdAt: new Date("2024-01-01"),
         updatedAt: new Date("2024-01-01"),
-      };
-      fakeDb._store.set("user_4", user);
+      });
 
       const fixedNow = new Date("2025-01-15T10:30:00Z");
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => fixedNow,
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await updateUserProfile("user_4", { occupation: "New Job" }, deps);
 
       expect(result.success).toBe(true);
-      expect(user.updatedAt).toEqual(fixedNow);
+      expect(repo._store.get("user_4")!.updatedAt).toEqual(fixedNow);
     });
 
     it("returns error when userId is invalid format", async () => {
       const deps: SubscriberDeps = {
-        db: makeFakeDb() as any,
+        repo: makeUserProfileRepoFake(),
         now: () => new Date("2025-01-15T10:30:00Z"),
+        validateId: () => false,
       };
 
       const result = await updateUserProfile("not-a-uuid", { occupation: "Test" }, deps);
@@ -344,19 +322,27 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     });
 
     it("handles empty data object", async () => {
-      const fakeDb = makeFakeDb() as any;
-      const user = {
+      const repo = makeUserProfileRepoFake();
+
+      repo._store.set("user_5", {
         id: "user_5",
+        firstName: "Charlie",
+        lastName: "Wilson",
+        email: "charlie@example.com",
+        phoneNumber: "+1234567890",
+        dateOfBirth: new Date("1990-01-01"),
+        skinType: null,
+        concerns: null,
         occupation: "Job",
         bio: "Bio",
+        createdAt: new Date("2024-01-01"),
         updatedAt: new Date("2024-01-01"),
-      };
-      fakeDb._store.set("user_5", user);
+      });
 
       const deps: SubscriberDeps = {
-        db: fakeDb,
+        repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true, // Accept any ID in tests
+        validateId: () => true,
       };
 
       const result = await updateUserProfile("user_5", {}, deps);

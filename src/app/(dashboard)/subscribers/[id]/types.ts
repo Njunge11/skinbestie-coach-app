@@ -15,7 +15,7 @@ export interface Client {
 }
 
 export interface Goal {
-  id: number;
+  id: string;
   name: string;
   description: string;
   timeframe: string;

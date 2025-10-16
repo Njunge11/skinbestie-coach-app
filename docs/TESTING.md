@@ -215,6 +215,65 @@ it("prefixes generated id", () => {
 });
 ```
 
+### Validation Functions
+**Real (not in unit tests):** Regex validation, format checks (strict UUID/email/phone validation).
+
+**Unit test:** inject validation function; stub to control test scenarios.
+
+```typescript
+// Validation helper (reusable)
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
+// user.service.ts
+export type UserDeps = {
+  db: any;
+  validateId?: (id: string) => boolean; // Optional, defaults to UUID validation
+};
+
+export async function getUser(userId: string, deps: UserDeps) {
+  const { db, validateId = isValidUUID } = deps;
+
+  if (!validateId(userId)) {
+    return { success: false, error: "Invalid user ID" };
+  }
+
+  const user = await db.getById(userId);
+  return { success: true, data: user };
+}
+
+// user.service.unit.test.ts
+it("accepts any ID format in tests", async () => {
+  const fakeDb = { getById: async () => ({ id: "user_1", name: "Alice" }) };
+  const deps = {
+    db: fakeDb,
+    validateId: () => true // Accept any ID in tests
+  };
+
+  const result = await getUser("user_1", deps);
+  expect(result.success).toBe(true);
+});
+
+it("rejects invalid ID", async () => {
+  const fakeDb = { getById: async () => null };
+  const deps = {
+    db: fakeDb,
+    validateId: () => false // Simulate validation failure
+  };
+
+  const result = await getUser("bad-id", deps);
+  expect(result.success).toBe(false);
+  expect(result.error).toBe("Invalid user ID");
+});
+
+// Production code uses real UUID validation
+const prodDeps = { db: realDb, validateId: isValidUUID };
+```
+
+**Why?** This lets tests use simple IDs like `"user_1"` instead of UUIDs, while production validates strictly.
+
 ## Routes/controllers: unit vs integration
 * **Unit (handler only):** Call the handler function directly with fake req/res and fakes for deps. Do not start a server. Do not use a real DB.
 * **Integration:** Start the app and/or use a real DB (e.g., supertest + Testcontainers). This is not a unit test.

@@ -14,9 +14,9 @@ import type { Goal, GoalFormData } from "../types";
 interface GoalItemProps {
   goal: Goal;
   index: number;
-  onToggle: (id: number) => void;
-  onEdit: (id: number, data: GoalFormData) => void;
-  onDelete: (id: number) => void;
+  onToggle: (id: string) => Promise<void>;
+  onEdit: (id: string, data: GoalFormData) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 export function GoalItem({

@@ -1,7 +1,8 @@
 import { getUserProfile } from "./profile-header-actions/actions";
+import { getGoals } from "./goal-actions/actions";
 import { redirect } from "next/navigation";
 import { ClientPageWrapper } from "./_components/client-page-wrapper";
-import type { Client, Photo } from "./types";
+import type { Client, Photo, Goal } from "./types";
 
 interface SubscriberDetailPageProps {
   params: Promise<{ id: string }>;
@@ -157,14 +158,18 @@ export default async function SubscriberDetailPage({
   const { id } = await params;
 
   // Fetch user profile from database
-  const result = await getUserProfile(id);
+  const profileResult = await getUserProfile(id);
 
-  if (!result.success) {
+  if (!profileResult.success) {
     // Handle error - redirect to subscribers list
     redirect("/subscribers");
   }
 
-  const profileData = result.data;
+  const profileData = profileResult.data;
+
+  // Fetch goals for this user
+  const goalsResult = await getGoals(id);
+  const initialGoals: Goal[] = goalsResult.success ? goalsResult.data : [];
 
   // Transform server data to Client type
   const initialClient: Client = {
@@ -187,6 +192,7 @@ export default async function SubscriberDetailPage({
     <ClientPageWrapper
       initialClient={initialClient}
       initialPhotos={initialPhotos}
+      initialGoals={initialGoals}
       userId={id}
     />
   );

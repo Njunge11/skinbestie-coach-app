@@ -26,11 +26,11 @@ import type { Goal, GoalFormData } from "../types";
 
 interface GoalsSectionProps {
   goals: Goal[];
-  onAddGoal: (data: GoalFormData) => void;
-  onUpdateGoal: (id: number, data: GoalFormData) => void;
-  onToggleGoal: (id: number) => void;
-  onDeleteGoal: (id: number) => void;
-  onReorderGoals: (goals: Goal[]) => void;
+  onAddGoal: (data: GoalFormData) => Promise<void>;
+  onUpdateGoal: (id: string, data: GoalFormData) => Promise<void>;
+  onToggleGoal: (id: string) => Promise<void>;
+  onDeleteGoal: (id: string) => Promise<void>;
+  onReorderGoals: (goals: Goal[]) => Promise<void>;
 }
 
 export function GoalsSection({

@@ -8,6 +8,12 @@ import { RoutineSection } from "./routine-section";
 import { ComplianceSection } from "./compliance-section";
 import { CoachNotes } from "./coach-notes";
 import { updateUserProfile } from "../profile-header-actions/actions";
+import {
+  createGoal,
+  updateGoal,
+  deleteGoal,
+  reorderGoals as reorderGoalsAction,
+} from "../goal-actions/actions";
 import type {
   Client,
   Goal,
@@ -19,17 +25,19 @@ import type {
 interface ClientPageWrapperProps {
   initialClient: Client;
   initialPhotos: Photo[];
+  initialGoals: Goal[];
   userId: string;
 }
 
 export function ClientPageWrapper({
   initialClient,
   initialPhotos,
+  initialGoals,
   userId,
 }: ClientPageWrapperProps) {
   const [client, setClient] = useState<Client>(initialClient);
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const [goals, setGoals] = useState<Goal[]>(initialGoals);
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
 
@@ -74,31 +82,94 @@ export function ClientPageWrapper({
     setIsCompareMode(false);
   };
 
-  const handleAddGoal = (data: GoalFormData) => {
-    const newGoal: Goal = {
-      id: Date.now(),
-      ...data,
-      complete: false,
-    };
-    setGoals((prev) => [...prev, newGoal]);
+  const handleAddGoal = async (data: GoalFormData) => {
+    // Call server action
+    const result = await createGoal(userId, data);
+
+    if (result.success) {
+      // Add to UI
+      setGoals((prev) => [...prev, result.data]);
+    } else {
+      console.error("Failed to create goal:", result.error);
+      // TODO: Show error toast to user
+    }
   };
 
-  const handleUpdateGoal = (id: number, data: GoalFormData) => {
+  const handleUpdateGoal = async (id: string, data: GoalFormData) => {
+    // Optimistically update UI
+    const previousGoals = goals;
     setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)));
+
+    // Call server action
+    const result = await updateGoal(id, data);
+
+    if (!result.success) {
+      // Revert on error
+      setGoals(previousGoals);
+      console.error("Failed to update goal:", result.error);
+      // TODO: Show error toast to user
+    }
   };
 
-  const handleToggleGoal = (id: number) => {
+  const handleToggleGoal = async (id: string) => {
+    // Find the goal to toggle
+    const goalToToggle = goals.find((g) => g.id === id);
+    if (!goalToToggle) return;
+
+    // Optimistically update UI
+    const previousGoals = goals;
     setGoals((prev) =>
       prev.map((g) => (g.id === id ? { ...g, complete: !g.complete } : g))
     );
+
+    // Call server action
+    const result = await updateGoal(id, { complete: !goalToToggle.complete });
+
+    if (!result.success) {
+      // Revert on error
+      setGoals(previousGoals);
+      console.error("Failed to toggle goal:", result.error);
+      // TODO: Show error toast to user
+    }
   };
 
-  const handleDeleteGoal = (id: number) => {
+  const handleDeleteGoal = async (id: string) => {
+    // Optimistically update UI
+    const previousGoals = goals;
     setGoals((prev) => prev.filter((g) => g.id !== id));
+
+    // Call server action
+    const result = await deleteGoal(id);
+
+    if (!result.success) {
+      // Revert on error
+      setGoals(previousGoals);
+      console.error("Failed to delete goal:", result.error);
+      // TODO: Show error toast to user
+    }
   };
 
-  const handleReorderGoals = (reorderedGoals: Goal[]) => {
+  const handleReorderGoals = async (reorderedGoals: Goal[]) => {
+    // Optimistically update UI
+    const previousGoals = goals;
     setGoals(reorderedGoals);
+
+    // Extract IDs in new order
+    const reorderedIds = reorderedGoals.map((g) => g.id);
+
+    console.log("Reordering goals:", reorderedIds);
+
+    // Call server action
+    const result = await reorderGoalsAction(userId, reorderedIds);
+
+    console.log("Reorder result:", result);
+
+    if (!result.success) {
+      // Revert on error
+      setGoals(previousGoals);
+      console.error("Failed to reorder goals:", result.error);
+      // TODO: Show error toast to user
+    }
   };
 
   return (

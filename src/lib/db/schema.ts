@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, varchar, date, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, uuid, varchar, date, uniqueIndex, index, integer } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const admins = pgTable('admins', {
@@ -80,6 +80,48 @@ export const userProfiles = pgTable(
   })
 );
 
+export const skincareGoals = pgTable(
+  'skincare_goals',
+  {
+    // Primary Key
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // Foreign Key to user
+    userProfileId: uuid('user_profile_id')
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: 'cascade' }),
+
+    // Goal fields (all required)
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    timeframe: text('timeframe').notNull(),
+
+    // Status
+    complete: boolean('complete').notNull().default(false),
+
+    // Ordering/Priority (for drag-and-drop reordering)
+    order: integer('order').notNull(),
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user
+    userProfileIdx: index('skincare_goals_user_profile_idx').on(table.userProfileId),
+
+    // Unique constraint to prevent duplicate order values per user
+    uniqueOrderPerUser: uniqueIndex('skincare_goals_user_order_idx').on(
+      table.userProfileId,
+      table.order
+    ),
+  })
+);
+
 // Type exports for TypeScript
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
@@ -87,3 +129,5 @@ export type VerificationCode = typeof verificationCodes.$inferSelect;
 export type NewVerificationCode = typeof verificationCodes.$inferInsert;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type NewUserProfile = typeof userProfiles.$inferInsert;
+export type SkincareGoal = typeof skincareGoals.$inferSelect;
+export type NewSkincareGoal = typeof skincareGoals.$inferInsert;

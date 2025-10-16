@@ -1,19 +1,18 @@
 "use server";
 
-import { eq } from "drizzle-orm";
-import { db as defaultDb } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
+import { makeUserProfileRepo } from "./user-profile.repo";
+import type { UserProfile } from "./user-profile.repo.fake";
 
 // Dependency injection for testing (follows TESTING.md)
 export type SubscriberDeps = {
-  db: typeof defaultDb;
+  repo: ReturnType<typeof makeUserProfileRepo>;
   now: () => Date;
   validateId?: (id: string) => boolean;
 };
 
 // Default dependencies (production)
 const defaultDeps: SubscriberDeps = {
-  db: defaultDb,
+  repo: makeUserProfileRepo(),
   now: () => new Date(),
   validateId: isValidUUID,
 };
@@ -67,19 +66,15 @@ export async function getUserProfile(
   userId: string,
   deps: SubscriberDeps = defaultDeps
 ): Promise<Result<UserProfileData>> {
-  const { db, now, validateId = isValidUUID } = deps;
+  const { repo, now, validateId = isValidUUID } = deps;
 
   // Validate userId format
   if (!validateId(userId)) {
     return { success: false, error: "Invalid user ID" };
   }
 
-  // Fetch user from database
-  const [user] = await db
-    .select()
-    .from(userProfiles)
-    .where(eq(userProfiles.id, userId))
-    .limit(1);
+  // Fetch user from repository
+  const user = await repo.getById(userId);
 
   if (!user) {
     return { success: false, error: "User not found" };
@@ -109,7 +104,7 @@ export async function updateUserProfile(
   updates: { occupation?: string; bio?: string },
   deps: SubscriberDeps = defaultDeps
 ): Promise<Result<void>> {
-  const { db, now, validateId = isValidUUID } = deps;
+  const { repo, now, validateId = isValidUUID } = deps;
 
   // Validate userId format
   if (!validateId(userId)) {
@@ -117,7 +112,7 @@ export async function updateUserProfile(
   }
 
   // Build update data
-  const updateData: Record<string, any> = {
+  const updateData: Partial<UserProfile> = {
     updatedAt: now(),
   };
 
@@ -129,8 +124,8 @@ export async function updateUserProfile(
     updateData.bio = updates.bio;
   }
 
-  // Update database
-  await db.update(userProfiles).set(updateData).where(eq(userProfiles.id, userId));
+  // Update via repository
+  await repo.update(userId, updateData);
 
   return { success: true, data: undefined };
 }
