@@ -85,7 +85,7 @@ afterEach(async () => {
   cleanup();
 
   // Database cleanup: clear data, keep schema (much faster than dropping/recreating)
-  await db.execute(sql`TRUNCATE TABLE admins, verification_codes RESTART IDENTITY CASCADE`);
+  await db.execute(sql`TRUNCATE TABLE admins, verification_codes, user_profiles RESTART IDENTITY CASCADE`);
 
   // Clear captured verification codes
   sentVerificationCodes.clear();

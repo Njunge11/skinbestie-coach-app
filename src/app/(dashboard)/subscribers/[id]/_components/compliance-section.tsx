@@ -642,29 +642,53 @@ export function ComplianceSection() {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Overall Adherence */}
-        <div className="rounded-lg bg-primary p-6 text-primary-foreground">
-          <p className="text-sm font-medium opacity-90 mb-1">Overall Adherence</p>
-          <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-4xl font-bold">{overallPercentage}%</span>
-            <span className="text-sm opacity-75">
-              {overallCompleted}/{complianceData.overall.prescribed}
-            </span>
-          </div>
-          <div className="flex gap-4 text-xs">
-            <div>
-              <span className="opacity-75">On-time:</span>{" "}
-              <span className="font-semibold">{complianceData.overall.onTime}</span>
-            </div>
-            <div>
-              <span className="opacity-75">Late:</span>{" "}
-              <span className="font-semibold">{complianceData.overall.late}</span>
-            </div>
-            <div>
-              <span className="opacity-75">Missed:</span>{" "}
-              <span className="font-semibold">{complianceData.overall.missed}</span>
-            </div>
-          </div>
+        {/* 4 Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* Overall Adherence - Black with gradient */}
+          <Card className="bg-gradient-to-b from-primary to-primary/90 border-0">
+            <CardContent className="p-6 text-primary-foreground">
+              <p className="text-sm font-medium opacity-90 mb-2">Overall Adherence</p>
+              <div>
+                <div className="text-4xl font-bold mb-1">{overallPercentage}%</div>
+                <div className="text-sm opacity-75">
+                  {overallCompleted}/{complianceData.overall.prescribed}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* On Time */}
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-muted-foreground mb-2">On Time</p>
+              <div>
+                <div className="text-4xl font-bold text-foreground mb-1">{complianceData.overall.onTime}</div>
+                <p className="text-xs text-muted-foreground">Steps completed on schedule</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Late */}
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-muted-foreground mb-2">Late</p>
+              <div>
+                <div className="text-4xl font-bold text-foreground mb-1">{complianceData.overall.late}</div>
+                <p className="text-xs text-muted-foreground">Steps completed after schedule</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Missed */}
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-muted-foreground mb-2">Missed</p>
+              <div>
+                <div className="text-4xl font-bold text-destructive mb-1">{complianceData.overall.missed}</div>
+                <p className="text-xs text-muted-foreground">Steps not completed</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* AM/PM Split */}

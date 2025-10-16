@@ -37,10 +37,10 @@ export function ProfileHeader({ client, onUpdate }: ProfileHeaderProps) {
 
   return (
     <Card className="overflow-hidden py-0">
-      <div className="h-24 xl:h-32 bg-gradient-to-r from-violet-100 via-pink-100 to-orange-100" />
+      <div className="h-24 xl:h-32 bg-gradient-to-r from-primary/70 to-primary/90" />
       <CardContent className="pt-0">
         <div className="flex flex-col xl:flex-row items-start gap-4 xl:gap-6 -mt-12 xl:-mt-16 pb-6">
-          <div className="w-24 h-24 xl:w-32 xl:h-32 flex-shrink-0 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-3xl xl:text-4xl font-bold ring-4 ring-white">
+          <div className="w-24 h-24 xl:w-32 xl:h-32 flex-shrink-0 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-3xl xl:text-4xl font-bold ring-4 ring-white">
             {client.name.charAt(0)}
           </div>
 
@@ -80,14 +80,24 @@ export function ProfileHeader({ client, onUpdate }: ProfileHeaderProps) {
                       <Check className="w-4 h-4 mr-2" />
                       Save
                     </Button>
-                    <Button key="cancel" size="sm" variant="outline" onClick={handleCancel}>
+                    <Button
+                      key="cancel"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancel}
+                    >
                       <X className="w-4 h-4 mr-2" />
                       Cancel
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button key="edit" size="sm" variant="outline" onClick={handleEdit}>
+                    <Button
+                      key="edit"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleEdit}
+                    >
                       <Edit2 className="w-4 h-4 mr-2" />
                       Edit
                     </Button>
@@ -152,26 +162,53 @@ export function ProfileHeader({ client, onUpdate }: ProfileHeaderProps) {
             <div className="flex xl:hidden gap-2 pt-4 border-t border-border">
               {editMode ? (
                 <>
-                  <Button key="save-mobile" size="sm" onClick={handleSave} className="flex-1">
+                  <Button
+                    key="save-mobile"
+                    size="sm"
+                    onClick={handleSave}
+                    className="flex-1"
+                  >
                     <Check className="w-4 h-4 mr-2" />
                     Save
                   </Button>
-                  <Button key="cancel-mobile" size="sm" variant="outline" onClick={handleCancel} className="flex-1">
+                  <Button
+                    key="cancel-mobile"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancel}
+                    className="flex-1"
+                  >
                     <X className="w-4 h-4 mr-2" />
                     Cancel
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button key="edit-mobile" size="sm" variant="outline" onClick={handleEdit} className="flex-1">
+                  <Button
+                    key="edit-mobile"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleEdit}
+                    className="flex-1"
+                  >
                     <Edit2 className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
-                  <Button key="schedule-mobile" size="sm" variant="outline" className="flex-1">
+                  <Button
+                    key="schedule-mobile"
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                  >
                     <Calendar className="w-4 h-4 mr-2" />
                     Schedule
                   </Button>
-                  <Button key="message-mobile" size="sm" variant="outline" className="flex-1">
+                  <Button
+                    key="message-mobile"
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                  >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Message
                   </Button>

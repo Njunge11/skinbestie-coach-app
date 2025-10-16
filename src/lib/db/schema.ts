@@ -53,6 +53,10 @@ export const userProfiles = pgTable(
     // Step 6 - Nullable until completed
     hasCompletedBooking: boolean('has_completed_booking'),
 
+    // Additional profile fields
+    occupation: text('occupation'),
+    bio: text('bio'),
+
     // Tracking fields
     completedSteps: text('completed_steps')
       .array()

@@ -1,40 +1,11 @@
-"use client";
-
-import { useState } from "react";
-import { ProfileHeader } from "./_components/profile-header";
-import { ProgressPhotos } from "./_components/progress-photos";
-import { GoalsSection } from "./_components/goals-section";
-import { RoutineSection } from "./_components/routine-section";
-import { ComplianceSection } from "./_components/compliance-section";
-import { CoachNotes } from "./_components/coach-notes";
-import type {
-  Client,
-  Goal,
-  Photo,
-  EditableClientData,
-  GoalFormData,
-} from "./types";
+import { getUserProfile } from "./profile-header-actions/actions";
+import { redirect } from "next/navigation";
+import { ClientPageWrapper } from "./_components/client-page-wrapper";
+import type { Client, Photo } from "./types";
 
 interface SubscriberDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
-
-// Dummy data
-const initialClient: Client = {
-  id: "1",
-  name: "Sarah Chen",
-  age: 28,
-  email: "sarah.chen@email.com",
-  mobile: "+1 (415) 555-0123",
-  occupation: "",
-  bio: "",
-  skinType: "Combination",
-  concerns: ["Acne", "Dark Spots", "Texture"],
-  planWeeks: 12,
-  currentWeek: 1,
-  startDate: "2025-10-15",
-  hasRoutine: false,
-};
 
 const initialPhotos: Photo[] = [
   {
@@ -180,107 +151,43 @@ const initialPhotos: Photo[] = [
   },
 ];
 
-export default function SubscriberDetailPage({
+export default async function SubscriberDetailPage({
   params,
 }: SubscriberDetailPageProps) {
-  const [client, setClient] = useState<Client>(initialClient);
-  const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [isCompareMode, setIsCompareMode] = useState(false);
-  const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
+  const { id } = await params;
 
-  const handleUpdateClient = (data: EditableClientData) => {
-    setClient((prev) => ({ ...prev, ...data }));
-  };
+  // Fetch user profile from database
+  const result = await getUserProfile(id);
 
-  const handleUpdatePhotoFeedback = (id: number, feedback: string) => {
-    setPhotos((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, feedback } : p))
-    );
-  };
+  if (!result.success) {
+    // Handle error - redirect to subscribers list
+    redirect("/subscribers");
+  }
 
-  const handlePhotoSelect = (photo: Photo) => {
-    if (selectedPhotos.find((p) => p.id === photo.id)) {
-      // Deselect
-      setSelectedPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-    } else if (selectedPhotos.length < 2) {
-      // Select (max 2)
-      setSelectedPhotos((prev) => [...prev, photo]);
-    }
-  };
+  const profileData = result.data;
 
-  const handleToggleCompareMode = () => {
-    setIsCompareMode(!isCompareMode);
-    setSelectedPhotos([]);
-  };
-
-  const handleCloseComparison = () => {
-    setSelectedPhotos([]);
-    setIsCompareMode(false);
-  };
-
-  const handleAddGoal = (data: GoalFormData) => {
-    const newGoal: Goal = {
-      id: Date.now(),
-      ...data,
-      complete: false,
-    };
-    setGoals((prev) => [...prev, newGoal]);
-  };
-
-  const handleUpdateGoal = (id: number, data: GoalFormData) => {
-    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)));
-  };
-
-  const handleToggleGoal = (id: number) => {
-    setGoals((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, complete: !g.complete } : g))
-    );
-  };
-
-  const handleDeleteGoal = (id: number) => {
-    setGoals((prev) => prev.filter((g) => g.id !== id));
-  };
-
-  const handleReorderGoals = (reorderedGoals: Goal[]) => {
-    setGoals(reorderedGoals);
+  // Transform server data to Client type
+  const initialClient: Client = {
+    id: profileData.id,
+    name: profileData.name,
+    age: profileData.age,
+    email: profileData.email,
+    mobile: profileData.mobile,
+    occupation: profileData.occupation,
+    bio: profileData.bio,
+    skinType: profileData.skinType,
+    concerns: profileData.concerns,
+    planWeeks: 12,
+    currentWeek: 1,
+    startDate: "2025-10-15",
+    hasRoutine: false,
   };
 
   return (
-    <div className="space-y-6">
-      <ProfileHeader client={client} onUpdate={handleUpdateClient} />
-
-      <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
-        {/* Main Content */}
-        <div className="flex-1 space-y-6">
-          <ComplianceSection />
-
-          <GoalsSection
-            goals={goals}
-            onAddGoal={handleAddGoal}
-            onUpdateGoal={handleUpdateGoal}
-            onToggleGoal={handleToggleGoal}
-            onDeleteGoal={handleDeleteGoal}
-            onReorderGoals={handleReorderGoals}
-          />
-
-          <RoutineSection />
-
-          <ProgressPhotos
-            photos={photos}
-            onUpdateFeedback={handleUpdatePhotoFeedback}
-            isCompareMode={isCompareMode}
-            selectedPhotos={selectedPhotos}
-            onPhotoSelect={handlePhotoSelect}
-            onToggleCompareMode={handleToggleCompareMode}
-          />
-        </div>
-
-        {/* Right Sidebar - full width on mobile/tablet, sidebar on desktop */}
-        <div className="w-full xl:w-80">
-          <CoachNotes />
-        </div>
-      </div>
-    </div>
+    <ClientPageWrapper
+      initialClient={initialClient}
+      initialPhotos={initialPhotos}
+      userId={id}
+    />
   );
 }

@@ -8,7 +8,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Unit tests only - exclude integration tests per TESTING.md
     include: ['**/*.{test,spec}.{ts,tsx}'],
+    exclude: ['node_modules/', '**/*.integration.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
