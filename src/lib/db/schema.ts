@@ -168,6 +168,39 @@ export const skincareRoutineProducts = pgTable(
   })
 );
 
+export const coachNotes = pgTable(
+  'coach_notes',
+  {
+    // Primary Key
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // Foreign Keys
+    userProfileId: uuid('user_profile_id')
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: 'cascade' }),
+    adminId: uuid('admin_id')
+      .notNull()
+      .references(() => admins.id, { onDelete: 'cascade' }),
+
+    // Note content
+    content: text('content').notNull(),
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user profile
+    userProfileIdx: index('coach_notes_user_profile_idx').on(table.userProfileId),
+    // Index for efficient queries by admin
+    adminIdx: index('coach_notes_admin_idx').on(table.adminId),
+  })
+);
+
 // Type exports for TypeScript
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
@@ -179,3 +212,5 @@ export type SkincareGoal = typeof skincareGoals.$inferSelect;
 export type NewSkincareGoal = typeof skincareGoals.$inferInsert;
 export type SkincareRoutineProduct = typeof skincareRoutineProducts.$inferSelect;
 export type NewSkincareRoutineProduct = typeof skincareRoutineProducts.$inferInsert;
+export type CoachNote = typeof coachNotes.$inferSelect;
+export type NewCoachNote = typeof coachNotes.$inferInsert;

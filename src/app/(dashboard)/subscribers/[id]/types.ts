@@ -60,3 +60,12 @@ export interface RoutineProductFormData {
   frequency: string;
   days?: string[];
 }
+
+export interface CoachNote {
+  id: string;
+  userProfileId: string;
+  adminId: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

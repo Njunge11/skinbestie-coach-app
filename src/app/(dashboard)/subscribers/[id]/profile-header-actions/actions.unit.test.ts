@@ -3,12 +3,19 @@ import { getUserProfile, updateUserProfile, type SubscriberDeps } from "./action
 import { makeUserProfileRepoFake } from "./user-profile.repo.fake";
 
 describe("Subscriber Server Actions - Unit Tests", () => {
+  // Test UUIDs
+  const user1Id = "550e8400-e29b-41d4-a716-446655440000";
+  const user2Id = "550e8400-e29b-41d4-a716-446655440001";
+  const user3Id = "550e8400-e29b-41d4-a716-446655440002";
+  const user4Id = "550e8400-e29b-41d4-a716-446655440003";
+  const user5Id = "550e8400-e29b-41d4-a716-446655440004";
+
   describe("getUserProfile", () => {
     it("returns user profile data when valid userId provided", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_1", {
-        id: "user_1",
+      repo._store.set(user1Id, {
+        id: user1Id,
         firstName: "Sarah",
         lastName: "Chen",
         email: "sarah@example.com",
@@ -24,16 +31,16 @@ describe("Subscriber Server Actions - Unit Tests", () => {
 
       const deps: SubscriberDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getUserProfile("user_1", deps);
+      const result = await getUserProfile(user1Id, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toMatchObject({
-          id: "user_1",
+          id: user1Id,
           name: "Sarah Chen",
           email: "sarah@example.com",
           mobile: "+1234567890",
@@ -49,8 +56,8 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     it("calculates age correctly from date of birth", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_2", {
-        id: "user_2",
+      repo._store.set(user2Id, {
+        id: user2Id,
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
@@ -66,11 +73,11 @@ describe("Subscriber Server Actions - Unit Tests", () => {
 
       const deps: SubscriberDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getUserProfile("user_2", deps);
+      const result = await getUserProfile(user2Id, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -81,8 +88,8 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     it("handles missing optional fields gracefully", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_3", {
-        id: "user_3",
+      repo._store.set(user3Id, {
+        id: user3Id,
         firstName: "Jane",
         lastName: "Smith",
         email: "jane@example.com",
@@ -98,11 +105,11 @@ describe("Subscriber Server Actions - Unit Tests", () => {
 
       const deps: SubscriberDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getUserProfile("user_3", deps);
+      const result = await getUserProfile(user3Id, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -116,8 +123,8 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     it("combines firstName and lastName into name", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_4", {
-        id: "user_4",
+      repo._store.set(user4Id, {
+        id: user4Id,
         firstName: "Sarah",
         lastName: "Chen",
         email: "sarah@example.com",
@@ -133,11 +140,11 @@ describe("Subscriber Server Actions - Unit Tests", () => {
 
       const deps: SubscriberDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getUserProfile("user_4", deps);
+      const result = await getUserProfile(user4Id, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -148,8 +155,8 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     it("returns error when userId is invalid format", async () => {
       const deps: SubscriberDeps = {
         repo: makeUserProfileRepoFake(),
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => false,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
       const result = await getUserProfile("not-a-uuid", deps);
@@ -166,11 +173,11 @@ describe("Subscriber Server Actions - Unit Tests", () => {
 
       const deps: SubscriberDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getUserProfile("nonexistent_id", deps);
+      const result = await getUserProfile("550e8400-e29b-41d4-a716-999999999999", deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -183,8 +190,8 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     it("updates occupation successfully", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_1", {
-        id: "user_1",
+      repo._store.set(user1Id, {
+        id: user1Id,
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
@@ -201,20 +208,20 @@ describe("Subscriber Server Actions - Unit Tests", () => {
       const deps: SubscriberDeps = {
         repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        
       };
 
-      const result = await updateUserProfile("user_1", { occupation: "Software Engineer" }, deps);
+      const result = await updateUserProfile(user1Id, { occupation: "Software Engineer" }, deps);
 
       expect(result.success).toBe(true);
-      expect(repo._store.get("user_1")!.occupation).toBe("Software Engineer");
+      expect(repo._store.get(user1Id)!.occupation).toBe("Software Engineer");
     });
 
     it("updates bio successfully", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_2", {
-        id: "user_2",
+      repo._store.set(user2Id, {
+        id: user2Id,
         firstName: "Jane",
         lastName: "Smith",
         email: "jane@example.com",
@@ -231,20 +238,20 @@ describe("Subscriber Server Actions - Unit Tests", () => {
       const deps: SubscriberDeps = {
         repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        
       };
 
-      const result = await updateUserProfile("user_2", { bio: "Loves skincare" }, deps);
+      const result = await updateUserProfile(user2Id, { bio: "Loves skincare" }, deps);
 
       expect(result.success).toBe(true);
-      expect(repo._store.get("user_2")!.bio).toBe("Loves skincare");
+      expect(repo._store.get(user2Id)!.bio).toBe("Loves skincare");
     });
 
     it("updates both occupation and bio successfully", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_3", {
-        id: "user_3",
+      repo._store.set(user3Id, {
+        id: user3Id,
         firstName: "Bob",
         lastName: "Jones",
         email: "bob@example.com",
@@ -261,25 +268,25 @@ describe("Subscriber Server Actions - Unit Tests", () => {
       const deps: SubscriberDeps = {
         repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        
       };
 
       const result = await updateUserProfile(
-        "user_3",
+        user3Id,
         { occupation: "Teacher", bio: "New bio" },
         deps
       );
 
       expect(result.success).toBe(true);
-      expect(repo._store.get("user_3")!.occupation).toBe("Teacher");
-      expect(repo._store.get("user_3")!.bio).toBe("New bio");
+      expect(repo._store.get(user3Id)!.occupation).toBe("Teacher");
+      expect(repo._store.get(user3Id)!.bio).toBe("New bio");
     });
 
     it("updates updatedAt timestamp", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_4", {
-        id: "user_4",
+      repo._store.set(user4Id, {
+        id: user4Id,
         firstName: "Alice",
         lastName: "Brown",
         email: "alice@example.com",
@@ -296,21 +303,21 @@ describe("Subscriber Server Actions - Unit Tests", () => {
       const fixedNow = new Date("2025-01-15T10:30:00Z");
       const deps: SubscriberDeps = {
         repo,
-        now: () => fixedNow,
-        validateId: () => true,
+        now: () => fixedNow
+        
       };
 
-      const result = await updateUserProfile("user_4", { occupation: "New Job" }, deps);
+      const result = await updateUserProfile(user4Id, { occupation: "New Job" }, deps);
 
       expect(result.success).toBe(true);
-      expect(repo._store.get("user_4")!.updatedAt).toEqual(fixedNow);
+      expect(repo._store.get(user4Id)!.updatedAt).toEqual(fixedNow);
     });
 
     it("returns error when userId is invalid format", async () => {
       const deps: SubscriberDeps = {
         repo: makeUserProfileRepoFake(),
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => false,
+        
       };
 
       const result = await updateUserProfile("not-a-uuid", { occupation: "Test" }, deps);
@@ -324,8 +331,8 @@ describe("Subscriber Server Actions - Unit Tests", () => {
     it("handles empty data object", async () => {
       const repo = makeUserProfileRepoFake();
 
-      repo._store.set("user_5", {
-        id: "user_5",
+      repo._store.set(user5Id, {
+        id: user5Id,
         firstName: "Charlie",
         lastName: "Wilson",
         email: "charlie@example.com",
@@ -342,10 +349,10 @@ describe("Subscriber Server Actions - Unit Tests", () => {
       const deps: SubscriberDeps = {
         repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        
       };
 
-      const result = await updateUserProfile("user_5", {}, deps);
+      const result = await updateUserProfile(user5Id, {}, deps);
 
       expect(result.success).toBe(true);
     });

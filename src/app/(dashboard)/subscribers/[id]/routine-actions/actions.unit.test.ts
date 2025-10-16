@@ -11,16 +11,23 @@ import {
 import { makeRoutineProductsRepoFake } from "./routine.repo.fake";
 
 describe("Routine Product Actions - Unit Tests", () => {
+  // Test UUIDs
+  const user1Id = "550e8400-e29b-41d4-a716-446655440000";
+  const user2Id = "550e8400-e29b-41d4-a716-446655440001";
+  const product1Id = "650e8400-e29b-41d4-a716-446655440001";
+  const product2Id = "650e8400-e29b-41d4-a716-446655440002";
+  const product3Id = "650e8400-e29b-41d4-a716-446655440003";
+
   describe("getRoutineProducts", () => {
     it("returns empty array when user has no routine products", async () => {
       const repo = makeRoutineProductsRepoFake();
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getRoutineProducts("user_1", deps);
+      const result = await getRoutineProducts(user1Id, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -32,9 +39,9 @@ describe("Routine Product Actions - Unit Tests", () => {
       const repo = makeRoutineProductsRepoFake();
 
       // Add evening product first (order should prioritize morning)
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Evening Cleanser",
         instructions: "Apply to face",
@@ -46,9 +53,9 @@ describe("Routine Product Actions - Unit Tests", () => {
       });
 
       // Add morning product
-      repo._store.set("product_2", {
-        id: "product_2",
-        userProfileId: "user_1",
+      repo._store.set(product2Id, {
+        id: product2Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning Cleanser",
         instructions: "Apply to face",
@@ -61,11 +68,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getRoutineProducts("user_1", deps);
+      const result = await getRoutineProducts(user1Id, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -79,9 +86,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("does not return products belonging to other users", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "User 1 Product",
         instructions: "Instructions",
@@ -92,9 +99,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      repo._store.set("product_2", {
-        id: "product_2",
-        userProfileId: "user_2",
+      repo._store.set(product2Id, {
+        id: product2Id,
+        userProfileId: user2Id,
         routineStep: "Cleanser",
         productName: "User 2 Product",
         instructions: "Instructions",
@@ -107,24 +114,24 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getRoutineProducts("user_1", deps);
+      const result = await getRoutineProducts(user1Id, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toHaveLength(1);
-        expect(result.data[0].userProfileId).toBe("user_1");
+        expect(result.data[0].userProfileId).toBe(user1Id);
       }
     });
 
     it("returns error when userId is invalid format", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => false,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
       const result = await getRoutineProducts("invalid-id", deps);
@@ -140,9 +147,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns only morning products when timeOfDay is morning", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning Cleanser",
         instructions: "Apply to face",
@@ -153,9 +160,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      repo._store.set("product_2", {
-        id: "product_2",
-        userProfileId: "user_1",
+      repo._store.set(product2Id, {
+        id: product2Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Evening Cleanser",
         instructions: "Apply to face",
@@ -168,11 +175,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getRoutineProductsByTimeOfDay("user_1", "morning", deps);
+      const result = await getRoutineProductsByTimeOfDay(user1Id, "morning", deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -184,9 +191,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns only evening products when timeOfDay is evening", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning Cleanser",
         instructions: "Apply to face",
@@ -197,9 +204,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      repo._store.set("product_2", {
-        id: "product_2",
-        userProfileId: "user_1",
+      repo._store.set(product2Id, {
+        id: product2Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Evening Cleanser",
         instructions: "Apply to face",
@@ -212,11 +219,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getRoutineProductsByTimeOfDay("user_1", "evening", deps);
+      const result = await getRoutineProductsByTimeOfDay(user1Id, "evening", deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -228,9 +235,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns products in correct order", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Moisturizer",
         productName: "Product 1",
         instructions: "Apply",
@@ -241,9 +248,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      repo._store.set("product_2", {
-        id: "product_2",
-        userProfileId: "user_1",
+      repo._store.set(product2Id, {
+        id: product2Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product 2",
         instructions: "Apply",
@@ -254,9 +261,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      repo._store.set("product_3", {
-        id: "product_3",
-        userProfileId: "user_1",
+      repo._store.set(product3Id, {
+        id: product3Id,
+        userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Product 3",
         instructions: "Apply",
@@ -269,11 +276,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
-      const result = await getRoutineProductsByTimeOfDay("user_1", "morning", deps);
+      const result = await getRoutineProductsByTimeOfDay(user1Id, "morning", deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -287,8 +294,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when userId is invalid format", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T12:00:00Z"),
-        validateId: () => false,
+        now: () => new Date("2025-01-15T12:00:00Z")
+        
       };
 
       const result = await getRoutineProductsByTimeOfDay("invalid-id", "morning", deps);
@@ -307,8 +314,8 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => fixedNow,
-        validateId: () => true,
+        now: () => fixedNow
+        
       };
 
       const data = {
@@ -319,7 +326,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -336,8 +343,8 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -349,7 +356,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -362,8 +369,8 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -375,7 +382,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "evening" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -388,8 +395,8 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -400,7 +407,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -412,9 +419,9 @@ describe("Routine Product Actions - Unit Tests", () => {
       const repo = makeRoutineProductsRepoFake();
 
       // Add existing morning products
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product 1",
         instructions: "Apply",
@@ -425,9 +432,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      repo._store.set("product_2", {
-        id: "product_2",
-        userProfileId: "user_1",
+      repo._store.set(product2Id, {
+        id: product2Id,
+        userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Product 2",
         instructions: "Apply",
@@ -440,8 +447,8 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -452,7 +459,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -464,9 +471,9 @@ describe("Routine Product Actions - Unit Tests", () => {
       const repo = makeRoutineProductsRepoFake();
 
       // Add existing morning products
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning Product",
         instructions: "Apply",
@@ -479,8 +486,8 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -491,7 +498,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "evening" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -505,8 +512,8 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => fixedNow,
-        validateId: () => true,
+        now: () => fixedNow
+        
       };
 
       const data = {
@@ -517,7 +524,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -529,8 +536,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when userId is invalid format", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => false,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -552,8 +559,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when routineStep is missing", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -564,7 +571,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -575,8 +582,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when productName is missing", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -587,7 +594,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -598,8 +605,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when instructions are missing", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -610,7 +617,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -621,8 +628,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when frequency is missing", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -633,7 +640,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -644,8 +651,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when timeOfDay is invalid", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -656,7 +663,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "afternoon" as any,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -667,8 +674,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when routineStep is whitespace only", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -679,7 +686,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -690,8 +697,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when productName is whitespace only", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -702,7 +709,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -713,8 +720,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when instructions are whitespace only", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -725,7 +732,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -736,8 +743,8 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when frequency is whitespace only", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const data = {
@@ -748,7 +755,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         timeOfDay: "morning" as const,
       };
 
-      const result = await createRoutineProduct("user_1", data, deps);
+      const result = await createRoutineProduct(user1Id, data, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -761,9 +768,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("updates product name successfully", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Old Product",
         instructions: "Apply",
@@ -776,22 +783,22 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await updateRoutineProduct("product_1", { productName: "New Product" }, deps);
+      const result = await updateRoutineProduct(product1Id, { productName: "New Product" }, deps);
 
       expect(result.success).toBe(true);
-      expect(repo._store.get("product_1")!.productName).toBe("New Product");
+      expect(repo._store.get(product1Id)!.productName).toBe("New Product");
     });
 
     it("updates productUrl successfully", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
         instructions: "Apply",
@@ -804,26 +811,26 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const result = await updateRoutineProduct(
-        "product_1",
+        product1Id,
         { productUrl: "https://example.com/new-url" },
         deps
       );
 
       expect(result.success).toBe(true);
-      expect(repo._store.get("product_1")!.productUrl).toBe("https://example.com/new-url");
+      expect(repo._store.get(product1Id)!.productUrl).toBe("https://example.com/new-url");
     });
 
     it("updates frequency and days successfully", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Exfoliant",
         productName: "Product",
         instructions: "Apply",
@@ -836,12 +843,12 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const result = await updateRoutineProduct(
-        "product_1",
+        product1Id,
         {
           frequency: "2x per week",
           days: ["Monday", "Thursday"],
@@ -850,7 +857,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       );
 
       expect(result.success).toBe(true);
-      const updated = repo._store.get("product_1")!;
+      const updated = repo._store.get(product1Id)!;
       expect(updated.frequency).toBe("2x per week");
       expect(updated.days).toEqual(["Monday", "Thursday"]);
     });
@@ -858,9 +865,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("updates updatedAt timestamp", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
         instructions: "Apply",
@@ -874,21 +881,21 @@ describe("Routine Product Actions - Unit Tests", () => {
       const fixedNow = new Date("2025-01-15T10:30:00Z");
       const deps: RoutineProductDeps = {
         repo,
-        now: () => fixedNow,
-        validateId: () => true,
+        now: () => fixedNow
+        
       };
 
-      const result = await updateRoutineProduct("product_1", { productName: "Updated" }, deps);
+      const result = await updateRoutineProduct(product1Id, { productName: "Updated" }, deps);
 
       expect(result.success).toBe(true);
-      expect(repo._store.get("product_1")!.updatedAt).toEqual(fixedNow);
+      expect(repo._store.get(product1Id)!.updatedAt).toEqual(fixedNow);
     });
 
     it("returns error when productId is invalid format", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => false,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const result = await updateRoutineProduct("invalid-id", { productName: "Test" }, deps);
@@ -902,11 +909,11 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when product not found", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await updateRoutineProduct("nonexistent_id", { productName: "Test" }, deps);
+      const result = await updateRoutineProduct("550e8400-e29b-41d4-a716-999999999999", { productName: "Test" }, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -917,9 +924,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when updating productName to empty string", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Valid Product",
         instructions: "Apply",
@@ -932,11 +939,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await updateRoutineProduct("product_1", { productName: "" }, deps);
+      const result = await updateRoutineProduct(product1Id, { productName: "" }, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -947,9 +954,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when updating instructions to empty string", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
         instructions: "Valid instructions",
@@ -962,11 +969,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await updateRoutineProduct("product_1", { instructions: "" }, deps);
+      const result = await updateRoutineProduct(product1Id, { instructions: "" }, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -977,9 +984,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when updating routineStep to whitespace", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
         instructions: "Instructions",
@@ -992,11 +999,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await updateRoutineProduct("product_1", { routineStep: "   " }, deps);
+      const result = await updateRoutineProduct(product1Id, { routineStep: "   " }, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -1007,9 +1014,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when updating productName to whitespace", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Valid Product",
         instructions: "Instructions",
@@ -1022,11 +1029,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await updateRoutineProduct("product_1", { productName: "   " }, deps);
+      const result = await updateRoutineProduct(product1Id, { productName: "   " }, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -1037,9 +1044,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when updating instructions to whitespace", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
         instructions: "Valid instructions",
@@ -1052,11 +1059,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await updateRoutineProduct("product_1", { instructions: "   " }, deps);
+      const result = await updateRoutineProduct(product1Id, { instructions: "   " }, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -1067,9 +1074,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when updating frequency to whitespace", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
         instructions: "Instructions",
@@ -1082,11 +1089,11 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await updateRoutineProduct("product_1", { frequency: "   " }, deps);
+      const result = await updateRoutineProduct(product1Id, { frequency: "   " }, deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -1099,9 +1106,9 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("deletes routine product successfully", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product to delete",
         instructions: "Apply",
@@ -1114,21 +1121,21 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await deleteRoutineProduct("product_1", deps);
+      const result = await deleteRoutineProduct(product1Id, deps);
 
       expect(result.success).toBe(true);
-      expect(repo._store.has("product_1")).toBe(false);
+      expect(repo._store.has(product1Id)).toBe(false);
     });
 
     it("returns error when productId is invalid format", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => false,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       const result = await deleteRoutineProduct("invalid-id", deps);
@@ -1142,11 +1149,11 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when product not found", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await deleteRoutineProduct("nonexistent_id", deps);
+      const result = await deleteRoutineProduct("550e8400-e29b-41d4-a716-999999999999", deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -1160,9 +1167,9 @@ describe("Routine Product Actions - Unit Tests", () => {
       const repo = makeRoutineProductsRepoFake();
 
       // Given: three morning products with initial order 0, 1, 2
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "First",
         instructions: "Apply",
@@ -1173,9 +1180,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date("2024-01-01"),
       });
 
-      repo._store.set("product_2", {
-        id: "product_2",
-        userProfileId: "user_1",
+      repo._store.set(product2Id, {
+        id: product2Id,
+        userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Second",
         instructions: "Apply",
@@ -1186,9 +1193,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date("2024-01-01"),
       });
 
-      repo._store.set("product_3", {
-        id: "product_3",
-        userProfileId: "user_1",
+      repo._store.set(product3Id, {
+        id: product3Id,
+        userProfileId: user1Id,
         routineStep: "Moisturizer",
         productName: "Third",
         instructions: "Apply",
@@ -1201,32 +1208,32 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       // When: reordering to [product_3, product_1, product_2]
       const result = await reorderRoutineProducts(
-        "user_1",
+        user1Id,
         "morning",
-        ["product_3", "product_1", "product_2"],
+        [product3Id, product1Id, product2Id],
         deps
       );
 
       // Then: success and order values updated
       expect(result.success).toBe(true);
-      expect(repo._store.get("product_3")!.order).toBe(0);
-      expect(repo._store.get("product_1")!.order).toBe(1);
-      expect(repo._store.get("product_2")!.order).toBe(2);
+      expect(repo._store.get(product3Id)!.order).toBe(0);
+      expect(repo._store.get(product1Id)!.order).toBe(1);
+      expect(repo._store.get(product2Id)!.order).toBe(2);
     });
 
     it("only reorders products for the specified time of day", async () => {
       const repo = makeRoutineProductsRepoFake();
 
       // Morning products
-      repo._store.set("morning_1", {
-        id: "morning_1",
-        userProfileId: "user_1",
+      repo._store.set("750e8400-e29b-41d4-a716-446655440001", {
+        id: "750e8400-e29b-41d4-a716-446655440001",
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning 1",
         instructions: "Apply",
@@ -1237,9 +1244,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      repo._store.set("morning_2", {
-        id: "morning_2",
-        userProfileId: "user_1",
+      repo._store.set("750e8400-e29b-41d4-a716-446655440002", {
+        id: "750e8400-e29b-41d4-a716-446655440002",
+        userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Morning 2",
         instructions: "Apply",
@@ -1251,9 +1258,9 @@ describe("Routine Product Actions - Unit Tests", () => {
       });
 
       // Evening product
-      repo._store.set("evening_1", {
-        id: "evening_1",
-        userProfileId: "user_1",
+      repo._store.set("750e8400-e29b-41d4-a716-446655440003", {
+        id: "750e8400-e29b-41d4-a716-446655440003",
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Evening 1",
         instructions: "Apply",
@@ -1266,24 +1273,24 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const deps: RoutineProductDeps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
       // Reorder only morning products
       const result = await reorderRoutineProducts(
-        "user_1",
+        user1Id,
         "morning",
-        ["morning_2", "morning_1"],
+        ["750e8400-e29b-41d4-a716-446655440002", "750e8400-e29b-41d4-a716-446655440001"],
         deps
       );
 
       expect(result.success).toBe(true);
       // Morning products reordered
-      expect(repo._store.get("morning_2")!.order).toBe(0);
-      expect(repo._store.get("morning_1")!.order).toBe(1);
+      expect(repo._store.get("750e8400-e29b-41d4-a716-446655440002")!.order).toBe(0);
+      expect(repo._store.get("750e8400-e29b-41d4-a716-446655440001")!.order).toBe(1);
       // Evening product unchanged
-      expect(repo._store.get("evening_1")!.order).toBe(0);
+      expect(repo._store.get("750e8400-e29b-41d4-a716-446655440003")!.order).toBe(0);
     });
 
     it("updates updatedAt for all reordered products", async () => {
@@ -1291,9 +1298,9 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       const oldTimestamp = new Date("2024-01-01");
 
-      repo._store.set("product_1", {
-        id: "product_1",
-        userProfileId: "user_1",
+      repo._store.set(product1Id, {
+        id: product1Id,
+        userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product 1",
         instructions: "Apply",
@@ -1304,9 +1311,9 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: oldTimestamp,
       });
 
-      repo._store.set("product_2", {
-        id: "product_2",
-        userProfileId: "user_1",
+      repo._store.set(product2Id, {
+        id: product2Id,
+        userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Product 2",
         instructions: "Apply",
@@ -1320,30 +1327,30 @@ describe("Routine Product Actions - Unit Tests", () => {
       const fixedNow = new Date("2025-01-15T10:30:00Z");
       const deps: RoutineProductDeps = {
         repo,
-        now: () => fixedNow,
-        validateId: () => true,
+        now: () => fixedNow
+        
       };
 
       const result = await reorderRoutineProducts(
-        "user_1",
+        user1Id,
         "morning",
-        ["product_2", "product_1"],
+        [product2Id, product1Id],
         deps
       );
 
       expect(result.success).toBe(true);
-      expect(repo._store.get("product_1")!.updatedAt).toEqual(fixedNow);
-      expect(repo._store.get("product_2")!.updatedAt).toEqual(fixedNow);
+      expect(repo._store.get(product1Id)!.updatedAt).toEqual(fixedNow);
+      expect(repo._store.get(product2Id)!.updatedAt).toEqual(fixedNow);
     });
 
     it("returns error when userId is invalid format", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => false,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await reorderRoutineProducts("invalid-id", "morning", ["product_1"], deps);
+      const result = await reorderRoutineProducts("invalid-id", "morning", [product1Id], deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -1354,11 +1361,11 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("returns error when productIds array is empty", async () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z"),
-        validateId: () => true,
+        now: () => new Date("2025-01-15T10:30:00Z")
+        
       };
 
-      const result = await reorderRoutineProducts("user_1", "morning", [], deps);
+      const result = await reorderRoutineProducts(user1Id, "morning", [], deps);
 
       expect(result.success).toBe(false);
       if (!result.success) {

@@ -20,11 +20,17 @@ import {
   deleteRoutineProduct,
   reorderRoutineProducts as reorderRoutineProductsAction,
 } from "../routine-actions/actions";
+import {
+  createCoachNote,
+  updateCoachNote,
+  deleteCoachNote,
+} from "../coach-notes-actions/actions";
 import type {
   Client,
   Goal,
   Photo,
   RoutineProduct,
+  CoachNote,
   EditableClientData,
   GoalFormData,
   RoutineProductFormData,
@@ -35,7 +41,9 @@ interface ClientPageWrapperProps {
   initialPhotos: Photo[];
   initialGoals: Goal[];
   initialRoutineProducts: RoutineProduct[];
+  initialCoachNotes: CoachNote[];
   userId: string;
+  adminId: string;
 }
 
 export function ClientPageWrapper({
@@ -43,7 +51,9 @@ export function ClientPageWrapper({
   initialPhotos,
   initialGoals,
   initialRoutineProducts,
+  initialCoachNotes,
   userId,
+  adminId,
 }: ClientPageWrapperProps) {
   const [client, setClient] = useState<Client>(initialClient);
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
@@ -51,6 +61,7 @@ export function ClientPageWrapper({
   const [routineProducts, setRoutineProducts] = useState<RoutineProduct[]>(
     initialRoutineProducts
   );
+  const [coachNotes, setCoachNotes] = useState<CoachNote[]>(initialCoachNotes);
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
 
@@ -268,6 +279,55 @@ export function ClientPageWrapper({
     }
   };
 
+  const handleAddCoachNote = async (adminId: string, content: string) => {
+    // Call server action
+    const result = await createCoachNote(userId, adminId, content);
+
+    if (result.success) {
+      // Add to UI (prepend to show newest first)
+      setCoachNotes((prev) => [result.data, ...prev]);
+    } else {
+      console.error("Failed to create coach note:", result.error);
+      // TODO: Show error toast to user
+    }
+  };
+
+  const handleUpdateCoachNote = async (noteId: string, content: string) => {
+    // Optimistically update UI
+    const previousNotes = coachNotes;
+    setCoachNotes((prev) =>
+      prev.map((n) =>
+        n.id === noteId ? { ...n, content, updatedAt: new Date() } : n
+      )
+    );
+
+    // Call server action
+    const result = await updateCoachNote(noteId, content);
+
+    if (!result.success) {
+      // Revert on error
+      setCoachNotes(previousNotes);
+      console.error("Failed to update coach note:", result.error);
+      // TODO: Show error toast to user
+    }
+  };
+
+  const handleDeleteCoachNote = async (noteId: string) => {
+    // Optimistically update UI
+    const previousNotes = coachNotes;
+    setCoachNotes((prev) => prev.filter((n) => n.id !== noteId));
+
+    // Call server action
+    const result = await deleteCoachNote(noteId);
+
+    if (!result.success) {
+      // Revert on error
+      setCoachNotes(previousNotes);
+      console.error("Failed to delete coach note:", result.error);
+      // TODO: Show error toast to user
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ProfileHeader client={client} onUpdate={handleUpdateClient} />
@@ -306,7 +366,13 @@ export function ClientPageWrapper({
 
         {/* Right Sidebar - full width on mobile/tablet, sidebar on desktop */}
         <div className="w-full xl:w-80">
-          <CoachNotes />
+          <CoachNotes
+            notes={coachNotes}
+            adminId={adminId}
+            onAddNote={handleAddCoachNote}
+            onUpdateNote={handleUpdateCoachNote}
+            onDeleteNote={handleDeleteCoachNote}
+          />
         </div>
       </div>
     </div>

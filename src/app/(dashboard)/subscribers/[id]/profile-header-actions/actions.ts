@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { makeUserProfileRepo } from "./user-profile.repo";
 import type { UserProfile } from "./user-profile.repo.fake";
 
@@ -7,14 +8,12 @@ import type { UserProfile } from "./user-profile.repo.fake";
 export type SubscriberDeps = {
   repo: ReturnType<typeof makeUserProfileRepo>;
   now: () => Date;
-  validateId?: (id: string) => boolean;
 };
 
 // Default dependencies (production)
 const defaultDeps: SubscriberDeps = {
   repo: makeUserProfileRepo(),
   now: () => new Date(),
-  validateId: isValidUUID,
 };
 
 // Result types
@@ -35,6 +34,15 @@ export type UserProfileData = {
   bio: string;
 };
 
+// Zod schemas for validation
+const uuidSchema = z.string().uuid();
+
+const updateUserProfileSchema = z.object({
+  userId: uuidSchema,
+  occupation: z.string().optional(),
+  bio: z.string().optional(),
+});
+
 /**
  * Calculate age from date of birth
  */
@@ -52,48 +60,46 @@ function calculateAge(dateOfBirth: Date, now: Date): number {
 }
 
 /**
- * Validate UUID format
- */
-function isValidUUID(id: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
-}
-
-/**
  * Get user profile by ID
  */
 export async function getUserProfile(
   userId: string,
   deps: SubscriberDeps = defaultDeps
 ): Promise<Result<UserProfileData>> {
-  const { repo, now, validateId = isValidUUID } = deps;
+  const { repo, now } = deps;
 
-  // Validate userId format
-  if (!validateId(userId)) {
+  // Validate userId with Zod
+  const validation = uuidSchema.safeParse(userId);
+  if (!validation.success) {
     return { success: false, error: "Invalid user ID" };
   }
 
-  // Fetch user from repository
-  const user = await repo.getById(userId);
+  try {
+    // Fetch user from repository
+    const user = await repo.getById(validation.data);
 
-  if (!user) {
-    return { success: false, error: "User not found" };
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    // Transform data for view
+    const data: UserProfileData = {
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      mobile: user.phoneNumber,
+      age: calculateAge(user.dateOfBirth, now()),
+      skinType: user.skinType?.[0] || "Not specified",
+      concerns: user.concerns || [],
+      occupation: user.occupation || "",
+      bio: user.bio || "",
+    };
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return { success: false, error: "Failed to fetch user profile" };
   }
-
-  // Transform data for view
-  const data: UserProfileData = {
-    id: user.id,
-    name: `${user.firstName} ${user.lastName}`,
-    email: user.email,
-    mobile: user.phoneNumber,
-    age: calculateAge(user.dateOfBirth, now()),
-    skinType: user.skinType?.[0] || "Not specified",
-    concerns: user.concerns || [],
-    occupation: user.occupation || "",
-    bio: user.bio || "",
-  };
-
-  return { success: true, data };
 }
 
 /**
@@ -104,28 +110,38 @@ export async function updateUserProfile(
   updates: { occupation?: string; bio?: string },
   deps: SubscriberDeps = defaultDeps
 ): Promise<Result<void>> {
-  const { repo, now, validateId = isValidUUID } = deps;
+  const { repo, now } = deps;
 
-  // Validate userId format
-  if (!validateId(userId)) {
+  // Validate input with Zod
+  const validation = updateUserProfileSchema.safeParse({
+    userId,
+    ...updates,
+  });
+
+  if (!validation.success) {
     return { success: false, error: "Invalid data" };
   }
 
-  // Build update data
-  const updateData: Partial<UserProfile> = {
-    updatedAt: now(),
-  };
+  try {
+    // Build update data
+    const updateData: Partial<UserProfile> = {
+      updatedAt: now(),
+    };
 
-  if (updates.occupation !== undefined) {
-    updateData.occupation = updates.occupation;
+    if (validation.data.occupation !== undefined) {
+      updateData.occupation = validation.data.occupation;
+    }
+
+    if (validation.data.bio !== undefined) {
+      updateData.bio = validation.data.bio;
+    }
+
+    // Update via repository
+    await repo.update(validation.data.userId, updateData);
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    return { success: false, error: "Failed to update user profile" };
   }
-
-  if (updates.bio !== undefined) {
-    updateData.bio = updates.bio;
-  }
-
-  // Update via repository
-  await repo.update(userId, updateData);
-
-  return { success: true, data: undefined };
 }

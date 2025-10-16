@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { makeRoutineProductsRepo } from "./routine.repo";
 import type { RoutineProduct, NewRoutineProduct } from "./routine.repo.fake";
 
@@ -7,14 +8,12 @@ import type { RoutineProduct, NewRoutineProduct } from "./routine.repo.fake";
 export type RoutineProductDeps = {
   repo: ReturnType<typeof makeRoutineProductsRepo>;
   now: () => Date;
-  validateId?: (id: string) => boolean;
 };
 
 // Default dependencies (production)
 const defaultDeps: RoutineProductDeps = {
   repo: makeRoutineProductsRepo(),
   now: () => new Date(),
-  validateId: isValidUUID,
 };
 
 // Result types
@@ -42,13 +41,41 @@ export type UpdateRoutineProductInput = {
   days?: string[];
 };
 
-/**
- * Validate UUID format
- */
-function isValidUUID(id: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
-}
+// Zod schemas for validation
+const uuidSchema = z.string().uuid();
+const requiredStringSchema = z.string().trim().min(1);
+const timeOfDaySchema = z.enum(["morning", "evening"]);
+
+const createRoutineProductSchema = z.object({
+  userId: uuidSchema,
+  routineStep: requiredStringSchema,
+  productName: requiredStringSchema,
+  productUrl: z.string().optional(),
+  instructions: requiredStringSchema,
+  frequency: requiredStringSchema,
+  days: z.array(z.string()).optional(),
+  timeOfDay: timeOfDaySchema,
+});
+
+const updateRoutineProductSchema = z.object({
+  productId: uuidSchema,
+  routineStep: z.string().trim().min(1).optional(),
+  productName: z.string().trim().min(1).optional(),
+  productUrl: z.string().optional(),
+  instructions: z.string().trim().min(1).optional(),
+  frequency: z.string().trim().min(1).optional(),
+  days: z.array(z.string()).optional(),
+});
+
+const deleteRoutineProductSchema = z.object({
+  productId: uuidSchema,
+});
+
+const reorderRoutineProductsSchema = z.object({
+  userId: uuidSchema,
+  timeOfDay: timeOfDaySchema,
+  productIds: z.array(uuidSchema).min(1),
+});
 
 /**
  * Get all routine products for a user, ordered by timeOfDay then order
@@ -57,17 +84,22 @@ export async function getRoutineProducts(
   userId: string,
   deps: RoutineProductDeps = defaultDeps
 ): Promise<Result<RoutineProduct[]>> {
-  const { repo, validateId = isValidUUID } = deps;
+  const { repo } = deps;
 
-  // Validate userId
-  if (!validateId(userId)) {
+  // Validate userId with Zod
+  const validation = uuidSchema.safeParse(userId);
+  if (!validation.success) {
     return { success: false, error: "Invalid user ID" };
   }
 
-  // Fetch products from repo
-  const products = await repo.findByUserId(userId);
-
-  return { success: true, data: products };
+  try {
+    // Fetch products from repo
+    const products = await repo.findByUserId(validation.data);
+    return { success: true, data: products };
+  } catch (error) {
+    console.error("Error fetching routine products:", error);
+    return { success: false, error: "Failed to fetch routine products" };
+  }
 }
 
 /**
@@ -78,17 +110,29 @@ export async function getRoutineProductsByTimeOfDay(
   timeOfDay: "morning" | "evening",
   deps: RoutineProductDeps = defaultDeps
 ): Promise<Result<RoutineProduct[]>> {
-  const { repo, validateId = isValidUUID } = deps;
+  const { repo } = deps;
 
-  // Validate userId
-  if (!validateId(userId)) {
+  // Validate input with Zod
+  const validation = z.object({
+    userId: uuidSchema,
+    timeOfDay: timeOfDaySchema,
+  }).safeParse({ userId, timeOfDay });
+
+  if (!validation.success) {
     return { success: false, error: "Invalid data" };
   }
 
-  // Fetch products from repo
-  const products = await repo.findByUserIdAndTimeOfDay(userId, timeOfDay);
-
-  return { success: true, data: products };
+  try {
+    // Fetch products from repo
+    const products = await repo.findByUserIdAndTimeOfDay(
+      validation.data.userId,
+      validation.data.timeOfDay
+    );
+    return { success: true, data: products };
+  } catch (error) {
+    console.error("Error fetching routine products by time of day:", error);
+    return { success: false, error: "Failed to fetch routine products" };
+  }
 }
 
 /**
@@ -99,58 +143,53 @@ export async function createRoutineProduct(
   input: CreateRoutineProductInput,
   deps: RoutineProductDeps = defaultDeps
 ): Promise<Result<RoutineProduct>> {
-  const { repo, now, validateId = isValidUUID } = deps;
+  const { repo, now } = deps;
 
-  // Validate userId
-  if (!validateId(userId)) {
+  // Validate input with Zod
+  const validation = createRoutineProductSchema.safeParse({
+    userId,
+    ...input,
+  });
+
+  if (!validation.success) {
     return { success: false, error: "Invalid data" };
   }
 
-  // Validate input - all required fields
-  if (!input.routineStep || input.routineStep.trim() === "") {
-    return { success: false, error: "Invalid data" };
+  try {
+    // Get existing products for this time of day to determine order
+    const existingProducts = await repo.findByUserIdAndTimeOfDay(
+      validation.data.userId,
+      validation.data.timeOfDay
+    );
+
+    // Calculate order (max order + 1, or 0 if no products)
+    const order = existingProducts.length > 0
+      ? Math.max(...existingProducts.map((p) => p.order)) + 1
+      : 0;
+
+    const timestamp = now();
+
+    // Create product with validated data (already trimmed by Zod)
+    const newProduct: NewRoutineProduct = {
+      userProfileId: validation.data.userId,
+      routineStep: validation.data.routineStep,
+      productName: validation.data.productName,
+      productUrl: validation.data.productUrl,
+      instructions: validation.data.instructions,
+      frequency: validation.data.frequency,
+      days: validation.data.days,
+      timeOfDay: validation.data.timeOfDay,
+      order,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    const product = await repo.create(newProduct);
+    return { success: true, data: product };
+  } catch (error) {
+    console.error("Error creating routine product:", error);
+    return { success: false, error: "Failed to create routine product" };
   }
-  if (!input.productName || input.productName.trim() === "") {
-    return { success: false, error: "Invalid data" };
-  }
-  if (!input.instructions || input.instructions.trim() === "") {
-    return { success: false, error: "Invalid data" };
-  }
-  if (!input.frequency || input.frequency.trim() === "") {
-    return { success: false, error: "Invalid data" };
-  }
-  if (!input.timeOfDay || (input.timeOfDay !== "morning" && input.timeOfDay !== "evening")) {
-    return { success: false, error: "Invalid data" };
-  }
-
-  // Get existing products for this time of day to determine order
-  const existingProducts = await repo.findByUserIdAndTimeOfDay(userId, input.timeOfDay);
-
-  // Calculate order (max order + 1, or 0 if no products)
-  const order = existingProducts.length > 0
-    ? Math.max(...existingProducts.map((p) => p.order)) + 1
-    : 0;
-
-  const timestamp = now();
-
-  // Create product
-  const newProduct: NewRoutineProduct = {
-    userProfileId: userId,
-    routineStep: input.routineStep,
-    productName: input.productName,
-    productUrl: input.productUrl,
-    instructions: input.instructions,
-    frequency: input.frequency,
-    days: input.days,
-    timeOfDay: input.timeOfDay,
-    order,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
-
-  const product = await repo.create(newProduct);
-
-  return { success: true, data: product };
 }
 
 /**
@@ -161,64 +200,60 @@ export async function updateRoutineProduct(
   updates: UpdateRoutineProductInput,
   deps: RoutineProductDeps = defaultDeps
 ): Promise<Result<void>> {
-  const { repo, now, validateId = isValidUUID } = deps;
+  const { repo, now } = deps;
 
-  // Validate productId
-  if (!validateId(productId)) {
+  // Validate input with Zod
+  const validation = updateRoutineProductSchema.safeParse({
+    productId,
+    ...updates,
+  });
+
+  if (!validation.success) {
     return { success: false, error: "Invalid data" };
   }
 
-  // Validate updates - required fields cannot be empty
-  if (updates.routineStep !== undefined && updates.routineStep.trim() === "") {
-    return { success: false, error: "Invalid data" };
-  }
-  if (updates.productName !== undefined && updates.productName.trim() === "") {
-    return { success: false, error: "Invalid data" };
-  }
-  if (updates.instructions !== undefined && updates.instructions.trim() === "") {
-    return { success: false, error: "Invalid data" };
-  }
-  if (updates.frequency !== undefined && updates.frequency.trim() === "") {
-    return { success: false, error: "Invalid data" };
-  }
+  try {
+    // Build update data with validated fields (already trimmed by Zod)
+    const updateData: Partial<RoutineProduct> = {
+      updatedAt: now(),
+    };
 
-  // Build update data
-  const updateData: Partial<RoutineProduct> = {
-    updatedAt: now(),
-  };
+    if (validation.data.routineStep !== undefined) {
+      updateData.routineStep = validation.data.routineStep;
+    }
 
-  if (updates.routineStep !== undefined) {
-    updateData.routineStep = updates.routineStep;
+    if (validation.data.productName !== undefined) {
+      updateData.productName = validation.data.productName;
+    }
+
+    if (validation.data.productUrl !== undefined) {
+      updateData.productUrl = validation.data.productUrl;
+    }
+
+    if (validation.data.instructions !== undefined) {
+      updateData.instructions = validation.data.instructions;
+    }
+
+    if (validation.data.frequency !== undefined) {
+      updateData.frequency = validation.data.frequency;
+    }
+
+    if (validation.data.days !== undefined) {
+      updateData.days = validation.data.days;
+    }
+
+    // Update product
+    const updatedProduct = await repo.update(validation.data.productId, updateData);
+
+    if (!updatedProduct) {
+      return { success: false, error: "Routine product not found" };
+    }
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Error updating routine product:", error);
+    return { success: false, error: "Failed to update routine product" };
   }
-
-  if (updates.productName !== undefined) {
-    updateData.productName = updates.productName;
-  }
-
-  if (updates.productUrl !== undefined) {
-    updateData.productUrl = updates.productUrl;
-  }
-
-  if (updates.instructions !== undefined) {
-    updateData.instructions = updates.instructions;
-  }
-
-  if (updates.frequency !== undefined) {
-    updateData.frequency = updates.frequency;
-  }
-
-  if (updates.days !== undefined) {
-    updateData.days = updates.days;
-  }
-
-  // Update product
-  const updatedProduct = await repo.update(productId, updateData);
-
-  if (!updatedProduct) {
-    return { success: false, error: "Routine product not found" };
-  }
-
-  return { success: true, data: undefined };
 }
 
 /**
@@ -228,21 +263,28 @@ export async function deleteRoutineProduct(
   productId: string,
   deps: RoutineProductDeps = defaultDeps
 ): Promise<Result<void>> {
-  const { repo, validateId = isValidUUID } = deps;
+  const { repo } = deps;
 
-  // Validate productId
-  if (!validateId(productId)) {
+  // Validate input with Zod
+  const validation = deleteRoutineProductSchema.safeParse({ productId });
+
+  if (!validation.success) {
     return { success: false, error: "Invalid data" };
   }
 
-  // Delete product
-  const deletedProduct = await repo.deleteById(productId);
+  try {
+    // Delete product
+    const deletedProduct = await repo.deleteById(validation.data.productId);
 
-  if (!deletedProduct) {
-    return { success: false, error: "Routine product not found" };
+    if (!deletedProduct) {
+      return { success: false, error: "Routine product not found" };
+    }
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Error deleting routine product:", error);
+    return { success: false, error: "Failed to delete routine product" };
   }
-
-  return { success: true, data: undefined };
 }
 
 /**
@@ -255,31 +297,37 @@ export async function reorderRoutineProducts(
   reorderedProductIds: string[],
   deps: RoutineProductDeps = defaultDeps
 ): Promise<Result<void>> {
-  const { repo, now, validateId = isValidUUID } = deps;
+  const { repo, now } = deps;
 
-  // Validate userId
-  if (!validateId(userId)) {
+  // Validate input with Zod
+  const validation = reorderRoutineProductsSchema.safeParse({
+    userId,
+    timeOfDay,
+    productIds: reorderedProductIds,
+  });
+
+  if (!validation.success) {
     return { success: false, error: "Invalid data" };
   }
 
-  // Validate productIds array
-  if (!reorderedProductIds || reorderedProductIds.length === 0) {
-    return { success: false, error: "Invalid data" };
+  try {
+    const timestamp = now();
+
+    // Build updates for each product
+    const updates = validation.data.productIds.map((id, index) => ({
+      id,
+      data: {
+        order: index,
+        updatedAt: timestamp,
+      },
+    }));
+
+    // Update all products in batch
+    await repo.updateMany(updates);
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Error reordering routine products:", error);
+    return { success: false, error: "Failed to reorder routine products" };
   }
-
-  const timestamp = now();
-
-  // Build updates for each product
-  const updates = reorderedProductIds.map((id, index) => ({
-    id,
-    data: {
-      order: index,
-      updatedAt: timestamp,
-    },
-  }));
-
-  // Update all products in batch
-  await repo.updateMany(updates);
-
-  return { success: true, data: undefined };
 }

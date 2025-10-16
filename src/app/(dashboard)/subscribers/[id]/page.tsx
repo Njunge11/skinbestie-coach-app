@@ -1,9 +1,11 @@
 import { getUserProfile } from "./profile-header-actions/actions";
 import { getGoals } from "./goal-actions/actions";
 import { getRoutineProducts } from "./routine-actions/actions";
+import { getCoachNotes } from "./coach-notes-actions/actions";
 import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { ClientPageWrapper } from "./_components/client-page-wrapper";
-import type { Client, Photo, Goal, RoutineProduct } from "./types";
+import type { Client, Photo, Goal, RoutineProduct, CoachNote } from "./types";
 
 interface SubscriberDetailPageProps {
   params: Promise<{ id: string }>;
@@ -158,6 +160,13 @@ export default async function SubscriberDetailPage({
 }: SubscriberDetailPageProps) {
   const { id } = await params;
 
+  // Get the current admin session
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const adminId = session.user.id;
+
   // Fetch user profile from database
   const profileResult = await getUserProfile(id);
 
@@ -176,6 +185,12 @@ export default async function SubscriberDetailPage({
   const routineProductsResult = await getRoutineProducts(id);
   const initialRoutineProducts: RoutineProduct[] = routineProductsResult.success
     ? routineProductsResult.data
+    : [];
+
+  // Fetch coach notes for this user
+  const coachNotesResult = await getCoachNotes(id);
+  const initialCoachNotes: CoachNote[] = coachNotesResult.success
+    ? coachNotesResult.data
     : [];
 
   // Transform server data to Client type
@@ -201,7 +216,9 @@ export default async function SubscriberDetailPage({
       initialPhotos={initialPhotos}
       initialGoals={initialGoals}
       initialRoutineProducts={initialRoutineProducts}
+      initialCoachNotes={initialCoachNotes}
       userId={id}
+      adminId={adminId}
     />
   );
 }
