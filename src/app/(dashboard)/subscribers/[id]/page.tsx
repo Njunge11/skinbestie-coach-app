@@ -1,8 +1,9 @@
 import { getUserProfile } from "./profile-header-actions/actions";
 import { getGoals } from "./goal-actions/actions";
+import { getRoutineProducts } from "./routine-actions/actions";
 import { redirect } from "next/navigation";
 import { ClientPageWrapper } from "./_components/client-page-wrapper";
-import type { Client, Photo, Goal } from "./types";
+import type { Client, Photo, Goal, RoutineProduct } from "./types";
 
 interface SubscriberDetailPageProps {
   params: Promise<{ id: string }>;
@@ -171,6 +172,12 @@ export default async function SubscriberDetailPage({
   const goalsResult = await getGoals(id);
   const initialGoals: Goal[] = goalsResult.success ? goalsResult.data : [];
 
+  // Fetch routine products for this user
+  const routineProductsResult = await getRoutineProducts(id);
+  const initialRoutineProducts: RoutineProduct[] = routineProductsResult.success
+    ? routineProductsResult.data
+    : [];
+
   // Transform server data to Client type
   const initialClient: Client = {
     id: profileData.id,
@@ -193,6 +200,7 @@ export default async function SubscriberDetailPage({
       initialClient={initialClient}
       initialPhotos={initialPhotos}
       initialGoals={initialGoals}
+      initialRoutineProducts={initialRoutineProducts}
       userId={id}
     />
   );

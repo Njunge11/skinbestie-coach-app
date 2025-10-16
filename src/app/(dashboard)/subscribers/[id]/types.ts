@@ -42,9 +42,10 @@ export interface GoalFormData {
 }
 
 export interface RoutineProduct {
-  id: number;
+  id: string;
   routineStep: string;
   productName: string;
+  productUrl?: string;
   instructions: string;
   frequency: string;
   days?: string[]; // For 2x or 3x per week
@@ -54,6 +55,7 @@ export interface RoutineProduct {
 export interface RoutineProductFormData {
   routineStep: string;
   productName: string;
+  productUrl?: string;
   instructions: string;
   frequency: string;
   days?: string[];

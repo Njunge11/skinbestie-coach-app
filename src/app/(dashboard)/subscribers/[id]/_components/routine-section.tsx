@@ -74,14 +74,37 @@ const DAYS_OF_WEEK = [
   { value: "Sun", label: "Sun" },
 ];
 
-export function RoutineSection() {
-  const [morningProducts, setMorningProducts] = useState<RoutineProduct[]>([]);
-  const [eveningProducts, setEveningProducts] = useState<RoutineProduct[]>([]);
+interface RoutineSectionProps {
+  products: RoutineProduct[];
+  onAddProduct: (
+    timeOfDay: "morning" | "evening",
+    data: RoutineProductFormData
+  ) => Promise<void>;
+  onUpdateProduct: (id: string, data: RoutineProductFormData) => Promise<void>;
+  onDeleteProduct: (id: string) => Promise<void>;
+  onReorderProducts: (
+    timeOfDay: "morning" | "evening",
+    reorderedProducts: RoutineProduct[]
+  ) => Promise<void>;
+}
+
+export function RoutineSection({
+  products,
+  onAddProduct,
+  onUpdateProduct,
+  onDeleteProduct,
+  onReorderProducts,
+}: RoutineSectionProps) {
+  // Split products into morning and evening
+  const morningProducts = products.filter((p) => p.timeOfDay === "morning");
+  const eveningProducts = products.filter((p) => p.timeOfDay === "evening");
+
   const [addingTo, setAddingTo] = useState<"morning" | "evening" | null>(null);
   const [openRoutineStep, setOpenRoutineStep] = useState(false);
   const [newProduct, setNewProduct] = useState<RoutineProductFormData>({
     routineStep: "",
     productName: "",
+    productUrl: "",
     instructions: "",
     frequency: "Daily",
     days: undefined,
@@ -95,22 +118,20 @@ export function RoutineSection() {
   );
 
   const handleAdd = (timeOfDay: "morning" | "evening") => {
-    if (newProduct.routineStep && newProduct.productName.trim()) {
-      const product: RoutineProduct = {
-        id: Date.now(),
-        ...newProduct,
-        timeOfDay,
-      };
-
-      if (timeOfDay === "morning") {
-        setMorningProducts((prev) => [...prev, product]);
-      } else {
-        setEveningProducts((prev) => [...prev, product]);
-      }
+    // Validate all required fields
+    if (
+      newProduct.routineStep &&
+      newProduct.routineStep.trim() &&
+      newProduct.productName.trim() &&
+      newProduct.instructions.trim() &&
+      newProduct.frequency.trim()
+    ) {
+      onAddProduct(timeOfDay, newProduct);
 
       setNewProduct({
         routineStep: "",
         productName: "",
+        productUrl: "",
         instructions: "",
         frequency: "Daily",
         days: undefined,
@@ -120,46 +141,26 @@ export function RoutineSection() {
   };
 
   const handleEdit = (
-    id: number,
-    data: RoutineProductFormData,
-    timeOfDay: "morning" | "evening"
+    id: string,
+    data: RoutineProductFormData
   ) => {
-    if (timeOfDay === "morning") {
-      setMorningProducts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...data } : p))
-      );
-    } else {
-      setEveningProducts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...data } : p))
-      );
-    }
+    onUpdateProduct(id, data);
   };
 
-  const handleDelete = (id: number, timeOfDay: "morning" | "evening") => {
-    if (timeOfDay === "morning") {
-      setMorningProducts((prev) => prev.filter((p) => p.id !== id));
-    } else {
-      setEveningProducts((prev) => prev.filter((p) => p.id !== id));
-    }
+  const handleDelete = (id: string) => {
+    onDeleteProduct(id);
   };
 
   const handleDragEnd = (event: DragEndEvent, timeOfDay: "morning" | "evening") => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      if (timeOfDay === "morning") {
-        setMorningProducts((items) => {
-          const oldIndex = items.findIndex((item) => item.id === active.id);
-          const newIndex = items.findIndex((item) => item.id === over.id);
-          return arrayMove(items, oldIndex, newIndex);
-        });
-      } else {
-        setEveningProducts((items) => {
-          const oldIndex = items.findIndex((item) => item.id === active.id);
-          const newIndex = items.findIndex((item) => item.id === over.id);
-          return arrayMove(items, oldIndex, newIndex);
-        });
-      }
+      const currentProducts = timeOfDay === "morning" ? morningProducts : eveningProducts;
+      const oldIndex = currentProducts.findIndex((item) => item.id === active.id);
+      const newIndex = currentProducts.findIndex((item) => item.id === over.id);
+      const reorderedProducts = arrayMove(currentProducts, oldIndex, newIndex);
+
+      onReorderProducts(timeOfDay, reorderedProducts);
     }
   };
 
@@ -168,6 +169,7 @@ export function RoutineSection() {
     setNewProduct({
       routineStep: "",
       productName: "",
+      productUrl: "",
       instructions: "",
       frequency: "Daily",
       days: undefined,
@@ -225,6 +227,16 @@ export function RoutineSection() {
           setNewProduct((prev) => ({ ...prev, productName: e.target.value }))
         }
         className="font-medium"
+      />
+
+      <Input
+        placeholder="Product URL (optional)"
+        value={newProduct.productUrl}
+        onChange={(e) =>
+          setNewProduct((prev) => ({ ...prev, productUrl: e.target.value }))
+        }
+        type="url"
+        className="text-sm"
       />
 
       <Textarea
@@ -332,23 +344,11 @@ export function RoutineSection() {
       <CardContent className="space-y-4">
         {/* Morning Routine */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-                ☀️
-              </div>
-              <span className="text-sm font-medium text-gray-900">Morning</span>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
+              ☀️
             </div>
-            {addingTo !== "morning" && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setAddingTo("morning")}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Step
-              </Button>
-            )}
+            <span className="text-sm font-medium text-gray-900">Morning</span>
           </div>
 
           <DndContext
@@ -366,17 +366,28 @@ export function RoutineSection() {
                     key={product.id}
                     product={product}
                     index={index}
-                    onEdit={(id, data) => handleEdit(id, data, "morning")}
-                    onDelete={(id) => handleDelete(id, "morning")}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                   />
                 ))}
-
-                {addingTo === "morning" && renderAddForm("morning")}
 
                 {morningProducts.length === 0 && addingTo !== "morning" && (
                   <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                     <p className="text-xs text-gray-400">No routine set</p>
                   </div>
+                )}
+
+                {addingTo === "morning" ? (
+                  renderAddForm("morning")
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setAddingTo("morning")}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {morningProducts.length === 0 ? "Add Step" : "Add Another Step"}
+                  </Button>
                 )}
               </div>
             </SortableContext>
@@ -385,23 +396,11 @@ export function RoutineSection() {
 
         {/* Evening Routine */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
-                🌙
-              </div>
-              <span className="text-sm font-medium text-gray-900">Evening</span>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+              🌙
             </div>
-            {addingTo !== "evening" && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setAddingTo("evening")}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Step
-              </Button>
-            )}
+            <span className="text-sm font-medium text-gray-900">Evening</span>
           </div>
 
           <DndContext
@@ -419,17 +418,28 @@ export function RoutineSection() {
                     key={product.id}
                     product={product}
                     index={index}
-                    onEdit={(id, data) => handleEdit(id, data, "evening")}
-                    onDelete={(id) => handleDelete(id, "evening")}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                   />
                 ))}
-
-                {addingTo === "evening" && renderAddForm("evening")}
 
                 {eveningProducts.length === 0 && addingTo !== "evening" && (
                   <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                     <p className="text-xs text-gray-400">No routine set</p>
                   </div>
+                )}
+
+                {addingTo === "evening" ? (
+                  renderAddForm("evening")
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setAddingTo("evening")}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {eveningProducts.length === 0 ? "Add Step" : "Add Another Step"}
+                  </Button>
                 )}
               </div>
             </SortableContext>

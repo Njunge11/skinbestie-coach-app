@@ -14,18 +14,27 @@ import {
   deleteGoal,
   reorderGoals as reorderGoalsAction,
 } from "../goal-actions/actions";
+import {
+  createRoutineProduct,
+  updateRoutineProduct,
+  deleteRoutineProduct,
+  reorderRoutineProducts as reorderRoutineProductsAction,
+} from "../routine-actions/actions";
 import type {
   Client,
   Goal,
   Photo,
+  RoutineProduct,
   EditableClientData,
   GoalFormData,
+  RoutineProductFormData,
 } from "../types";
 
 interface ClientPageWrapperProps {
   initialClient: Client;
   initialPhotos: Photo[];
   initialGoals: Goal[];
+  initialRoutineProducts: RoutineProduct[];
   userId: string;
 }
 
@@ -33,11 +42,15 @@ export function ClientPageWrapper({
   initialClient,
   initialPhotos,
   initialGoals,
+  initialRoutineProducts,
   userId,
 }: ClientPageWrapperProps) {
   const [client, setClient] = useState<Client>(initialClient);
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [goals, setGoals] = useState<Goal[]>(initialGoals);
+  const [routineProducts, setRoutineProducts] = useState<RoutineProduct[]>(
+    initialRoutineProducts
+  );
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
 
@@ -172,6 +185,89 @@ export function ClientPageWrapper({
     }
   };
 
+  const handleAddRoutineProduct = async (
+    timeOfDay: "morning" | "evening",
+    data: RoutineProductFormData
+  ) => {
+    // Call server action
+    const result = await createRoutineProduct(userId, { ...data, timeOfDay });
+
+    if (result.success) {
+      // Add to UI
+      setRoutineProducts((prev) => [...prev, result.data]);
+    } else {
+      console.error("Failed to create routine product:", result.error);
+      // TODO: Show error toast to user
+    }
+  };
+
+  const handleUpdateRoutineProduct = async (
+    id: string,
+    data: RoutineProductFormData
+  ) => {
+    // Optimistically update UI
+    const previousProducts = routineProducts;
+    setRoutineProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...data } : p))
+    );
+
+    // Call server action
+    const result = await updateRoutineProduct(id, data);
+
+    if (!result.success) {
+      // Revert on error
+      setRoutineProducts(previousProducts);
+      console.error("Failed to update routine product:", result.error);
+      // TODO: Show error toast to user
+    }
+  };
+
+  const handleDeleteRoutineProduct = async (id: string) => {
+    // Optimistically update UI
+    const previousProducts = routineProducts;
+    setRoutineProducts((prev) => prev.filter((p) => p.id !== id));
+
+    // Call server action
+    const result = await deleteRoutineProduct(id);
+
+    if (!result.success) {
+      // Revert on error
+      setRoutineProducts(previousProducts);
+      console.error("Failed to delete routine product:", result.error);
+      // TODO: Show error toast to user
+    }
+  };
+
+  const handleReorderRoutineProducts = async (
+    timeOfDay: "morning" | "evening",
+    reorderedProducts: RoutineProduct[]
+  ) => {
+    // Optimistically update UI
+    const previousProducts = routineProducts;
+    // Replace products for this timeOfDay with reordered ones
+    const otherTimeProducts = routineProducts.filter(
+      (p) => p.timeOfDay !== timeOfDay
+    );
+    setRoutineProducts([...otherTimeProducts, ...reorderedProducts]);
+
+    // Extract IDs in new order
+    const reorderedIds = reorderedProducts.map((p) => p.id);
+
+    // Call server action
+    const result = await reorderRoutineProductsAction(
+      userId,
+      timeOfDay,
+      reorderedIds
+    );
+
+    if (!result.success) {
+      // Revert on error
+      setRoutineProducts(previousProducts);
+      console.error("Failed to reorder routine products:", result.error);
+      // TODO: Show error toast to user
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ProfileHeader client={client} onUpdate={handleUpdateClient} />
@@ -190,7 +286,13 @@ export function ClientPageWrapper({
             onReorderGoals={handleReorderGoals}
           />
 
-          <RoutineSection />
+          <RoutineSection
+            products={routineProducts}
+            onAddProduct={handleAddRoutineProduct}
+            onUpdateProduct={handleUpdateRoutineProduct}
+            onDeleteProduct={handleDeleteRoutineProduct}
+            onReorderProducts={handleReorderRoutineProducts}
+          />
 
           <ProgressPhotos
             photos={photos}

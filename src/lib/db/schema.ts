@@ -122,6 +122,52 @@ export const skincareGoals = pgTable(
   })
 );
 
+export const skincareRoutineProducts = pgTable(
+  'skincare_routine_products',
+  {
+    // Primary Key
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // Foreign Key to user
+    userProfileId: uuid('user_profile_id')
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: 'cascade' }),
+
+    // Product details (all required except productUrl)
+    routineStep: text('routine_step').notNull(),
+    productName: text('product_name').notNull(),
+    productUrl: text('product_url'), // Optional link to product
+    instructions: text('instructions').notNull(),
+
+    // Frequency and scheduling
+    frequency: text('frequency').notNull(), // "Daily", "2x per week", "3x per week"
+    days: text('days').array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
+
+    // Timing and ordering
+    timeOfDay: text('time_of_day').notNull(), // "morning" or "evening"
+    order: integer('order').notNull(), // Sequence within the time of day
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user
+    userProfileIdx: index('skincare_routine_products_user_profile_idx').on(table.userProfileId),
+
+    // Unique constraint to prevent duplicate order values per user per time of day
+    uniqueOrderPerUserAndTime: uniqueIndex('skincare_routine_products_user_time_order_idx').on(
+      table.userProfileId,
+      table.timeOfDay,
+      table.order
+    ),
+  })
+);
+
 // Type exports for TypeScript
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
@@ -131,3 +177,5 @@ export type UserProfile = typeof userProfiles.$inferSelect;
 export type NewUserProfile = typeof userProfiles.$inferInsert;
 export type SkincareGoal = typeof skincareGoals.$inferSelect;
 export type NewSkincareGoal = typeof skincareGoals.$inferInsert;
+export type SkincareRoutineProduct = typeof skincareRoutineProducts.$inferSelect;
+export type NewSkincareRoutineProduct = typeof skincareRoutineProducts.$inferInsert;

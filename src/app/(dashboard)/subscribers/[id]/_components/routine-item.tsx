@@ -34,8 +34,8 @@ import type { RoutineProduct, RoutineProductFormData } from "../types";
 interface RoutineItemProps {
   product: RoutineProduct;
   index: number;
-  onEdit: (id: number, data: RoutineProductFormData) => void;
-  onDelete: (id: number) => void;
+  onEdit: (id: string, data: RoutineProductFormData) => void;
+  onDelete: (id: string) => void;
 }
 
 const ROUTINE_STEPS = [
@@ -78,6 +78,7 @@ export function RoutineItem({
   const [editData, setEditData] = useState<RoutineProductFormData>({
     routineStep: product.routineStep,
     productName: product.productName,
+    productUrl: product.productUrl,
     instructions: product.instructions,
     frequency: product.frequency,
     days: product.days,
@@ -101,6 +102,7 @@ export function RoutineItem({
     setEditData({
       routineStep: product.routineStep,
       productName: product.productName,
+      productUrl: product.productUrl,
       instructions: product.instructions,
       frequency: product.frequency,
       days: product.days,
@@ -109,7 +111,14 @@ export function RoutineItem({
   };
 
   const handleSave = () => {
-    if (editData.routineStep && editData.productName.trim()) {
+    // Validate all required fields
+    if (
+      editData.routineStep &&
+      editData.routineStep.trim() &&
+      editData.productName.trim() &&
+      editData.instructions.trim() &&
+      editData.frequency.trim()
+    ) {
       onEdit(product.id, editData);
       setIsEditing(false);
     }
@@ -171,6 +180,16 @@ export function RoutineItem({
             setEditData((prev) => ({ ...prev, productName: e.target.value }))
           }
           className="font-medium"
+        />
+
+        <Input
+          placeholder="Product URL (optional)"
+          value={editData.productUrl || ""}
+          onChange={(e) =>
+            setEditData((prev) => ({ ...prev, productUrl: e.target.value }))
+          }
+          type="url"
+          className="text-sm"
         />
 
         <Textarea
@@ -312,7 +331,19 @@ export function RoutineItem({
             )}
           </div>
           <h4 className="font-semibold text-gray-900 mb-1">
-            {product.productName}
+            {product.productUrl ? (
+              <a
+                href={product.productUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {product.productName}
+              </a>
+            ) : (
+              product.productName
+            )}
           </h4>
           {product.instructions && (
             <p className="text-sm text-gray-600">{product.instructions}</p>
