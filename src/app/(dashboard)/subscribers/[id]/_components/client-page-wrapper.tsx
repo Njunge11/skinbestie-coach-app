@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { ProfileHeader } from "./profile-header";
 import { ProgressPhotos } from "./progress-photos";
 import { GoalsSection } from "./goals-section";
@@ -77,7 +78,7 @@ export function ClientPageWrapper({
       // Revert on error
       setClient(initialClient);
       console.error("Failed to update profile:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to update profile");
     }
   };
 
@@ -95,7 +96,7 @@ export function ClientPageWrapper({
       // Revert on error
       setPhotos(previousPhotos);
       console.error("Failed to update photo feedback:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to update photo feedback");
     }
   };
 
@@ -128,7 +129,7 @@ export function ClientPageWrapper({
       setGoals((prev) => [...prev, result.data]);
     } else {
       console.error("Failed to create goal:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to create goal");
     }
   };
 
@@ -144,7 +145,7 @@ export function ClientPageWrapper({
       // Revert on error
       setGoals(previousGoals);
       console.error("Failed to update goal:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to update goal");
     }
   };
 
@@ -166,7 +167,7 @@ export function ClientPageWrapper({
       // Revert on error
       setGoals(previousGoals);
       console.error("Failed to toggle goal:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to toggle goal");
     }
   };
 
@@ -182,7 +183,7 @@ export function ClientPageWrapper({
       // Revert on error
       setGoals(previousGoals);
       console.error("Failed to delete goal:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to delete goal");
     }
   };
 
@@ -205,7 +206,7 @@ export function ClientPageWrapper({
       // Revert on error
       setGoals(previousGoals);
       console.error("Failed to reorder goals:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to reorder goals");
     }
   };
 
@@ -221,7 +222,7 @@ export function ClientPageWrapper({
       setRoutineProducts((prev) => [...prev, result.data]);
     } else {
       console.error("Failed to create routine product:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to create routine product");
     }
   };
 
@@ -242,7 +243,7 @@ export function ClientPageWrapper({
       // Revert on error
       setRoutineProducts(previousProducts);
       console.error("Failed to update routine product:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to update routine product");
     }
   };
 
@@ -258,7 +259,7 @@ export function ClientPageWrapper({
       // Revert on error
       setRoutineProducts(previousProducts);
       console.error("Failed to delete routine product:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to delete routine product");
     }
   };
 
@@ -288,7 +289,7 @@ export function ClientPageWrapper({
       // Revert on error
       setRoutineProducts(previousProducts);
       console.error("Failed to reorder routine products:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to reorder routine products");
     }
   };
 
@@ -301,7 +302,7 @@ export function ClientPageWrapper({
       setCoachNotes((prev) => [result.data, ...prev]);
     } else {
       console.error("Failed to create coach note:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to create coach note");
     }
   };
 
@@ -321,7 +322,7 @@ export function ClientPageWrapper({
       // Revert on error
       setCoachNotes(previousNotes);
       console.error("Failed to update coach note:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to update coach note");
     }
   };
 
@@ -337,7 +338,7 @@ export function ClientPageWrapper({
       // Revert on error
       setCoachNotes(previousNotes);
       console.error("Failed to delete coach note:", result.error);
-      // TODO: Show error toast to user
+      toast.error("Failed to delete coach note");
     }
   };
 

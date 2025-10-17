@@ -565,4 +565,116 @@ describe("Progress Photos Actions - Unit Tests", () => {
       }
     });
   });
+
+  describe("Error Handling", () => {
+    it("createProgressPhoto handles repository errors", async () => {
+      const repo = makeProgressPhotosRepoFake();
+      repo.create = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: ProgressPhotoDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const input = {
+        imageUrl: "https://example.com/photo.jpg",
+        weekNumber: 1,
+      };
+
+      const result = await createProgressPhoto(user1Id, input, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to create progress photo");
+      }
+    });
+
+    it("getProgressPhotos handles repository errors", async () => {
+      const repo = makeProgressPhotosRepoFake();
+      repo.findByUserId = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: ProgressPhotoDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await getProgressPhotos(user1Id, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to fetch progress photos");
+      }
+    });
+
+    it("getProgressPhotosByWeek handles repository errors", async () => {
+      const repo = makeProgressPhotosRepoFake();
+      repo.findByUserIdAndWeek = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: ProgressPhotoDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await getProgressPhotosByWeek(user1Id, 1, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to fetch progress photos");
+      }
+    });
+
+    it("updatePhotoFeedback handles repository errors", async () => {
+      const repo = makeProgressPhotosRepoFake();
+      repo.findById = async () => ({
+        id: photo1Id,
+        userProfileId: user1Id,
+        imageUrl: "https://example.com/photo.jpg",
+        weekNumber: 1,
+        uploadedAt: new Date("2025-01-15T10:30:00Z"),
+        feedback: "Old feedback",
+        createdAt: new Date("2025-01-15T10:30:00Z"),
+        updatedAt: new Date("2025-01-15T10:30:00Z"),
+      });
+      repo.update = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: ProgressPhotoDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await updatePhotoFeedback(photo1Id, "New feedback", deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to update photo feedback");
+      }
+    });
+
+    it("deleteProgressPhoto handles repository errors", async () => {
+      const repo = makeProgressPhotosRepoFake();
+      repo.deleteById = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: ProgressPhotoDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await deleteProgressPhoto(photo1Id, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to delete progress photo");
+      }
+    });
+  });
 });

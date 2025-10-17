@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { CheckCircle2, GitCompare } from "lucide-react";
+import { CheckCircle2, GitCompare, ImageIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PhotoDetailModal } from "./photo-detail-modal";
@@ -45,64 +45,82 @@ export function ProgressPhotos({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>Progress Photos</CardTitle>
-          <Button
-            variant={isCompareMode ? "default" : "outline"}
-            size="sm"
-            onClick={onToggleCompareMode}
-          >
-            <GitCompare className="w-4 h-4 mr-2" />
-            {isCompareMode ? "Cancel Compare" : "Compare Photos"}
-          </Button>
+          {photos.length > 0 && (
+            <Button
+              variant={isCompareMode ? "default" : "outline"}
+              size="sm"
+              onClick={onToggleCompareMode}
+            >
+              <GitCompare className="w-4 h-4 mr-2" />
+              {isCompareMode ? "Cancel Compare" : "Compare Photos"}
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
-          {isCompareMode && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
-                Select 2 photos to compare ({selectedPhotos.length}/2 selected)
+          {photos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="rounded-full bg-gray-100 p-6 mb-4">
+                <ImageIcon className="w-12 h-12 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No progress photos yet
+              </h3>
+              <p className="text-sm text-gray-500 max-w-sm">
+                Progress photos will appear here once the subscriber uploads them. Photos help track skin improvements over time.
               </p>
             </div>
-          )}
-          <div className="grid grid-cols-4 gap-4">
-            {photos.map((photo) => (
-              <button
-                key={photo.id}
-                className="group cursor-pointer text-left relative"
-                onClick={() => handlePhotoClick(photo)}
-              >
-                <div
-                  className={`aspect-[3/4] bg-gray-100 rounded-lg border-2 overflow-hidden mb-2 transition-all relative ${
-                    isSelected(photo.id)
-                      ? "border-blue-500 ring-2 ring-blue-200"
-                      : "border-gray-200 group-hover:border-gray-300"
-                  }`}
-                >
-                  <Image
-                    src={photo.imageUrl}
-                    alt={`Week ${photo.weekNumber}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                  />
-                  {isSelected(photo.id) && (
-                    <div className="absolute top-2 right-2 bg-blue-500 rounded-full p-1">
-                      <CheckCircle2 className="w-5 h-5 text-white" />
+          ) : (
+            <>
+              {isCompareMode && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-900">
+                    Select 2 photos to compare ({selectedPhotos.length}/2 selected)
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-4 gap-4">
+                {photos.map((photo) => (
+                  <button
+                    key={photo.id}
+                    className="group cursor-pointer text-left relative"
+                    onClick={() => handlePhotoClick(photo)}
+                  >
+                    <div
+                      className={`aspect-[3/4] bg-gray-100 rounded-lg border-2 overflow-hidden mb-2 transition-all relative ${
+                        isSelected(photo.id)
+                          ? "border-blue-500 ring-2 ring-blue-200"
+                          : "border-gray-200 group-hover:border-gray-300"
+                      }`}
+                    >
+                      <Image
+                        src={photo.imageUrl}
+                        alt={`Week ${photo.weekNumber}`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      />
+                      {isSelected(photo.id) && (
+                        <div className="absolute top-2 right-2 bg-blue-500 rounded-full p-1">
+                          <CheckCircle2 className="w-5 h-5 text-white" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 mb-0.5">
-                    Week {photo.weekNumber}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(photo.uploadedAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 mb-0.5">
+                        Week {photo.weekNumber}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(photo.uploadedAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

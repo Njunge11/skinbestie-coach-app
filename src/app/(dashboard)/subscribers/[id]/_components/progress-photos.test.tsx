@@ -65,8 +65,14 @@ describe("ProgressPhotos - User Workflows", () => {
         />
       );
 
-      // User sees the grid is empty (no week numbers shown)
-      expect(screen.queryByText(/week/i)).not.toBeInTheDocument();
+      // User sees empty state message
+      expect(screen.getByText(/no progress photos yet/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/progress photos will appear here once the subscriber uploads them/i)
+      ).toBeInTheDocument();
+
+      // Compare Photos button is hidden when there are no photos
+      expect(screen.queryByRole("button", { name: /compare photos/i })).not.toBeInTheDocument();
     });
   });
 

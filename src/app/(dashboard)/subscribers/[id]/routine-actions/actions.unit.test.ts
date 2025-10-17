@@ -1373,4 +1373,128 @@ describe("Routine Product Actions - Unit Tests", () => {
       }
     });
   });
+
+  describe("Error Handling", () => {
+    it("createRoutineProduct handles repository errors", async () => {
+      const repo = makeRoutineProductsRepoFake();
+      repo.create = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: RoutineProductDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const data = {
+        routineStep: "Cleanser",
+        productName: "Test Product",
+        instructions: "Apply to damp skin",
+        frequency: "Daily",
+        timeOfDay: "morning" as const,
+      };
+
+      const result = await createRoutineProduct(user1Id, data, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to create routine product");
+      }
+    });
+
+    it("getRoutineProducts handles repository errors", async () => {
+      const repo = makeRoutineProductsRepoFake();
+      repo.findByUserId = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: RoutineProductDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await getRoutineProducts(user1Id, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to fetch routine products");
+      }
+    });
+
+    it("getRoutineProductsByTimeOfDay handles repository errors", async () => {
+      const repo = makeRoutineProductsRepoFake();
+      repo.findByUserIdAndTimeOfDay = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: RoutineProductDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await getRoutineProductsByTimeOfDay(user1Id, "morning", deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to fetch routine products");
+      }
+    });
+
+    it("updateRoutineProduct handles repository errors", async () => {
+      const repo = makeRoutineProductsRepoFake();
+      repo.update = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: RoutineProductDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await updateRoutineProduct(product1Id, { productName: "Updated" }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to update routine product");
+      }
+    });
+
+    it("deleteRoutineProduct handles repository errors", async () => {
+      const repo = makeRoutineProductsRepoFake();
+      repo.deleteById = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: RoutineProductDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await deleteRoutineProduct(product1Id, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to delete routine product");
+      }
+    });
+
+    it("reorderRoutineProducts handles repository errors", async () => {
+      const repo = makeRoutineProductsRepoFake();
+      repo.updateMany = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: RoutineProductDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await reorderRoutineProducts(user1Id, "morning", [product1Id, product2Id], deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to reorder routine products");
+      }
+    });
+  });
 });

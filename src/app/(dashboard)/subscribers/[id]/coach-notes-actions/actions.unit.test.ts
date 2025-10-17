@@ -302,4 +302,90 @@ describe("Coach Notes Actions - Unit Tests", () => {
       }
     });
   });
+
+  describe("Error Handling", () => {
+    it("createCoachNote handles repository errors", async () => {
+      const errorRepo = makeCoachNotesRepoFake();
+      errorRepo.create = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const errorDeps: CoachNoteDeps = {
+        repo: errorRepo,
+        now: () => mockNow,
+      };
+
+      const result = await createCoachNote(userId, admin1Id, "Test note", errorDeps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to create note");
+      }
+    });
+
+    it("updateCoachNote handles repository errors", async () => {
+      const errorRepo = makeCoachNotesRepoFake();
+      errorRepo.findById = async () => ({
+        id: userId,
+        userProfileId: userId,
+        adminId: admin1Id,
+        content: "Original content",
+        createdAt: mockNow,
+        updatedAt: mockNow,
+      });
+      errorRepo.update = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const errorDeps: CoachNoteDeps = {
+        repo: errorRepo,
+        now: () => mockNow,
+      };
+
+      const result = await updateCoachNote(userId, "Updated content", errorDeps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to update note");
+      }
+    });
+
+    it("deleteCoachNote handles repository errors", async () => {
+      const errorRepo = makeCoachNotesRepoFake();
+      errorRepo.deleteById = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const errorDeps: CoachNoteDeps = {
+        repo: errorRepo,
+        now: () => mockNow,
+      };
+
+      const result = await deleteCoachNote(userId, errorDeps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to delete note");
+      }
+    });
+
+    it("getCoachNotes handles repository errors", async () => {
+      const errorRepo = makeCoachNotesRepoFake();
+      errorRepo.findByUserProfileId = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const errorDeps: CoachNoteDeps = {
+        repo: errorRepo,
+        now: () => mockNow,
+      };
+
+      const result = await getCoachNotes(userId, errorDeps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to fetch notes");
+      }
+    });
+  });
 });

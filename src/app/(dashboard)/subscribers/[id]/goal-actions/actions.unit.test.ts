@@ -1134,4 +1134,107 @@ describe("Goal Actions - Unit Tests", () => {
       }
     });
   });
+
+  describe("Error Handling", () => {
+    it("createGoal handles repository errors", async () => {
+      const repo = makeGoalsRepoFake();
+      repo.create = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const data = {
+        name: "Test goal",
+        description: "Test description",
+        timeframe: "4 weeks",
+      };
+
+      const result = await createGoal(user1Id, data, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to create goal");
+      }
+    });
+
+    it("getGoals handles repository errors", async () => {
+      const repo = makeGoalsRepoFake();
+      repo.findByUserId = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await getGoals(user1Id, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to fetch goals");
+      }
+    });
+
+    it("updateGoal handles repository errors", async () => {
+      const repo = makeGoalsRepoFake();
+      repo.update = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await updateGoal(goal1Id, { name: "Updated" }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to update goal");
+      }
+    });
+
+    it("deleteGoal handles repository errors", async () => {
+      const repo = makeGoalsRepoFake();
+      repo.deleteById = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await deleteGoal(goal1Id, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to delete goal");
+      }
+    });
+
+    it("reorderGoals handles repository errors", async () => {
+      const repo = makeGoalsRepoFake();
+      repo.updateMany = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: GoalDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z")
+      };
+
+      const result = await reorderGoals(user1Id, [goal1Id, goal2Id], deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to reorder goals");
+      }
+    });
+  });
 });

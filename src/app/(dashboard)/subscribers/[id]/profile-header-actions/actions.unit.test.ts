@@ -349,12 +349,52 @@ describe("Subscriber Server Actions - Unit Tests", () => {
       const deps: SubscriberDeps = {
         repo,
         now: () => new Date("2025-01-15T10:30:00Z"),
-        
+
       };
 
       const result = await updateUserProfile(user5Id, {}, deps);
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("updateUserProfile handles repository errors", async () => {
+      const repo = makeUserProfileRepoFake();
+      repo.update = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: SubscriberDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await updateUserProfile(user1Id, { occupation: "Test" }, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to update user profile");
+      }
+    });
+
+    it("getUserProfile handles repository errors", async () => {
+      const repo = makeUserProfileRepoFake();
+      repo.getById = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: SubscriberDeps = {
+        repo,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await getUserProfile(user1Id, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to fetch user profile");
+      }
     });
   });
 });
