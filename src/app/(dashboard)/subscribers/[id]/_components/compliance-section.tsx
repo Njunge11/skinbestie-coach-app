@@ -1,579 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-// Dummy compliance data for different time periods
-const complianceDataByPeriod = {
-  week: {
-    period: { start: "Oct 9", end: "Oct 15" },
-    overall: {
-      prescribed: 51, // 5 daily AM (35) + 2 daily PM (14) + 1 PM 2x/week (2)
-      onTime: 33,
-      late: 8,
-      missed: 10,
-    },
-    am: {
-      prescribed: 35, // 5 steps × 7 days
-      completed: 25,
-      onTime: 21,
-      late: 4,
-      missed: 10,
-    },
-    pm: {
-      prescribed: 16, // 2 daily × 7 days + 1 step 2x/week (2)
-      completed: 16,
-      onTime: 12,
-      late: 4,
-      missed: 0,
-    },
-    steps: [
-      {
-        id: 1,
-        name: "Cleanser",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 7,
-        completed: 6,
-        onTime: 5,
-        late: 1,
-        missed: 1,
-        missedDates: ["Saturday, Oct 12, 2025"],
-      },
-      {
-        id: 2,
-        name: "Vitamin C Serum",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 7,
-        completed: 7,
-        onTime: 6,
-        late: 1,
-        missed: 0,
-        missedDates: [],
-      },
-      {
-        id: 3,
-        name: "Moisturizer",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 7,
-        completed: 6,
-        onTime: 5,
-        late: 1,
-        missed: 1,
-        missedDates: ["Monday, Oct 14, 2025"],
-      },
-      {
-        id: 4,
-        name: "Sunscreen (SPF)",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 7,
-        completed: 5,
-        onTime: 4,
-        late: 1,
-        missed: 2,
-        missedDates: ["Friday, Oct 11, 2025", "Monday, Oct 14, 2025"],
-      },
-      {
-        id: 5,
-        name: "Cleanser",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 7,
-        completed: 7,
-        onTime: 6,
-        late: 1,
-        missed: 0,
-        missedDates: [],
-      },
-      {
-        id: 6,
-        name: "Retinol Serum",
-        timeOfDay: "evening",
-        frequency: "2x per week",
-        prescribed: 2, // Mon & Thu
-        completed: 2,
-        onTime: 1,
-        late: 1,
-        missed: 0,
-        missedDates: [],
-      },
-      {
-        id: 7,
-        name: "Night Cream",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 7,
-        completed: 7,
-        onTime: 5,
-        late: 2,
-        missed: 0,
-        missedDates: [],
-      },
-      {
-        id: 8,
-        name: "Eye Cream",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 7,
-        completed: 1,
-        onTime: 1,
-        late: 0,
-        missed: 6,
-        missedDates: ["Thursday, Oct 9, 2025", "Friday, Oct 10, 2025", "Saturday, Oct 11, 2025", "Sunday, Oct 12, 2025", "Monday, Oct 13, 2025", "Monday, Oct 14, 2025"],
-      },
-    ],
-  },
-  month: {
-    period: { start: "Sep 15", end: "Oct 15" },
-    overall: {
-      prescribed: 188, // 4 daily AM (120) + 2 daily PM (60) + 1 PM 2x/week (8)
-      onTime: 142,
-      late: 28,
-      missed: 18,
-    },
-    am: {
-      prescribed: 120, // 4 steps × 30 days
-      completed: 106,
-      onTime: 88,
-      late: 18,
-      missed: 14,
-    },
-    pm: {
-      prescribed: 68, // 2 daily × 30 days + 1 step 2x/week (8)
-      completed: 64,
-      onTime: 54,
-      late: 10,
-      missed: 4,
-    },
-    steps: [
-      {
-        id: 1,
-        name: "Cleanser",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 30,
-        completed: 27,
-        onTime: 23,
-        late: 4,
-        missed: 3,
-        missedDates: ["Thursday, Sep 18, 2025", "Thursday, Sep 25, 2025", "Friday, Oct 3, 2025"],
-      },
-      {
-        id: 2,
-        name: "Vitamin C Serum",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 30,
-        completed: 28,
-        onTime: 24,
-        late: 4,
-        missed: 2,
-        missedDates: ["Monday, Sep 22, 2025", "Wednesday, Oct 8, 2025"],
-      },
-      {
-        id: 3,
-        name: "Moisturizer",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 30,
-        completed: 26,
-        onTime: 20,
-        late: 6,
-        missed: 4,
-        missedDates: ["Saturday, Sep 20, 2025", "Sunday, Sep 28, 2025", "Sunday, Oct 5, 2025", "Saturday, Oct 12, 2025"],
-      },
-      {
-        id: 4,
-        name: "Sunscreen (SPF)",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 30,
-        completed: 25,
-        onTime: 21,
-        late: 4,
-        missed: 5,
-        missedDates: ["Wednesday, Sep 17, 2025", "Wednesday, Sep 24, 2025", "Wednesday, Oct 1, 2025", "Wednesday, Oct 8, 2025", "Monday, Oct 14, 2025"],
-      },
-      {
-        id: 5,
-        name: "Cleanser",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 30,
-        completed: 29,
-        onTime: 25,
-        late: 4,
-        missed: 1,
-        missedDates: ["Monday, Oct 6, 2025"],
-      },
-      {
-        id: 6,
-        name: "Retinol Serum",
-        timeOfDay: "evening",
-        frequency: "2x per week",
-        prescribed: 8,
-        completed: 7,
-        onTime: 5,
-        late: 2,
-        missed: 1,
-        missedDates: ["Sunday, Sep 21, 2025"],
-      },
-      {
-        id: 7,
-        name: "Night Cream",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 30,
-        completed: 28,
-        onTime: 24,
-        late: 4,
-        missed: 2,
-        missedDates: ["Tuesday, Sep 30, 2025", "Friday, Oct 11, 2025"],
-      },
-    ],
-  },
-  "3mo": {
-    period: { start: "Jul 15", end: "Oct 15" },
-    overall: {
-      prescribed: 566, // 4 daily AM (360) + 2 daily PM (180) + 1 PM 2x/week (26)
-      onTime: 438,
-      late: 82,
-      missed: 46,
-    },
-    am: {
-      prescribed: 360,
-      completed: 318,
-      onTime: 262,
-      late: 56,
-      missed: 42,
-    },
-    pm: {
-      prescribed: 206,
-      completed: 202,
-      onTime: 176,
-      late: 26,
-      missed: 4,
-    },
-    steps: [
-      {
-        id: 1,
-        name: "Cleanser",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 90,
-        completed: 81,
-        onTime: 68,
-        late: 13,
-        missed: 9,
-        missedDates: ["Friday, Jul 18, 2025", "Friday, Jul 25, 2025", "Sunday, Aug 3, 2025", "Tuesday, Aug 12, 2025", "Thursday, Aug 28, 2025", "Monday, Sep 15, 2025", "Thursday, Sep 25, 2025", "Friday, Oct 3, 2025", "Saturday, Oct 12, 2025"],
-      },
-      {
-        id: 2,
-        name: "Vitamin C Serum",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 90,
-        completed: 84,
-        onTime: 70,
-        late: 14,
-        missed: 6,
-        missedDates: ["Tuesday, Jul 22, 2025", "Tuesday, Aug 5, 2025", "Tuesday, Aug 19, 2025", "Monday, Sep 8, 2025", "Monday, Sep 22, 2025", "Wednesday, Oct 8, 2025"],
-      },
-      {
-        id: 3,
-        name: "Moisturizer",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 90,
-        completed: 78,
-        onTime: 62,
-        late: 16,
-        missed: 12,
-        missedDates: ["Sunday, Jul 20, 2025", "Monday, Jul 28, 2025", "Monday, Aug 4, 2025", "Monday, Aug 11, 2025", "Wednesday, Aug 20, 2025", "Thursday, Aug 28, 2025", "Friday, Sep 5, 2025", "Friday, Sep 12, 2025", "Saturday, Sep 20, 2025", "Sunday, Sep 28, 2025", "Sunday, Oct 5, 2025", "Saturday, Oct 12, 2025"],
-      },
-      {
-        id: 4,
-        name: "Sunscreen (SPF)",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 90,
-        completed: 75,
-        onTime: 62,
-        late: 13,
-        missed: 15,
-        missedDates: ["Thursday, Jul 17, 2025", "Thursday, Jul 24, 2025", "Thursday, Jul 31, 2025", "Thursday, Aug 7, 2025", "Thursday, Aug 14, 2025", "Thursday, Aug 21, 2025", "Thursday, Aug 28, 2025", "Thursday, Sep 4, 2025", "Thursday, Sep 11, 2025", "Wednesday, Sep 17, 2025", "Wednesday, Sep 24, 2025", "Wednesday, Oct 1, 2025", "Wednesday, Oct 8, 2025", "Monday, Oct 14, 2025", "Tuesday, Oct 15, 2025"],
-      },
-      {
-        id: 5,
-        name: "Cleanser",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 90,
-        completed: 88,
-        onTime: 76,
-        late: 12,
-        missed: 2,
-        missedDates: ["Friday, Aug 15, 2025", "Monday, Oct 6, 2025"],
-      },
-      {
-        id: 6,
-        name: "Retinol Serum",
-        timeOfDay: "evening",
-        frequency: "2x per week",
-        prescribed: 26,
-        completed: 24,
-        onTime: 19,
-        late: 5,
-        missed: 2,
-        missedDates: ["Sunday, Aug 10, 2025", "Sunday, Sep 21, 2025"],
-      },
-      {
-        id: 7,
-        name: "Night Cream",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 90,
-        completed: 90,
-        onTime: 81,
-        late: 9,
-        missed: 0,
-        missedDates: [],
-      },
-    ],
-  },
-  "6mo": {
-    period: { start: "Apr 15", end: "Oct 15" },
-    overall: {
-      prescribed: 1132, // 4 daily AM (720) + 2 daily PM (360) + 1 PM 2x/week (52)
-      onTime: 892,
-      late: 164,
-      missed: 76,
-    },
-    am: {
-      prescribed: 720,
-      completed: 642,
-      onTime: 528,
-      late: 114,
-      missed: 78,
-    },
-    pm: {
-      prescribed: 412,
-      completed: 400,
-      onTime: 364,
-      late: 50,
-      missed: 12,
-    },
-    steps: [
-      {
-        id: 1,
-        name: "Cleanser",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 162,
-        onTime: 136,
-        late: 26,
-        missed: 18,
-        missedDates: ["Sunday, Apr 20, 2025", "Monday, Apr 28, 2025", "Monday, May 5, 2025", "Sunday, May 18, 2025", "Monday, Jun 2, 2025", "Sunday, Jun 15, 2025", "Saturday, Jun 28, 2025", "Thursday, Jul 10, 2025", "Friday, Jul 18, 2025", "Friday, Jul 25, 2025", "Sunday, Aug 3, 2025", "Tuesday, Aug 12, 2025", "Thursday, Aug 28, 2025", "Monday, Sep 15, 2025", "Thursday, Sep 25, 2025", "Friday, Oct 3, 2025", "Wednesday, Oct 8, 2025", "Saturday, Oct 12, 2025"],
-      },
-      {
-        id: 2,
-        name: "Vitamin C Serum",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 168,
-        onTime: 142,
-        late: 26,
-        missed: 12,
-        missedDates: ["Tuesday, Apr 22, 2025", "Thursday, May 8, 2025", "Thursday, May 22, 2025", "Thursday, Jun 5, 2025", "Thursday, Jun 19, 2025", "Thursday, Jul 3, 2025", "Tuesday, Jul 22, 2025", "Tuesday, Aug 5, 2025", "Tuesday, Aug 19, 2025", "Monday, Sep 8, 2025", "Monday, Sep 22, 2025", "Wednesday, Oct 8, 2025"],
-      },
-      {
-        id: 3,
-        name: "Moisturizer",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 156,
-        onTime: 126,
-        late: 30,
-        missed: 24,
-        missedDates: ["Friday, Apr 18, 2025", "Friday, Apr 25, 2025", "Friday, May 2, 2025", "Friday, May 9, 2025", "Friday, May 16, 2025", "Friday, May 23, 2025", "Friday, May 30, 2025", "Friday, Jun 6, 2025", "Friday, Jun 13, 2025", "Friday, Jun 20, 2025", "Friday, Jun 27, 2025", "Friday, Jul 4, 2025", "Friday, Jul 11, 2025", "Friday, Jul 18, 2025", "Friday, Jul 25, 2025", "Friday, Aug 1, 2025", "Friday, Aug 8, 2025", "Friday, Aug 15, 2025", "Friday, Aug 22, 2025", "Friday, Aug 29, 2025", "Friday, Sep 5, 2025", "Friday, Sep 12, 2025", "Friday, Sep 19, 2025", "Friday, Sep 26, 2025"],
-      },
-      {
-        id: 4,
-        name: "Sunscreen (SPF)",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 156,
-        onTime: 124,
-        late: 32,
-        missed: 24,
-        missedDates: ["Thursday, Apr 17, 2025", "Thursday, Apr 24, 2025", "Thursday, May 1, 2025", "Thursday, May 8, 2025", "Thursday, May 15, 2025", "Thursday, May 22, 2025", "Thursday, May 29, 2025", "Thursday, Jun 5, 2025", "Thursday, Jun 12, 2025", "Thursday, Jun 19, 2025", "Thursday, Jun 26, 2025", "Thursday, Jul 3, 2025", "Thursday, Jul 10, 2025", "Thursday, Jul 17, 2025", "Thursday, Jul 24, 2025", "Thursday, Jul 31, 2025", "Thursday, Aug 7, 2025", "Thursday, Aug 14, 2025", "Thursday, Aug 21, 2025", "Thursday, Aug 28, 2025", "Thursday, Sep 4, 2025", "Thursday, Sep 11, 2025", "Thursday, Sep 18, 2025", "Thursday, Sep 25, 2025"],
-      },
-      {
-        id: 5,
-        name: "Cleanser",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 176,
-        onTime: 154,
-        late: 22,
-        missed: 4,
-        missedDates: ["Tuesday, May 20, 2025", "Tuesday, Jul 8, 2025", "Friday, Aug 15, 2025", "Monday, Oct 6, 2025"],
-      },
-      {
-        id: 6,
-        name: "Retinol Serum",
-        timeOfDay: "evening",
-        frequency: "2x per week",
-        prescribed: 52,
-        completed: 48,
-        onTime: 40,
-        late: 8,
-        missed: 4,
-        missedDates: ["Friday, May 16, 2025", "Friday, Jun 27, 2025", "Sunday, Aug 10, 2025", "Sunday, Sep 21, 2025"],
-      },
-      {
-        id: 7,
-        name: "Night Cream",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 176,
-        onTime: 160,
-        late: 16,
-        missed: 4,
-        missedDates: ["Thursday, Jun 5, 2025", "Tuesday, Jul 22, 2025", "Wednesday, Sep 3, 2025", "Friday, Oct 11, 2025"],
-      },
-    ],
-  },
-  all: {
-    period: { start: "Apr 15", end: "Oct 15" },
-    overall: {
-      prescribed: 1132,
-      onTime: 892,
-      late: 164,
-      missed: 76,
-    },
-    am: {
-      prescribed: 720,
-      completed: 642,
-      onTime: 528,
-      late: 114,
-      missed: 78,
-    },
-    pm: {
-      prescribed: 412,
-      completed: 400,
-      onTime: 364,
-      late: 50,
-      missed: 12,
-    },
-    steps: [
-      {
-        id: 1,
-        name: "Cleanser",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 162,
-        onTime: 136,
-        late: 26,
-        missed: 18,
-        missedDates: ["Sunday, Apr 20, 2025", "Monday, Apr 28, 2025", "Monday, May 5, 2025", "Sunday, May 18, 2025", "Monday, Jun 2, 2025", "Sunday, Jun 15, 2025", "Saturday, Jun 28, 2025", "Thursday, Jul 10, 2025", "Friday, Jul 18, 2025", "Friday, Jul 25, 2025", "Sunday, Aug 3, 2025", "Tuesday, Aug 12, 2025", "Thursday, Aug 28, 2025", "Monday, Sep 15, 2025", "Thursday, Sep 25, 2025", "Friday, Oct 3, 2025", "Wednesday, Oct 8, 2025", "Saturday, Oct 12, 2025"],
-      },
-      {
-        id: 2,
-        name: "Vitamin C Serum",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 168,
-        onTime: 142,
-        late: 26,
-        missed: 12,
-        missedDates: ["Tuesday, Apr 22, 2025", "Thursday, May 8, 2025", "Thursday, May 22, 2025", "Thursday, Jun 5, 2025", "Thursday, Jun 19, 2025", "Thursday, Jul 3, 2025", "Tuesday, Jul 22, 2025", "Tuesday, Aug 5, 2025", "Tuesday, Aug 19, 2025", "Monday, Sep 8, 2025", "Monday, Sep 22, 2025", "Wednesday, Oct 8, 2025"],
-      },
-      {
-        id: 3,
-        name: "Moisturizer",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 156,
-        onTime: 126,
-        late: 30,
-        missed: 24,
-        missedDates: ["Friday, Apr 18, 2025", "Friday, Apr 25, 2025", "Friday, May 2, 2025", "Friday, May 9, 2025", "Friday, May 16, 2025", "Friday, May 23, 2025", "Friday, May 30, 2025", "Friday, Jun 6, 2025", "Friday, Jun 13, 2025", "Friday, Jun 20, 2025", "Friday, Jun 27, 2025", "Friday, Jul 4, 2025", "Friday, Jul 11, 2025", "Friday, Jul 18, 2025", "Friday, Jul 25, 2025", "Friday, Aug 1, 2025", "Friday, Aug 8, 2025", "Friday, Aug 15, 2025", "Friday, Aug 22, 2025", "Friday, Aug 29, 2025", "Friday, Sep 5, 2025", "Friday, Sep 12, 2025", "Friday, Sep 19, 2025", "Friday, Sep 26, 2025"],
-      },
-      {
-        id: 4,
-        name: "Sunscreen (SPF)",
-        timeOfDay: "morning",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 156,
-        onTime: 124,
-        late: 32,
-        missed: 24,
-        missedDates: ["Thursday, Apr 17, 2025", "Thursday, Apr 24, 2025", "Thursday, May 1, 2025", "Thursday, May 8, 2025", "Thursday, May 15, 2025", "Thursday, May 22, 2025", "Thursday, May 29, 2025", "Thursday, Jun 5, 2025", "Thursday, Jun 12, 2025", "Thursday, Jun 19, 2025", "Thursday, Jun 26, 2025", "Thursday, Jul 3, 2025", "Thursday, Jul 10, 2025", "Thursday, Jul 17, 2025", "Thursday, Jul 24, 2025", "Thursday, Jul 31, 2025", "Thursday, Aug 7, 2025", "Thursday, Aug 14, 2025", "Thursday, Aug 21, 2025", "Thursday, Aug 28, 2025", "Thursday, Sep 4, 2025", "Thursday, Sep 11, 2025", "Thursday, Sep 18, 2025", "Thursday, Sep 25, 2025"],
-      },
-      {
-        id: 5,
-        name: "Cleanser",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 176,
-        onTime: 154,
-        late: 22,
-        missed: 4,
-        missedDates: ["Tuesday, May 20, 2025", "Tuesday, Jul 8, 2025", "Friday, Aug 15, 2025", "Monday, Oct 6, 2025"],
-      },
-      {
-        id: 6,
-        name: "Retinol Serum",
-        timeOfDay: "evening",
-        frequency: "2x per week",
-        prescribed: 52,
-        completed: 48,
-        onTime: 40,
-        late: 8,
-        missed: 4,
-        missedDates: ["Friday, May 16, 2025", "Friday, Jun 27, 2025", "Sunday, Aug 10, 2025", "Sunday, Sep 21, 2025"],
-      },
-      {
-        id: 7,
-        name: "Night Cream",
-        timeOfDay: "evening",
-        frequency: "Daily",
-        prescribed: 180,
-        completed: 176,
-        onTime: 160,
-        late: 16,
-        missed: 4,
-        missedDates: ["Thursday, Jun 5, 2025", "Tuesday, Jul 22, 2025", "Wednesday, Sep 3, 2025", "Friday, Oct 11, 2025"],
-      },
-    ],
-  },
-};
+import { getComplianceStats } from "../compliance-actions/actions";
+import type { ComplianceStats } from "../compliance-actions/actions";
+import { subDays, subMonths, format, startOfDay, endOfDay } from "date-fns";
 
 type TimePeriod = "week" | "month" | "3mo" | "6mo" | "all";
 
-export function ComplianceSection() {
-  const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("week");
+interface ComplianceSectionProps {
+  userId: string;
+}
 
-  const toggleStep = (stepId: number) => {
+export function ComplianceSection({ userId }: ComplianceSectionProps) {
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("week");
+  const [complianceData, setComplianceData] = useState<ComplianceStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Calculate date range based on selected period
+  const getDateRange = (period: TimePeriod): { start: Date; end: Date } => {
+    const today = endOfDay(new Date());
+    let start: Date;
+
+    switch (period) {
+      case "week":
+        start = startOfDay(subDays(today, 6)); // Last 7 days
+        break;
+      case "month":
+        start = startOfDay(subDays(today, 29)); // Last 30 days
+        break;
+      case "3mo":
+        start = startOfDay(subMonths(today, 3));
+        break;
+      case "6mo":
+        start = startOfDay(subMonths(today, 6));
+        break;
+      case "all":
+        // Use a far back date to get all data
+        start = startOfDay(subMonths(today, 12));
+        break;
+    }
+
+    return { start, end: today };
+  };
+
+  // Fetch compliance data
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      const { start, end } = getDateRange(selectedPeriod);
+      const result = await getComplianceStats(userId, start, end);
+
+      if (result.success) {
+        setComplianceData(result.data);
+      } else {
+        setError(result.error);
+      }
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, [userId, selectedPeriod]);
+
+  const toggleStep = (stepId: string) => {
     const newExpanded = new Set(expandedSteps);
     if (newExpanded.has(stepId)) {
       newExpanded.delete(stepId);
@@ -588,9 +84,116 @@ export function ComplianceSection() {
     return Math.round((completed / total) * 100);
   };
 
-  // Get data for selected period
-  const complianceData = complianceDataByPeriod[selectedPeriod];
+  const periods: { value: TimePeriod; label: string }[] = [
+    { value: "week", label: "Week" },
+    { value: "month", label: "Month" },
+    { value: "3mo", label: "3mo" },
+    { value: "6mo", label: "6mo" },
+    { value: "all", label: "All" },
+  ];
 
+  // Show loading state with skeleton
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+            <CardTitle>Compliance</CardTitle>
+            <div className="flex gap-1 p-1 bg-muted rounded-lg">
+              {periods.map((period) => (
+                <button
+                  key={period.value}
+                  onClick={() => setSelectedPeriod(period.value)}
+                  className={cn(
+                    "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                    selectedPeriod === period.value
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {period.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="h-4 w-48 bg-muted rounded animate-pulse"></div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Skeleton for 4 Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className={i === 1 ? "bg-gradient-to-b from-primary to-primary/90 border-0" : ""}>
+                <CardContent className="p-6">
+                  <div className="h-4 w-24 bg-muted/50 rounded mb-2 animate-pulse"></div>
+                  <div className="h-10 w-16 bg-muted/50 rounded mb-1 animate-pulse"></div>
+                  <div className="h-3 w-20 bg-muted/50 rounded animate-pulse"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Skeleton for AM/PM Split */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="rounded-lg border border-border bg-muted/50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 bg-muted rounded-md animate-pulse"></div>
+                  <div className="h-4 w-16 bg-muted rounded animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                  {[1, 2, 3, 4].map((j) => (
+                    <div key={j} className="flex justify-between">
+                      <div className="h-3 w-20 bg-muted rounded animate-pulse"></div>
+                      <div className="h-3 w-12 bg-muted rounded animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Skeleton for Per-step Details */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-foreground mb-3">Per-step Details</h4>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="h-4 w-32 bg-muted rounded animate-pulse"></div>
+                        <div className="h-5 w-8 bg-muted rounded animate-pulse"></div>
+                      </div>
+                      <div className="h-3 w-24 bg-muted rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                  <div className="h-4 w-4 bg-muted rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (error || !complianceData) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Compliance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8 text-destructive">
+            {error || "Failed to load compliance data"}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Calculate metrics from real data
   const overallCompleted = complianceData.overall.onTime + complianceData.overall.late;
   const overallPercentage = calculatePercentage(
     overallCompleted,
@@ -607,13 +210,9 @@ export function ComplianceSection() {
     complianceData.pm.prescribed
   );
 
-  const periods: { value: TimePeriod; label: string }[] = [
-    { value: "week", label: "Week" },
-    { value: "month", label: "Month" },
-    { value: "3mo", label: "3mo" },
-    { value: "6mo", label: "6mo" },
-    { value: "all", label: "All" },
-  ];
+  // Calculate period display
+  const { start, end } = getDateRange(selectedPeriod);
+  const periodDisplay = `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
 
   return (
     <Card>
@@ -638,7 +237,7 @@ export function ComplianceSection() {
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          {complianceData.period.start} – {complianceData.period.end}
+          {periodDisplay}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -684,7 +283,12 @@ export function ComplianceSection() {
             <CardContent className="p-6">
               <p className="text-sm font-medium text-muted-foreground mb-2">Missed</p>
               <div>
-                <div className="text-4xl font-bold text-destructive mb-1">{complianceData.overall.missed}</div>
+                <div className={cn(
+                  "text-4xl font-bold mb-1",
+                  complianceData.overall.missed > 0 ? "text-destructive" : "text-foreground"
+                )}>
+                  {complianceData.overall.missed}
+                </div>
                 <p className="text-xs text-muted-foreground">Steps not completed</p>
               </div>
             </CardContent>
@@ -779,22 +383,28 @@ export function ComplianceSection() {
         {/* Per-step Breakdown */}
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-foreground mb-3">Per-step Details</h4>
-          {complianceData.steps.map((step) => {
-            const isExpanded = expandedSteps.has(step.id);
-            const stepPercentage = calculatePercentage(step.completed, step.prescribed);
-            const onTimePercentage = calculatePercentage(step.onTime, step.completed);
+          {complianceData.steps.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">No compliance data yet.</p>
+              <p className="text-xs mt-1">Steps will appear here once they are completed or missed.</p>
+            </div>
+          ) : (
+            complianceData.steps.map((step) => {
+              const isExpanded = expandedSteps.has(step.routineProductId);
+              const stepPercentage = calculatePercentage(step.completed, step.prescribed);
+              const onTimePercentage = calculatePercentage(step.onTime, step.completed);
 
-            return (
-              <div key={step.id} className="rounded-lg border border-border">
+              return (
+              <div key={step.routineProductId} className="rounded-lg border border-border">
                 <button
-                  onClick={() => toggleStep(step.id)}
+                  onClick={() => toggleStep(step.routineProductId)}
                   className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium text-foreground">
-                          {step.name}
+                          {step.productName}
                         </span>
                         <Badge variant="outline" className="text-xs">
                           {step.timeOfDay === "morning" ? "AM" : "PM"}
@@ -887,8 +497,9 @@ export function ComplianceSection() {
                   </div>
                 )}
               </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </CardContent>
     </Card>

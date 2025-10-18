@@ -19,6 +19,7 @@ import {
   createRoutine as createRoutineAction,
   updateRoutine as updateRoutineAction,
   deleteRoutine as deleteRoutineAction,
+  publishRoutine as publishRoutineAction,
 } from "../routine-info-actions/actions";
 import { copyTemplateToUser } from "@/app/(dashboard)/routine-management/template-actions/copy-template";
 import {
@@ -264,6 +265,27 @@ export function ClientPageWrapper({
     }
   };
 
+  const handlePublishRoutine = async () => {
+    if (!routine) return;
+
+    // Optimistically update UI
+    const previousRoutine = routine;
+    setRoutine((prev) => (prev ? { ...prev, status: "published" } : prev));
+
+    // Call server action
+    const result = await publishRoutineAction(routine.id);
+
+    if (!result.success) {
+      // Revert on error
+      setRoutine(previousRoutine);
+      console.error("Failed to publish routine:", result.error);
+      toast.error(result.error || "Failed to publish routine");
+    } else {
+      setRoutine(result.data);
+      toast.success("Routine published successfully");
+    }
+  };
+
   const handleCreateRoutineFromTemplate = async (
     templateId: string,
     routineName: string,
@@ -488,7 +510,7 @@ export function ClientPageWrapper({
       <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
         {/* Main Content */}
         <div className="flex-1 space-y-6">
-          <ComplianceSection />
+          <ComplianceSection userId={userId} />
 
           <GoalsSection
             goals={goals}
@@ -506,6 +528,7 @@ export function ClientPageWrapper({
             onCreateFromTemplate={handleCreateRoutineFromTemplate}
             onCreateBlank={handleCreateBlankRoutine}
             onUpdateRoutine={handleUpdateRoutine}
+            onPublishRoutine={handlePublishRoutine}
             onDeleteRoutine={handleDeleteRoutine}
             onAddProduct={handleAddRoutineProduct}
             onUpdateProduct={handleUpdateRoutineProduct}

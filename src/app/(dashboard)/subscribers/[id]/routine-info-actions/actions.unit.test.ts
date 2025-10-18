@@ -1,10 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   getRoutine,
   createRoutine,
   updateRoutine,
   deleteRoutine,
+  publishRoutine,
   type RoutineDeps,
+  type PublishRoutineDeps,
 } from "./actions";
 import { makeRoutineRepoFake } from "./routine.repo.fake";
 
@@ -699,6 +701,219 @@ describe("Routine Info Actions - Unit Tests", () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toBe("Failed to delete routine");
+      }
+    });
+  });
+
+  describe("publishRoutine", () => {
+    const productId1 = "350e8400-e29b-41d4-a716-446655440000";
+
+    it("publishes routine successfully and generates steps", async () => {
+      const routineRepo = makeRoutineRepoFake();
+      const generateStepsCalled = vi.fn().mockResolvedValue({ success: true, data: { count: 10 } });
+
+      routineRepo._store.set(routineId, {
+        id: routineId,
+        userProfileId: user1Id,
+        name: "Test Routine",
+        startDate: new Date("2025-01-01"),
+        endDate: null,
+        status: "draft",
+        createdAt: new Date("2025-01-01"),
+        updatedAt: new Date("2025-01-01"),
+      });
+
+      const productRepo = {
+        findByRoutineId: vi.fn().mockResolvedValue([
+          {
+            id: productId1,
+            routineId,
+            userProfileId: user1Id,
+            routineStep: "Step 1",
+            productName: "Product A",
+            instructions: "Apply to face",
+            frequency: "Daily",
+            timeOfDay: "morning" as const,
+          },
+        ]),
+      };
+
+      const deps: PublishRoutineDeps = {
+        routineRepo,
+        productRepo,
+        generateScheduledSteps: generateStepsCalled,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await publishRoutine(routineId, deps);
+
+      expect(result.success).toBe(true);
+      expect(routineRepo._store.get(routineId)!.status).toBe("published");
+      expect(generateStepsCalled).toHaveBeenCalledWith(routineId);
+    });
+
+    it("returns error when routineId is invalid format", async () => {
+      const deps: PublishRoutineDeps = {
+        routineRepo: makeRoutineRepoFake(),
+        productRepo: { findByRoutineId: vi.fn() },
+        generateScheduledSteps: vi.fn(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await publishRoutine("invalid-id", deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Invalid routine ID");
+      }
+    });
+
+    it("returns error when routine not found", async () => {
+      const deps: PublishRoutineDeps = {
+        routineRepo: makeRoutineRepoFake(),
+        productRepo: { findByRoutineId: vi.fn() },
+        generateScheduledSteps: vi.fn(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await publishRoutine("550e8400-e29b-41d4-a716-999999999999", deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Routine not found");
+      }
+    });
+
+    it("returns error when routine is already published", async () => {
+      const routineRepo = makeRoutineRepoFake();
+
+      routineRepo._store.set(routineId, {
+        id: routineId,
+        userProfileId: user1Id,
+        name: "Test Routine",
+        startDate: new Date("2025-01-01"),
+        endDate: null,
+        status: "published",
+        createdAt: new Date("2025-01-01"),
+        updatedAt: new Date("2025-01-01"),
+      });
+
+      const deps: PublishRoutineDeps = {
+        routineRepo,
+        productRepo: { findByRoutineId: vi.fn() },
+        generateScheduledSteps: vi.fn(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await publishRoutine(routineId, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Routine is already published");
+      }
+    });
+
+    it("returns error when routine has no products", async () => {
+      const routineRepo = makeRoutineRepoFake();
+
+      routineRepo._store.set(routineId, {
+        id: routineId,
+        userProfileId: user1Id,
+        name: "Test Routine",
+        startDate: new Date("2025-01-01"),
+        endDate: null,
+        status: "draft",
+        createdAt: new Date("2025-01-01"),
+        updatedAt: new Date("2025-01-01"),
+      });
+
+      const productRepo = {
+        findByRoutineId: vi.fn().mockResolvedValue([]),
+      };
+
+      const deps: PublishRoutineDeps = {
+        routineRepo,
+        productRepo,
+        generateScheduledSteps: vi.fn(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await publishRoutine(routineId, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Cannot publish routine without products");
+      }
+    });
+
+    it("returns error when generateScheduledSteps fails", async () => {
+      const routineRepo = makeRoutineRepoFake();
+      const generateStepsCalled = vi.fn().mockResolvedValue({
+        success: false,
+        error: "Failed to generate steps",
+      });
+
+      routineRepo._store.set(routineId, {
+        id: routineId,
+        userProfileId: user1Id,
+        name: "Test Routine",
+        startDate: new Date("2025-01-01"),
+        endDate: null,
+        status: "draft",
+        createdAt: new Date("2025-01-01"),
+        updatedAt: new Date("2025-01-01"),
+      });
+
+      const productRepo = {
+        findByRoutineId: vi.fn().mockResolvedValue([
+          {
+            id: productId1,
+            routineId,
+            userProfileId: user1Id,
+            routineStep: "Step 1",
+            productName: "Product A",
+            instructions: "Apply to face",
+            frequency: "Daily",
+            timeOfDay: "morning" as const,
+          },
+        ]),
+      };
+
+      const deps: PublishRoutineDeps = {
+        routineRepo,
+        productRepo,
+        generateScheduledSteps: generateStepsCalled,
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await publishRoutine(routineId, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to generate steps");
+      }
+      // Routine should still be draft since generation failed
+      expect(routineRepo._store.get(routineId)!.status).toBe("draft");
+    });
+
+    it("handles repository errors gracefully", async () => {
+      const routineRepo = makeRoutineRepoFake();
+      routineRepo.findById = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const deps: PublishRoutineDeps = {
+        routineRepo,
+        productRepo: { findByRoutineId: vi.fn() },
+        generateScheduledSteps: vi.fn(),
+        now: () => new Date("2025-01-15T10:30:00Z"),
+      };
+
+      const result = await publishRoutine(routineId, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to publish routine");
       }
     });
   });

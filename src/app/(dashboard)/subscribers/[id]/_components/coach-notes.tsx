@@ -144,7 +144,7 @@ export function CoachNotes({
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto scroll-smooth pr-2">
             {notes.map((note, index) => (
               <div key={note.id}>
                 {editingId === note.id ? (

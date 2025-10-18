@@ -65,6 +65,10 @@ export function makeRoutineProductsRepoFake() {
       return products.sort((a, b) => a.order - b.order);
     },
 
+    async findById(productId: string): Promise<RoutineProduct | null> {
+      return _store.get(productId) || null;
+    },
+
     async create(product: NewRoutineProduct): Promise<RoutineProduct> {
       const id = `routine_product_${++_idCounter}`;
       const newProduct: RoutineProduct = {

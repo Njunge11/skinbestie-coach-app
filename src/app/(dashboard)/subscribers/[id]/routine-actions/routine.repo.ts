@@ -37,6 +37,17 @@ export function makeRoutineProductsRepo() {
       return products as RoutineProduct[];
     },
 
+    async findById(productId: string): Promise<RoutineProduct | null> {
+      const [product] = await db
+        .select()
+        .from(skincareRoutineProducts)
+        .where(eq(skincareRoutineProducts.id, productId))
+        .limit(1)
+        .execute();
+
+      return product ? (product as RoutineProduct) : null;
+    },
+
     async create(product: NewRoutineProduct): Promise<RoutineProduct> {
       const [newProduct] = await db
         .insert(skincareRoutineProducts)

@@ -28,8 +28,8 @@ export function ComparePhotosModal({
   const [photo1, photo2] = photos;
 
   // Calculate time difference
-  const date1 = new Date(photo1.date);
-  const date2 = new Date(photo2.date);
+  const date1 = new Date(photo1.uploadedAt);
+  const date2 = new Date(photo2.uploadedAt);
   const daysDiff = Math.abs(
     Math.floor((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24))
   );
@@ -53,7 +53,7 @@ export function ComparePhotosModal({
           {/* Photo 1 - Date Header */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              {photo1.month}
+              Week {photo1.weekNumber}
             </h3>
             <p className="text-sm text-gray-500">
               {date1.toLocaleDateString("en-US", {
@@ -67,7 +67,7 @@ export function ComparePhotosModal({
           {/* Photo 2 - Date Header */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              {photo2.month}
+              Week {photo2.weekNumber}
             </h3>
             <p className="text-sm text-gray-500">
               {date2.toLocaleDateString("en-US", {
@@ -121,8 +121,8 @@ export function ComparePhotosModal({
                   <TransformComponent>
                     <div className="bg-gray-100 rounded-lg border border-gray-200 overflow-hidden">
                       <Image
-                        src={photo1.image}
-                        alt={photo1.month}
+                        src={photo1.imageUrl}
+                        alt={`Week ${photo1.weekNumber}`}
                         width={450}
                         height={600}
                         className="object-cover"
@@ -178,8 +178,8 @@ export function ComparePhotosModal({
                   <TransformComponent>
                     <div className="bg-gray-100 rounded-lg border border-gray-200 overflow-hidden">
                       <Image
-                        src={photo2.image}
-                        alt={photo2.month}
+                        src={photo2.imageUrl}
+                        alt={`Week ${photo2.weekNumber}`}
                         width={450}
                         height={600}
                         className="object-cover"

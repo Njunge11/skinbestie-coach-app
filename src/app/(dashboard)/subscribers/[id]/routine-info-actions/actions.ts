@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { makeRoutineRepo } from "./routine.repo";
 import type { Routine, NewRoutine } from "./routine.repo.fake";
+import { generateScheduledSteps } from "../compliance-actions/actions";
+import { makeRoutineProductsRepo } from "../compliance-actions/routine-products.repo";
 
 // Dependency injection for testing (follows TESTING.md)
 export type RoutineDeps = {
@@ -211,5 +213,86 @@ export async function deleteRoutine(
   } catch (error) {
     console.error("Error deleting routine:", error);
     return { success: false, error: "Failed to delete routine" };
+  }
+}
+
+// Dependency injection for publishRoutine
+export type PublishRoutineDeps = {
+  routineRepo: ReturnType<typeof makeRoutineRepo>;
+  productRepo: {
+    findByRoutineId: (routineId: string) => Promise<Array<{ id: string }>>;
+  };
+  generateScheduledSteps: typeof generateScheduledSteps;
+  now: () => Date;
+};
+
+// Default dependencies for publishRoutine (production)
+const defaultPublishDeps: PublishRoutineDeps = {
+  routineRepo: makeRoutineRepo(),
+  productRepo: makeRoutineProductsRepo(),
+  generateScheduledSteps,
+  now: () => new Date(),
+};
+
+const publishRoutineSchema = z.object({
+  routineId: uuidSchema,
+});
+
+/**
+ * Publish a routine - updates status to published and generates scheduled steps
+ */
+export async function publishRoutine(
+  routineId: string,
+  deps: PublishRoutineDeps = defaultPublishDeps
+): Promise<Result<Routine>> {
+  const { routineRepo, productRepo, generateScheduledSteps, now } = deps;
+
+  // Validate input with Zod
+  const validation = publishRoutineSchema.safeParse({ routineId });
+
+  if (!validation.success) {
+    return { success: false, error: "Invalid routine ID" };
+  }
+
+  try {
+    // Find the routine
+    const routine = await routineRepo.findById(validation.data.routineId);
+
+    if (!routine) {
+      return { success: false, error: "Routine not found" };
+    }
+
+    // Check if already published
+    if (routine.status === "published") {
+      return { success: false, error: "Routine is already published" };
+    }
+
+    // Check if routine has products
+    const products = await productRepo.findByRoutineId(validation.data.routineId);
+    if (products.length === 0) {
+      return { success: false, error: "Cannot publish routine without products" };
+    }
+
+    // Generate scheduled steps
+    const generateResult = await generateScheduledSteps(validation.data.routineId);
+
+    if (!generateResult.success) {
+      return { success: false, error: generateResult.error };
+    }
+
+    // Update routine status to published
+    const updatedRoutine = await routineRepo.update(validation.data.routineId, {
+      status: "published",
+      updatedAt: now(),
+    });
+
+    if (!updatedRoutine) {
+      return { success: false, error: "Failed to update routine status" };
+    }
+
+    return { success: true, data: updatedRoutine };
+  } catch (error) {
+    console.error("Error publishing routine:", error);
+    return { success: false, error: "Failed to publish routine" };
   }
 }

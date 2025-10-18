@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   getRoutineProducts,
   getRoutineProductsByTimeOfDay,
@@ -7,6 +7,8 @@ import {
   deleteRoutineProduct,
   reorderRoutineProducts,
   type RoutineProductDeps,
+  type CreateRoutineProductWithRegenerationDeps,
+  type UpdateRoutineProductWithRegenerationDeps,
 } from "./actions";
 import { makeRoutineProductsRepoFake } from "./routine.repo.fake";
 
@@ -324,10 +326,16 @@ describe("Routine Product Actions - Unit Tests", () => {
       const repo = makeRoutineProductsRepoFake();
       const fixedNow = new Date("2025-01-15T10:30:00Z");
 
-      const deps: RoutineProductDeps = {
+      const deps: CreateRoutineProductWithRegenerationDeps = {
         repo,
+        routineRepo: {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        },
+        generateScheduledStepsForProduct: vi.fn(),
         now: () => fixedNow
-        
       };
 
       const data = {
@@ -354,10 +362,16 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("creates routine product with optional productUrl", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      const deps: RoutineProductDeps = {
+      const deps: CreateRoutineProductWithRegenerationDeps = {
         repo,
+        routineRepo: {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        },
+        generateScheduledStepsForProduct: vi.fn(),
         now: () => new Date("2025-01-15T10:30:00Z")
-        
       };
 
       const data = {
@@ -381,10 +395,16 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("creates routine product with optional days for non-daily frequency", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      const deps: RoutineProductDeps = {
+      const deps: CreateRoutineProductWithRegenerationDeps = {
         repo,
+        routineRepo: {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        },
+        generateScheduledStepsForProduct: vi.fn(),
         now: () => new Date("2025-01-15T10:30:00Z")
-        
       };
 
       const data = {
@@ -408,10 +428,16 @@ describe("Routine Product Actions - Unit Tests", () => {
     it("sets order to 0 when it's the first product for that time of day", async () => {
       const repo = makeRoutineProductsRepoFake();
 
-      const deps: RoutineProductDeps = {
+      const deps: CreateRoutineProductWithRegenerationDeps = {
         repo,
+        routineRepo: {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        },
+        generateScheduledStepsForProduct: vi.fn(),
         now: () => new Date("2025-01-15T10:30:00Z")
-
       };
 
       const data = {
@@ -463,10 +489,16 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      const deps: RoutineProductDeps = {
+      const deps: CreateRoutineProductWithRegenerationDeps = {
         repo,
+        routineRepo: {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        },
+        generateScheduledStepsForProduct: vi.fn(),
         now: () => new Date("2025-01-15T10:30:00Z")
-        
       };
 
       const data = {
@@ -504,10 +536,16 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      const deps: RoutineProductDeps = {
+      const deps: CreateRoutineProductWithRegenerationDeps = {
         repo,
+        routineRepo: {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        },
+        generateScheduledStepsForProduct: vi.fn(),
         now: () => new Date("2025-01-15T10:30:00Z")
-        
       };
 
       const data = {
@@ -531,10 +569,16 @@ describe("Routine Product Actions - Unit Tests", () => {
       const repo = makeRoutineProductsRepoFake();
       const fixedNow = new Date("2025-01-15T10:30:00Z");
 
-      const deps: RoutineProductDeps = {
+      const deps: CreateRoutineProductWithRegenerationDeps = {
         repo,
+        routineRepo: {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        },
+        generateScheduledStepsForProduct: vi.fn(),
         now: () => fixedNow
-
       };
 
       const data = {
@@ -785,11 +829,214 @@ describe("Routine Product Actions - Unit Tests", () => {
         expect(result.error).toBe("Invalid data");
       }
     });
+
+    describe("regeneration for published routines", () => {
+      it("does not generate steps when adding product to draft routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const generateSteps = vi.fn();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            userProfileId: user1Id,
+            name: "Test Routine",
+            startDate: new Date("2025-01-01"),
+            endDate: null,
+            status: "draft",
+            createdAt: new Date("2025-01-01"),
+            updatedAt: new Date("2025-01-01"),
+          }),
+        };
+
+        const deps: CreateRoutineProductWithRegenerationDeps = {
+          repo,
+          routineRepo,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const data = {
+          routineId,
+          routineStep: "Cleanser",
+          productName: "Test Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning" as const,
+        };
+
+        const result = await createRoutineProduct(user1Id, data, deps);
+
+        expect(result.success).toBe(true);
+        expect(generateSteps).not.toHaveBeenCalled();
+      });
+
+      it("generates steps when adding product to published routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const generateSteps = vi.fn().mockResolvedValue({
+          success: true,
+          data: { count: 5 },
+        });
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            userProfileId: user1Id,
+            name: "Test Routine",
+            startDate: new Date("2025-01-01"),
+            endDate: null,
+            status: "published",
+            createdAt: new Date("2025-01-01"),
+            updatedAt: new Date("2025-01-01"),
+          }),
+        };
+
+        const deps: CreateRoutineProductWithRegenerationDeps = {
+          repo,
+          routineRepo,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const data = {
+          routineId,
+          routineStep: "Cleanser",
+          productName: "Test Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning" as const,
+        };
+
+        const result = await createRoutineProduct(user1Id, data, deps);
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(generateSteps).toHaveBeenCalledWith(
+            result.data.id,
+            routineId,
+            user1Id
+          );
+        }
+      });
+
+      it("returns error when generation fails for published routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const generateSteps = vi.fn().mockResolvedValue({
+          success: false,
+          error: "Failed to generate steps",
+        });
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            userProfileId: user1Id,
+            name: "Test Routine",
+            startDate: new Date("2025-01-01"),
+            endDate: null,
+            status: "published",
+            createdAt: new Date("2025-01-01"),
+            updatedAt: new Date("2025-01-01"),
+          }),
+        };
+
+        const deps: CreateRoutineProductWithRegenerationDeps = {
+          repo,
+          routineRepo,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const data = {
+          routineId,
+          routineStep: "Cleanser",
+          productName: "Test Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning" as const,
+        };
+
+        const result = await createRoutineProduct(user1Id, data, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Failed to generate steps");
+        }
+        // Product should not be created if generation fails
+        expect(repo._store.size).toBe(0);
+      });
+
+      it("handles routine not found gracefully", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const generateSteps = vi.fn();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue(null),
+        };
+
+        const deps: CreateRoutineProductWithRegenerationDeps = {
+          repo,
+          routineRepo,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const data = {
+          routineId,
+          routineStep: "Cleanser",
+          productName: "Test Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning" as const,
+        };
+
+        const result = await createRoutineProduct(user1Id, data, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Routine not found");
+        }
+        expect(generateSteps).not.toHaveBeenCalled();
+      });
+
+      it("handles routine repo errors gracefully", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const generateSteps = vi.fn();
+        const routineRepo = {
+          findById: vi.fn().mockRejectedValue(new Error("Database error")),
+        };
+
+        const deps: CreateRoutineProductWithRegenerationDeps = {
+          repo,
+          routineRepo,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const data = {
+          routineId,
+          routineStep: "Cleanser",
+          productName: "Test Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning" as const,
+        };
+
+        const result = await createRoutineProduct(user1Id, data, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Failed to create routine product");
+        }
+      });
+    });
   });
 
   describe("updateRoutineProduct", () => {
     it("updates product name successfully", async () => {
       const repo = makeRoutineProductsRepoFake();
+      const routineRepo = {
+        findById: vi.fn().mockResolvedValue({
+          id: routineId,
+          status: "draft",
+        }),
+      };
+      const deleteSteps = vi.fn();
+      const generateSteps = vi.fn();
 
       repo._store.set(product1Id, {
         id: product1Id,
@@ -805,20 +1052,32 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date("2024-01-01"),
       });
 
-      const deps: RoutineProductDeps = {
+      const deps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z")
-        
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        generateScheduledStepsForProduct: generateSteps,
+        now: () => new Date("2025-01-15T10:30:00Z"),
       };
 
       const result = await updateRoutineProduct(product1Id, { productName: "New Product" }, deps);
 
       expect(result.success).toBe(true);
       expect(repo._store.get(product1Id)!.productName).toBe("New Product");
+      expect(deleteSteps).not.toHaveBeenCalled();
+      expect(generateSteps).not.toHaveBeenCalled();
     });
 
     it("updates productUrl successfully", async () => {
       const repo = makeRoutineProductsRepoFake();
+      const routineRepo = {
+        findById: vi.fn().mockResolvedValue({
+          id: routineId,
+          status: "draft",
+        }),
+      };
+      const deleteSteps = vi.fn();
+      const generateSteps = vi.fn();
 
       repo._store.set(product1Id, {
         id: product1Id,
@@ -834,10 +1093,12 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date("2024-01-01"),
       });
 
-      const deps: RoutineProductDeps = {
+      const deps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z")
-        
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        generateScheduledStepsForProduct: generateSteps,
+        now: () => new Date("2025-01-15T10:30:00Z"),
       };
 
       const result = await updateRoutineProduct(
@@ -848,10 +1109,20 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       expect(result.success).toBe(true);
       expect(repo._store.get(product1Id)!.productUrl).toBe("https://example.com/new-url");
+      expect(deleteSteps).not.toHaveBeenCalled();
+      expect(generateSteps).not.toHaveBeenCalled();
     });
 
     it("updates frequency and days successfully", async () => {
       const repo = makeRoutineProductsRepoFake();
+      const routineRepo = {
+        findById: vi.fn().mockResolvedValue({
+          id: routineId,
+          status: "draft",
+        }),
+      };
+      const deleteSteps = vi.fn();
+      const generateSteps = vi.fn();
 
       repo._store.set(product1Id, {
         id: product1Id,
@@ -867,10 +1138,12 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date("2024-01-01"),
       });
 
-      const deps: RoutineProductDeps = {
+      const deps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z")
-        
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        generateScheduledStepsForProduct: generateSteps,
+        now: () => new Date("2025-01-15T10:30:00Z"),
       };
 
       const result = await updateRoutineProduct(
@@ -886,10 +1159,20 @@ describe("Routine Product Actions - Unit Tests", () => {
       const updated = repo._store.get(product1Id)!;
       expect(updated.frequency).toBe("2x per week");
       expect(updated.days).toEqual(["Monday", "Thursday"]);
+      expect(deleteSteps).not.toHaveBeenCalled();
+      expect(generateSteps).not.toHaveBeenCalled();
     });
 
     it("updates updatedAt timestamp", async () => {
       const repo = makeRoutineProductsRepoFake();
+      const routineRepo = {
+        findById: vi.fn().mockResolvedValue({
+          id: routineId,
+          status: "draft",
+        }),
+      };
+      const deleteSteps = vi.fn();
+      const generateSteps = vi.fn();
 
       repo._store.set(product1Id, {
         id: product1Id,
@@ -906,16 +1189,20 @@ describe("Routine Product Actions - Unit Tests", () => {
       });
 
       const fixedNow = new Date("2025-01-15T10:30:00Z");
-      const deps: RoutineProductDeps = {
+      const deps = {
         repo,
-        now: () => fixedNow
-        
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        generateScheduledStepsForProduct: generateSteps,
+        now: () => fixedNow,
       };
 
       const result = await updateRoutineProduct(product1Id, { productName: "Updated" }, deps);
 
       expect(result.success).toBe(true);
       expect(repo._store.get(product1Id)!.updatedAt).toEqual(fixedNow);
+      expect(deleteSteps).not.toHaveBeenCalled();
+      expect(generateSteps).not.toHaveBeenCalled();
     });
 
     it("returns error when productId is invalid format", async () => {
@@ -1133,11 +1420,230 @@ describe("Routine Product Actions - Unit Tests", () => {
         expect(result.error).toBe("Invalid data");
       }
     });
+
+    describe("regeneration for published routines", () => {
+      it("does not regenerate steps when updating product in draft routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const deleteSteps = vi.fn();
+        const generateSteps = vi.fn();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        };
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Old Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await updateRoutineProduct(product1Id, { productName: "New Product" }, deps);
+
+        expect(result.success).toBe(true);
+        expect(deleteSteps).not.toHaveBeenCalled();
+        expect(generateSteps).not.toHaveBeenCalled();
+      });
+
+      it("regenerates steps when updating product in published routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const deleteSteps = vi.fn().mockResolvedValue({ success: true, data: { count: 5 } });
+        const generateSteps = vi.fn().mockResolvedValue({ success: true, data: { count: 10 } });
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "published",
+          }),
+        };
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Old Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await updateRoutineProduct(product1Id, { productName: "New Product" }, deps);
+
+        expect(result.success).toBe(true);
+        expect(deleteSteps).toHaveBeenCalledWith(product1Id, routineId, user1Id);
+        expect(generateSteps).toHaveBeenCalledWith(product1Id, routineId, user1Id);
+      });
+
+      it("returns error when deletion fails for published routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const deleteSteps = vi.fn().mockResolvedValue({
+          success: false,
+          error: "Failed to delete steps",
+        });
+        const generateSteps = vi.fn();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "published",
+          }),
+        };
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Old Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await updateRoutineProduct(product1Id, { productName: "New Product" }, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Failed to delete steps");
+        }
+        // Should not generate if deletion failed
+        expect(generateSteps).not.toHaveBeenCalled();
+      });
+
+      it("returns error when generation fails for published routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const deleteSteps = vi.fn().mockResolvedValue({ success: true, data: { count: 5 } });
+        const generateSteps = vi.fn().mockResolvedValue({
+          success: false,
+          error: "Failed to generate steps",
+        });
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "published",
+          }),
+        };
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Old Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await updateRoutineProduct(product1Id, { productName: "New Product" }, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Failed to generate steps");
+        }
+      });
+
+      it("handles routine not found gracefully", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const deleteSteps = vi.fn();
+        const generateSteps = vi.fn();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue(null),
+        };
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Old Product",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          generateScheduledStepsForProduct: generateSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await updateRoutineProduct(product1Id, { productName: "New Product" }, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Routine not found");
+        }
+        expect(deleteSteps).not.toHaveBeenCalled();
+        expect(generateSteps).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe("deleteRoutineProduct", () => {
     it("deletes routine product successfully", async () => {
       const repo = makeRoutineProductsRepoFake();
+      const routineRepo = {
+        findById: vi.fn().mockResolvedValue({
+          id: routineId,
+          status: "draft",
+        }),
+      };
+      const deleteSteps = vi.fn();
 
       repo._store.set(product1Id, {
         id: product1Id,
@@ -1153,23 +1659,31 @@ describe("Routine Product Actions - Unit Tests", () => {
         updatedAt: new Date(),
       });
 
-      const deps: RoutineProductDeps = {
+      const deps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z")
-        
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        now: () => new Date("2025-01-15T10:30:00Z"),
       };
 
       const result = await deleteRoutineProduct(product1Id, deps);
 
       expect(result.success).toBe(true);
       expect(repo._store.has(product1Id)).toBe(false);
+      expect(deleteSteps).not.toHaveBeenCalled();
     });
 
     it("returns error when productId is invalid format", async () => {
-      const deps: RoutineProductDeps = {
+      const routineRepo = {
+        findById: vi.fn(),
+      };
+      const deleteSteps = vi.fn();
+
+      const deps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z")
-        
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        now: () => new Date("2025-01-15T10:30:00Z"),
       };
 
       const result = await deleteRoutineProduct("invalid-id", deps);
@@ -1181,10 +1695,16 @@ describe("Routine Product Actions - Unit Tests", () => {
     });
 
     it("returns error when product not found", async () => {
-      const deps: RoutineProductDeps = {
+      const routineRepo = {
+        findById: vi.fn(),
+      };
+      const deleteSteps = vi.fn();
+
+      const deps = {
         repo: makeRoutineProductsRepoFake(),
-        now: () => new Date("2025-01-15T10:30:00Z")
-        
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        now: () => new Date("2025-01-15T10:30:00Z"),
       };
 
       const result = await deleteRoutineProduct("550e8400-e29b-41d4-a716-999999999999", deps);
@@ -1193,6 +1713,205 @@ describe("Routine Product Actions - Unit Tests", () => {
       if (!result.success) {
         expect(result.error).toBe("Routine product not found");
       }
+    });
+
+    describe("cleanup for published routines", () => {
+      it("does not cleanup steps when deleting product from draft routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "draft",
+          }),
+        };
+        const deleteSteps = vi.fn();
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Product to delete",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date("2024-01-01"),
+          updatedAt: new Date("2024-01-01"),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await deleteRoutineProduct(product1Id, deps);
+
+        expect(result.success).toBe(true);
+        expect(repo._store.has(product1Id)).toBe(false);
+        expect(deleteSteps).not.toHaveBeenCalled();
+      });
+
+      it("cleans up steps when deleting product from published routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "published",
+          }),
+        };
+        const deleteSteps = vi.fn().mockResolvedValue({
+          success: true,
+          data: { count: 10 },
+        });
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Product to delete",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date("2024-01-01"),
+          updatedAt: new Date("2024-01-01"),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await deleteRoutineProduct(product1Id, deps);
+
+        expect(result.success).toBe(true);
+        expect(repo._store.has(product1Id)).toBe(false);
+        expect(deleteSteps).toHaveBeenCalledWith(product1Id, routineId, user1Id);
+      });
+
+      it("returns error when cleanup fails for published routine", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue({
+            id: routineId,
+            status: "published",
+          }),
+        };
+        const deleteSteps = vi.fn().mockResolvedValue({
+          success: false,
+          error: "Failed to delete scheduled steps",
+        });
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Product to delete",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date("2024-01-01"),
+          updatedAt: new Date("2024-01-01"),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await deleteRoutineProduct(product1Id, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Failed to delete scheduled steps");
+        }
+        // Product should NOT be deleted if cleanup fails
+        expect(repo._store.has(product1Id)).toBe(true);
+      });
+
+      it("handles routine not found gracefully", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const routineRepo = {
+          findById: vi.fn().mockResolvedValue(null),
+        };
+        const deleteSteps = vi.fn();
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Product to delete",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date("2024-01-01"),
+          updatedAt: new Date("2024-01-01"),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await deleteRoutineProduct(product1Id, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Routine not found");
+        }
+        expect(deleteSteps).not.toHaveBeenCalled();
+      });
+
+      it("handles routine repo errors gracefully", async () => {
+        const repo = makeRoutineProductsRepoFake();
+        const routineRepo = {
+          findById: vi.fn().mockRejectedValue(new Error("Database error")),
+        };
+        const deleteSteps = vi.fn();
+
+        repo._store.set(product1Id, {
+          id: product1Id,
+          routineId,
+          userProfileId: user1Id,
+          routineStep: "Cleanser",
+          productName: "Product to delete",
+          instructions: "Apply",
+          frequency: "Daily",
+          timeOfDay: "morning",
+          order: 0,
+          createdAt: new Date("2024-01-01"),
+          updatedAt: new Date("2024-01-01"),
+        });
+
+        const deps = {
+          repo,
+          routineRepo,
+          deleteScheduledStepsForProduct: deleteSteps,
+          now: () => new Date("2025-01-15T10:30:00Z"),
+        };
+
+        const result = await deleteRoutineProduct(product1Id, deps);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe("Failed to delete routine product");
+        }
+        expect(deleteSteps).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -1485,13 +2204,41 @@ describe("Routine Product Actions - Unit Tests", () => {
 
     it("updateRoutineProduct handles repository errors", async () => {
       const repo = makeRoutineProductsRepoFake();
+      const routineRepo = {
+        findById: vi.fn().mockResolvedValue({
+          id: routineId,
+          status: "draft",
+        }),
+      };
+      const deleteSteps = vi.fn();
+      const generateSteps = vi.fn();
+
+      // Add product to store so findById succeeds
+      repo._store.set(product1Id, {
+        id: product1Id,
+        routineId,
+        userProfileId: user1Id,
+        routineStep: "Cleanser",
+        productName: "Product",
+        instructions: "Apply",
+        frequency: "Daily",
+        timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      // Make update throw error
       repo.update = async () => {
         throw new Error("Database connection failed");
       };
 
-      const deps: RoutineProductDeps = {
+      const deps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z")
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        generateScheduledStepsForProduct: generateSteps,
+        now: () => new Date("2025-01-15T10:30:00Z"),
       };
 
       const result = await updateRoutineProduct(product1Id, { productName: "Updated" }, deps);
@@ -1504,13 +2251,39 @@ describe("Routine Product Actions - Unit Tests", () => {
 
     it("deleteRoutineProduct handles repository errors", async () => {
       const repo = makeRoutineProductsRepoFake();
+      const routineRepo = {
+        findById: vi.fn().mockResolvedValue({
+          id: routineId,
+          status: "draft",
+        }),
+      };
+      const deleteSteps = vi.fn();
+
+      // Add product to store so findById succeeds
+      repo._store.set(product1Id, {
+        id: product1Id,
+        routineId,
+        userProfileId: user1Id,
+        routineStep: "Cleanser",
+        productName: "Product",
+        instructions: "Apply",
+        frequency: "Daily",
+        timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      // Make deleteById throw error
       repo.deleteById = async () => {
         throw new Error("Database connection failed");
       };
 
-      const deps: RoutineProductDeps = {
+      const deps = {
         repo,
-        now: () => new Date("2025-01-15T10:30:00Z")
+        routineRepo,
+        deleteScheduledStepsForProduct: deleteSteps,
+        now: () => new Date("2025-01-15T10:30:00Z"),
       };
 
       const result = await deleteRoutineProduct(product1Id, deps);

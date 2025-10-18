@@ -7,6 +7,17 @@ import type { Routine, NewRoutine } from "./routine.repo.fake";
 
 export function makeRoutineRepo() {
   return {
+    async findById(routineId: string): Promise<Routine | null> {
+      const [routine] = await db
+        .select()
+        .from(skincareRoutines)
+        .where(eq(skincareRoutines.id, routineId))
+        .limit(1)
+        .execute();
+
+      return routine ? (routine as Routine) : null;
+    },
+
     async findByUserId(userId: string): Promise<Routine | null> {
       const [routine] = await db
         .select()

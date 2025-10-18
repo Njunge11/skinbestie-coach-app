@@ -18,7 +18,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "dotenv -e .env.local -- tsx src/lib/db/seed.ts",
-    "seed:photos": "dotenv -e .env.local -- tsx scripts/seed-progress-photos.ts"
+    "seed:photos": "dotenv -e .env.local -- tsx scripts/seed-progress-photos.ts",
+    "seed:profiles": "dotenv -e .env.local -- tsx src/scripts/seed-profiles.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -43,6 +44,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.6",
     "lucide-react": "^0.545.0",

@@ -6,6 +6,7 @@ export interface Routine {
   name: string;
   startDate: Date;
   endDate: Date | null;
+  status: "draft" | "published";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +18,10 @@ export function makeRoutineRepoFake() {
 
   return {
     _store, // Expose for testing
+
+    async findById(routineId: string): Promise<Routine | null> {
+      return _store.get(routineId) || null;
+    },
 
     async findByUserId(userId: string): Promise<Routine | null> {
       return Array.from(_store.values()).find((r) => r.userProfileId === userId) || null;

@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { makeRoutineProductsRepo } from "./routine.repo";
 import type { RoutineProduct, NewRoutineProduct } from "./routine.repo.fake";
+import { makeRoutineRepo as makeRoutineInfoRepo } from "../routine-info-actions/routine.repo";
+import { generateScheduledStepsForProduct, deleteScheduledStepsForProduct } from "../compliance-actions/actions";
 
 // Dependency injection for testing (follows TESTING.md)
 export type RoutineProductDeps = {
@@ -10,9 +12,68 @@ export type RoutineProductDeps = {
   now: () => Date;
 };
 
+// Extended deps for createRoutineProduct with regeneration
+export type CreateRoutineProductWithRegenerationDeps = RoutineProductDeps & {
+  routineRepo: {
+    findById: (id: string) => Promise<{
+      id: string;
+      status: "draft" | "published";
+    } | null>;
+  };
+  generateScheduledStepsForProduct: typeof generateScheduledStepsForProduct;
+};
+
+// Extended deps for updateRoutineProduct with regeneration
+export type UpdateRoutineProductWithRegenerationDeps = RoutineProductDeps & {
+  routineRepo: {
+    findById: (id: string) => Promise<{
+      id: string;
+      status: "draft" | "published";
+    } | null>;
+  };
+  deleteScheduledStepsForProduct: typeof deleteScheduledStepsForProduct;
+  generateScheduledStepsForProduct: typeof generateScheduledStepsForProduct;
+};
+
+// Extended deps for deleteRoutineProduct with cleanup
+export type DeleteRoutineProductWithCleanupDeps = RoutineProductDeps & {
+  routineRepo: {
+    findById: (id: string) => Promise<{
+      id: string;
+      status: "draft" | "published";
+    } | null>;
+  };
+  deleteScheduledStepsForProduct: typeof deleteScheduledStepsForProduct;
+};
+
 // Default dependencies (production)
 const defaultDeps: RoutineProductDeps = {
   repo: makeRoutineProductsRepo(),
+  now: () => new Date(),
+};
+
+// Default dependencies with regeneration for createRoutineProduct (production)
+const defaultDepsWithRegeneration: CreateRoutineProductWithRegenerationDeps = {
+  repo: makeRoutineProductsRepo(),
+  routineRepo: makeRoutineInfoRepo(),
+  generateScheduledStepsForProduct,
+  now: () => new Date(),
+};
+
+// Default dependencies with regeneration for updateRoutineProduct (production)
+const defaultUpdateDepsWithRegeneration: UpdateRoutineProductWithRegenerationDeps = {
+  repo: makeRoutineProductsRepo(),
+  routineRepo: makeRoutineInfoRepo(),
+  deleteScheduledStepsForProduct,
+  generateScheduledStepsForProduct,
+  now: () => new Date(),
+};
+
+// Default dependencies with cleanup for deleteRoutineProduct (production)
+const defaultDeleteDepsWithCleanup: DeleteRoutineProductWithCleanupDeps = {
+  repo: makeRoutineProductsRepo(),
+  routineRepo: makeRoutineInfoRepo(),
+  deleteScheduledStepsForProduct,
   now: () => new Date(),
 };
 
@@ -151,9 +212,9 @@ export async function getRoutineProductsByTimeOfDay(
 export async function createRoutineProduct(
   userId: string,
   input: CreateRoutineProductInput,
-  deps: RoutineProductDeps = defaultDeps
+  deps: CreateRoutineProductWithRegenerationDeps = defaultDepsWithRegeneration
 ): Promise<Result<RoutineProduct>> {
-  const { repo, now } = deps;
+  const { repo, routineRepo, generateScheduledStepsForProduct, now } = deps;
 
   // Validate input with Zod
   const validation = createRoutineProductSchema.safeParse({
@@ -166,6 +227,12 @@ export async function createRoutineProduct(
   }
 
   try {
+    // Check if routine exists and get its status
+    const routine = await routineRepo.findById(validation.data.routineId);
+    if (!routine) {
+      return { success: false, error: "Routine not found" };
+    }
+
     // Get existing products for this time of day to determine order
     const existingProducts = await repo.findByUserIdAndTimeOfDay(
       validation.data.userId,
@@ -197,6 +264,22 @@ export async function createRoutineProduct(
     };
 
     const product = await repo.create(newProduct);
+
+    // If routine is published, generate scheduled steps for this product
+    if (routine.status === "published") {
+      const generateResult = await generateScheduledStepsForProduct(
+        product.id,
+        validation.data.routineId,
+        validation.data.userId
+      );
+
+      if (!generateResult.success) {
+        // Rollback: delete the created product
+        await repo.deleteById(product.id);
+        return { success: false, error: generateResult.error };
+      }
+    }
+
     return { success: true, data: product };
   } catch (error) {
     console.error("Error creating routine product:", error);
@@ -210,9 +293,9 @@ export async function createRoutineProduct(
 export async function updateRoutineProduct(
   productId: string,
   updates: UpdateRoutineProductInput,
-  deps: RoutineProductDeps = defaultDeps
+  deps: UpdateRoutineProductWithRegenerationDeps = defaultUpdateDepsWithRegeneration
 ): Promise<Result<void>> {
-  const { repo, now } = deps;
+  const { repo, routineRepo, deleteScheduledStepsForProduct, generateScheduledStepsForProduct, now } = deps;
 
   // Validate input with Zod
   const validation = updateRoutineProductSchema.safeParse({
@@ -225,6 +308,18 @@ export async function updateRoutineProduct(
   }
 
   try {
+    // Get the product first to access routineId and userProfileId
+    const product = await repo.findById(validation.data.productId);
+    if (!product) {
+      return { success: false, error: "Routine product not found" };
+    }
+
+    // Check if routine exists and get its status
+    const routine = await routineRepo.findById(product.routineId);
+    if (!routine) {
+      return { success: false, error: "Routine not found" };
+    }
+
     // Build update data with validated fields (already trimmed by Zod)
     const updateData: Partial<RoutineProduct> = {
       updatedAt: now(),
@@ -264,6 +359,31 @@ export async function updateRoutineProduct(
       return { success: false, error: "Routine product not found" };
     }
 
+    // If routine is published, regenerate scheduled steps
+    if (routine.status === "published") {
+      // Delete existing pending/missed steps from today onwards
+      const deleteResult = await deleteScheduledStepsForProduct(
+        product.id,
+        product.routineId,
+        product.userProfileId
+      );
+
+      if (!deleteResult.success) {
+        return { success: false, error: deleteResult.error };
+      }
+
+      // Generate new steps with updated product settings
+      const generateResult = await generateScheduledStepsForProduct(
+        product.id,
+        product.routineId,
+        product.userProfileId
+      );
+
+      if (!generateResult.success) {
+        return { success: false, error: generateResult.error };
+      }
+    }
+
     return { success: true, data: undefined };
   } catch (error) {
     console.error("Error updating routine product:", error);
@@ -276,9 +396,9 @@ export async function updateRoutineProduct(
  */
 export async function deleteRoutineProduct(
   productId: string,
-  deps: RoutineProductDeps = defaultDeps
+  deps: DeleteRoutineProductWithCleanupDeps = defaultDeleteDepsWithCleanup
 ): Promise<Result<void>> {
-  const { repo } = deps;
+  const { repo, routineRepo, deleteScheduledStepsForProduct } = deps;
 
   // Validate input with Zod
   const validation = deleteRoutineProductSchema.safeParse({ productId });
@@ -288,6 +408,31 @@ export async function deleteRoutineProduct(
   }
 
   try {
+    // Get the product first to access routineId and userProfileId
+    const product = await repo.findById(validation.data.productId);
+    if (!product) {
+      return { success: false, error: "Routine product not found" };
+    }
+
+    // Check if routine exists and get its status
+    const routine = await routineRepo.findById(product.routineId);
+    if (!routine) {
+      return { success: false, error: "Routine not found" };
+    }
+
+    // If routine is published, cleanup scheduled steps first
+    if (routine.status === "published") {
+      const deleteResult = await deleteScheduledStepsForProduct(
+        product.id,
+        product.routineId,
+        product.userProfileId
+      );
+
+      if (!deleteResult.success) {
+        return { success: false, error: deleteResult.error };
+      }
+    }
+
     // Delete product
     const deletedProduct = await repo.deleteById(validation.data.productId);
 

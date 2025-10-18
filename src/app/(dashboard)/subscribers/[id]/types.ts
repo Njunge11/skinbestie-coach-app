@@ -46,6 +46,7 @@ export interface Routine {
   name: string;
   startDate: Date;
   endDate: Date | null;
+  status: "draft" | "published";
 }
 
 export interface RoutineFormData {

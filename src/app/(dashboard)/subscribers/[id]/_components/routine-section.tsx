@@ -64,6 +64,7 @@ interface RoutineSectionProps {
   onCreateFromTemplate: (templateId: string, routineName: string, startDate: Date, endDate: Date | null) => Promise<void>;
   onCreateBlank: (routineName: string, startDate: Date, endDate: Date | null) => Promise<void>;
   onUpdateRoutine: (data: RoutineFormData) => Promise<void>;
+  onPublishRoutine: () => Promise<void>;
   onDeleteRoutine: () => Promise<void>;
   onAddProduct: (
     timeOfDay: "morning" | "evening",
@@ -84,6 +85,7 @@ export function RoutineSection({
   onCreateFromTemplate,
   onCreateBlank,
   onUpdateRoutine,
+  onPublishRoutine,
   onDeleteRoutine,
   onAddProduct,
   onUpdateProduct,
@@ -388,6 +390,16 @@ export function RoutineSection({
                 <Badge variant={status === "ongoing" ? "default" : "secondary"}>
                   {statusLabel}
                 </Badge>
+                {routine.status === "draft" && (
+                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                    Draft
+                  </Badge>
+                )}
+                {routine.status === "published" && (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    Published
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -398,6 +410,15 @@ export function RoutineSection({
               >
                 Edit
               </Button>
+              {routine.status === "draft" && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={onPublishRoutine}
+                >
+                  Publish
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

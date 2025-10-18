@@ -57,6 +57,9 @@ export const userProfiles = pgTable(
     occupation: text('occupation'),
     bio: text('bio'),
 
+    // Timezone for compliance tracking
+    timezone: text('timezone').notNull().default('Europe/London'), // IANA timezone
+
     // Tracking fields
     completedSteps: text('completed_steps')
       .array()
@@ -137,6 +140,7 @@ export const skincareRoutines = pgTable(
     name: text('name').notNull(),
     startDate: date('start_date', { mode: 'date' }).notNull(),
     endDate: date('end_date', { mode: 'date' }), // Optional - null means ongoing
+    status: text('status').notNull().default('draft'), // "draft" or "published"
 
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -355,6 +359,78 @@ export const progressPhotos = pgTable(
   })
 );
 
+export const routineStepCompletions = pgTable(
+  'routine_step_completions',
+  {
+    // Primary Key
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // Foreign Keys
+    routineProductId: uuid('routine_product_id')
+      .notNull()
+      .references(() => skincareRoutineProducts.id, { onDelete: 'cascade' }),
+    userProfileId: uuid('user_profile_id')
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: 'cascade' }),
+
+    // Scheduling information
+    scheduledDate: date('scheduled_date', { mode: 'date' }).notNull(),
+    scheduledTimeOfDay: text('scheduled_time_of_day').notNull(), // 'morning' | 'evening'
+
+    // Precomputed deadlines (makes queries fast and simple)
+    // These are calculated based on scheduledDate + user's timezone
+    onTimeDeadline: timestamp('on_time_deadline', { withTimezone: true }).notNull(),
+    gracePeriodEnd: timestamp('grace_period_end', { withTimezone: true }).notNull(),
+
+    // Completion information
+    completedAt: timestamp('completed_at', { withTimezone: true }), // null = not completed yet
+    status: text('status').notNull().default('pending'), // 'pending' | 'on-time' | 'late' | 'missed'
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user
+    userProfileIdx: index('routine_step_completions_user_idx').on(table.userProfileId),
+
+    // Index for efficient queries by routine product
+    routineProductIdx: index('routine_step_completions_product_idx').on(table.routineProductId),
+
+    // Index for date-based queries
+    scheduledDateIdx: index('routine_step_completions_date_idx').on(table.scheduledDate),
+
+    // Composite index for getting user's daily routine
+    userDateIdx: index('routine_step_completions_user_date_idx').on(
+      table.userProfileId,
+      table.scheduledDate
+    ),
+
+    // Composite index for lazy marking missed steps
+    statusGracePeriodIdx: index('routine_step_completions_status_grace_idx').on(
+      table.status,
+      table.gracePeriodEnd
+    ),
+
+    // Composite index for compliance date range queries
+    userDateRangeIdx: index('routine_step_completions_user_date_range_idx').on(
+      table.userProfileId,
+      table.scheduledDate,
+      table.status
+    ),
+
+    // Prevent duplicate scheduled steps for same product on same date
+    uniqueSchedule: uniqueIndex('routine_step_completions_unique_schedule').on(
+      table.routineProductId,
+      table.scheduledDate
+    ),
+  })
+);
+
 // Type exports for TypeScript
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
@@ -376,3 +452,5 @@ export type CoachNote = typeof coachNotes.$inferSelect;
 export type NewCoachNote = typeof coachNotes.$inferInsert;
 export type ProgressPhoto = typeof progressPhotos.$inferSelect;
 export type NewProgressPhoto = typeof progressPhotos.$inferInsert;
+export type RoutineStepCompletion = typeof routineStepCompletions.$inferSelect;
+export type NewRoutineStepCompletion = typeof routineStepCompletions.$inferInsert;
