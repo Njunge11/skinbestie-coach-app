@@ -1,8 +1,6 @@
 "use server";
 
-import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
-import { eq, or, and, ilike, sql, desc, asc, gte } from "drizzle-orm";
+import { userProfilesRepo } from "./userProfiles.repo";
 import {
   UserProfileCreateSchema,
   UserProfileUpdateSchema,
@@ -18,13 +16,13 @@ import {
 
 // Dependencies interface for testing
 export interface UserProfileDeps {
-  db: typeof db;
+  repo: typeof userProfilesRepo;
   now: () => Date;
 }
 
 // Default dependencies
 const defaultDeps: UserProfileDeps = {
-  db,
+  repo: userProfilesRepo,
   now: () => new Date(),
 };
 
@@ -41,10 +39,7 @@ export async function createUserProfile(
     const phone = normalizePhone(validated.phoneNumber);
 
     // Check if profile exists with BOTH email AND phone
-    const exactMatch = await deps.db.query.userProfiles.findFirst({
-      where: (acct, { and, eq }) =>
-        and(eq(acct.email, email), eq(acct.phoneNumber, phone)),
-    });
+    const exactMatch = await deps.repo.findByEmailAndPhone(email, phone);
 
     // If exact match found, allow resume
     if (exactMatch) {
@@ -89,10 +84,7 @@ export async function createUserProfile(
     }
 
     // Check if email OR phone is already taken (partial match)
-    const partialMatch = await deps.db.query.userProfiles.findFirst({
-      where: (acct, { or, eq }) =>
-        or(eq(acct.email, email), eq(acct.phoneNumber, phone)),
-    });
+    const partialMatch = await deps.repo.findByEmailOrPhone(email, phone);
 
     if (partialMatch) {
       const field = partialMatch.email === email ? "Email" : "Phone number";
@@ -103,7 +95,7 @@ export async function createUserProfile(
     }
 
     // Insert Step 1 data only
-    const values: typeof userProfiles.$inferInsert = {
+    const values = {
       firstName: validated.firstName,
       lastName: validated.lastName,
       phoneNumber: phone,
@@ -112,7 +104,7 @@ export async function createUserProfile(
       completedSteps: ["PERSONAL"],
     };
 
-    const [row] = await deps.db.insert(userProfiles).values(values).returning();
+    const row = await deps.repo.create(values);
 
     if (!row) {
       return {
@@ -148,9 +140,7 @@ export async function getUserProfileById(
   deps: UserProfileDeps = defaultDeps
 ) {
   try {
-    const profile = await deps.db.query.userProfiles.findFirst({
-      where: (acct, { eq }) => eq(acct.id, id),
-    });
+    const profile = await deps.repo.findById(id);
 
     if (!profile) {
       return {
@@ -180,9 +170,7 @@ export async function getUserProfileByEmail(
 ) {
   try {
     const normalizedEmail = normalizeEmail(email);
-    const profile = await deps.db.query.userProfiles.findFirst({
-      where: (acct, { eq }) => eq(acct.email, normalizedEmail),
-    });
+    const profile = await deps.repo.findByEmail(normalizedEmail);
 
     if (!profile) {
       return {
@@ -218,17 +206,10 @@ export async function checkUserProfileExists(
       };
     }
 
-    const email = input.email ? normalizeEmail(input.email) : null;
-    const phone = input.phoneNumber ? normalizePhone(input.phoneNumber) : null;
+    const email = input.email ? normalizeEmail(input.email) : "";
+    const phone = input.phoneNumber ? normalizePhone(input.phoneNumber) : "";
 
-    const profile = await deps.db.query.userProfiles.findFirst({
-      where: (acct, { or, eq }) => {
-        const clauses = [];
-        if (email) clauses.push(eq(acct.email, email));
-        if (phone) clauses.push(eq(acct.phoneNumber, phone));
-        return or(...clauses);
-      },
-    });
+    const profile = await deps.repo.findByEmailOrPhone(email, phone);
 
     return {
       success: true,
@@ -258,7 +239,7 @@ export async function updateUserProfile(
     const validated = UserProfileUpdateSchema.parse(input);
 
     // Convert completedAt string to Date if provided
-    const updateData: Partial<typeof userProfiles.$inferInsert> = {
+    const updateData = {
       ...validated,
       completedAt: validated.completedAt
         ? new Date(validated.completedAt)
@@ -266,11 +247,7 @@ export async function updateUserProfile(
       updatedAt: deps.now(),
     };
 
-    const [updated] = await deps.db
-      .update(userProfiles)
-      .set(updateData)
-      .where(eq(userProfiles.id, id))
-      .returning();
+    const updated = await deps.repo.update(id, updateData);
 
     if (!updated) {
       return {
@@ -312,103 +289,39 @@ export async function getUserProfiles(
     const { page, pageSize } = pagination;
     const { sortBy, sortOrder } = sort;
 
-    // Build WHERE clauses
-    const whereConditions = [];
-
-    // Search filter (name or email)
-    if (searchQuery && searchQuery.trim()) {
-      const searchTerm = `%${searchQuery.trim()}%`;
-      whereConditions.push(
-        or(
-          ilike(userProfiles.firstName, searchTerm),
-          ilike(userProfiles.lastName, searchTerm),
-          ilike(userProfiles.email, searchTerm)
-        )
-      );
-    }
-
-    // Completion status filter
-    if (completionStatus && completionStatus !== "all") {
-      if (completionStatus === "completed") {
-        whereConditions.push(eq(userProfiles.isCompleted, true));
-      } else if (completionStatus === "incomplete") {
-        whereConditions.push(eq(userProfiles.isCompleted, false));
-      }
-    }
-
-    // Subscription status filter
-    if (subscriptionStatus && subscriptionStatus !== "all") {
-      if (subscriptionStatus === "subscribed") {
-        whereConditions.push(eq(userProfiles.isSubscribed, true));
-      } else if (subscriptionStatus === "not_subscribed") {
-        whereConditions.push(
-          or(
-            eq(userProfiles.isSubscribed, false),
-            sql`${userProfiles.isSubscribed} IS NULL`
-          )
-        );
-      }
-    }
-
-    // Date range filter
+    // Calculate date range start if needed
+    let dateRangeStart: Date | undefined;
     if (dateRange && dateRange !== "all") {
       const now = deps.now();
-      let startDate: Date;
-
       if (dateRange === "recent") {
         // Last 7 days
-        startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - 7);
-        whereConditions.push(gte(userProfiles.createdAt, startDate));
+        dateRangeStart = new Date(now);
+        dateRangeStart.setDate(dateRangeStart.getDate() - 7);
       } else if (dateRange === "this_month") {
         // Start of current month
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        whereConditions.push(gte(userProfiles.createdAt, startDate));
+        dateRangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
       } else if (dateRange === "last_30_days") {
         // Last 30 days
-        startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - 30);
-        whereConditions.push(gte(userProfiles.createdAt, startDate));
+        dateRangeStart = new Date(now);
+        dateRangeStart.setDate(dateRangeStart.getDate() - 30);
       }
     }
 
-    // Combine WHERE conditions
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
-
-    // Build ORDER BY clause
-    let orderByClause;
-    if (sortBy === "name") {
-      orderByClause = sortOrder === "asc"
-        ? [asc(userProfiles.firstName), asc(userProfiles.lastName)]
-        : [desc(userProfiles.firstName), desc(userProfiles.lastName)];
-    } else if (sortBy === "email") {
-      orderByClause = sortOrder === "asc" ? asc(userProfiles.email) : desc(userProfiles.email);
-    } else {
-      // Default: createdAt
-      orderByClause = sortOrder === "asc" ? asc(userProfiles.createdAt) : desc(userProfiles.createdAt);
-    }
-
-    // Get total count
-    const countResult = await deps.db
-      .select({ count: sql<number>`count(*)` })
-      .from(userProfiles)
-      .where(whereClause);
-
-    const totalCount = Number(countResult[0]?.count || 0);
-
-    // Get paginated data
-    const data = await deps.db
-      .select()
-      .from(userProfiles)
-      .where(whereClause)
-      .orderBy(orderByClause)
-      .limit(pageSize)
-      .offset(page * pageSize);
+    const { profiles, totalCount } = await deps.repo.findMany({
+      searchQuery,
+      completionStatus,
+      subscriptionStatus,
+      dateRangeStart,
+      sortBy,
+      sortOrder,
+      limit: pageSize,
+      offset: page * pageSize,
+    });
 
     return {
       success: true,
       data: {
-        profiles: data,
+        profiles,
         totalCount,
         page,
         pageSize,
