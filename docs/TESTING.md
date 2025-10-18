@@ -462,3 +462,727 @@ expect(result.map(x => x.name).sort()).toEqual(["Algeria","Kenya","Zimbabwe"]);
 
 ## Litmus test
 Refactor internals (rename private helpers, change internal data structures). If tests still pass, you tested WHAT. If they break, you tested HOW (tighten tests to public behavior only).
+
+---
+
+# Server Actions Testing Patterns (Next.js)
+
+This section documents the exact patterns used for testing Next.js server actions in this project. **Follow these patterns exactly to write tests that pass deterministically without errors.**
+
+## Pattern Overview
+
+All server actions in this project follow these conventions:
+1. **Result Type Pattern** - Actions return `{ success: true; data: T } | { success: false; error: string }`
+2. **Dependency Injection** - Actions accept a `deps` parameter for testability
+3. **Fake Repositories** - Use in-memory Map-based repositories for tests
+4. **Validation** - Use Zod schemas for input validation
+5. **Error Handling** - All database operations wrapped in try-catch
+
+## 1. Result Type Pattern
+
+All server actions return a discriminated union:
+
+```typescript
+// Result types (copy this exactly)
+type SuccessResult<T> = { success: true; data: T };
+type ErrorResult = { success: false; error: string };
+type Result<T> = SuccessResult<T> | ErrorResult;
+```
+
+Usage in tests:
+```typescript
+const result = await createGoal(userId, data, deps);
+
+expect(result.success).toBe(true);
+if (result.success) {
+  expect(result.data.name).toBe("Clear skin");
+}
+
+// Or for errors:
+expect(result.success).toBe(false);
+if (!result.success) {
+  expect(result.error).toBe("Invalid data");
+}
+```
+
+## 2. Dependency Injection Pattern
+
+Every action module exports a `Deps` type and accepts it as the last parameter:
+
+```typescript
+// In actions.ts
+export type GoalDeps = {
+  repo: ReturnType<typeof makeGoalsRepo>;
+  now: () => Date;
+};
+
+const defaultDeps: GoalDeps = {
+  repo: makeGoalsRepo(),
+  now: () => new Date(),
+};
+
+export async function createGoal(
+  userId: string,
+  input: CreateGoalInput,
+  deps: GoalDeps = defaultDeps
+): Promise<Result<Goal>> {
+  const { repo, now } = deps;
+  // ... implementation
+}
+```
+
+**Why?** This allows tests to inject fake repos and fixed timestamps.
+
+## 3. Fake Repository Pattern
+
+Create a fake repository using Map for in-memory storage.
+
+### Repository Structure
+
+Every repository has these files:
+- `<entity>.repo.fake.ts` - Fake repository for tests
+- `<entity>.repo.ts` - Real repository using Drizzle ORM
+
+### Fake Repository Template
+
+```typescript
+// goals.repo.fake.ts
+export type Goal = {
+  id: string;
+  userProfileId: string;
+  name: string;
+  description: string;
+  timeframe: string;
+  complete: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type NewGoal = Omit<Goal, 'id'>;
+
+export function makeGoalsRepoFake() {
+  const store = new Map<string, Goal>();
+  let idCounter = 0;
+
+  return {
+    async findByUserId(userId: string): Promise<Goal[]> {
+      const goals = Array.from(store.values())
+        .filter((g) => g.userProfileId === userId)
+        .sort((a, b) => a.order - b.order);
+      return goals;
+    },
+
+    async create(goal: NewGoal): Promise<Goal> {
+      const id = `goal_${++idCounter}`;
+      const newGoal: Goal = { ...goal, id };
+      store.set(id, newGoal);
+      return newGoal;
+    },
+
+    async update(goalId: string, updates: Partial<Goal>): Promise<Goal | null> {
+      const goal = store.get(goalId);
+      if (!goal) return null;
+
+      Object.assign(goal, updates);
+      return goal;
+    },
+
+    async deleteById(goalId: string): Promise<Goal | null> {
+      const goal = store.get(goalId);
+      if (!goal) return null;
+
+      store.delete(goalId);
+      return goal;
+    },
+
+    // Test helper to inspect state
+    _store: store,
+  };
+}
+```
+
+**Key Points:**
+- Use `Map<string, T>` for storage
+- Auto-increment counter for IDs: `goal_1`, `goal_2`, etc.
+- Methods return `Promise` to match real async DB operations
+- Expose `_store` for manual test setup
+- Methods return `null` when entity not found (matches Drizzle ORM behavior)
+
+## 4. Test Structure for CRUD Operations
+
+### Create Operation
+
+```typescript
+it("creates goal successfully with all required fields", async () => {
+  const repo = makeGoalsRepoFake();
+  const fixedNow = new Date("2025-01-15T10:30:00Z");
+
+  const deps: GoalDeps = {
+    repo,
+    now: () => fixedNow
+  };
+
+  const data = {
+    name: "Clear skin",
+    description: "Reduce acne breakouts",
+    timeframe: "12 weeks",
+  };
+
+  const result = await createGoal(user1Id, data, deps);
+
+  expect(result.success).toBe(true);
+  if (result.success) {
+    expect(result.data.name).toBe("Clear skin");
+    expect(result.data.description).toBe("Reduce acne breakouts");
+    expect(result.data.timeframe).toBe("12 weeks");
+    expect(result.data.createdAt).toEqual(fixedNow);
+    expect(result.data.updatedAt).toEqual(fixedNow);
+  }
+});
+```
+
+### Read/Get Operation
+
+```typescript
+it("returns all goals for a specific user ordered by order field", async () => {
+  const repo = makeGoalsRepoFake();
+
+  // Manually populate store
+  repo._store.set(goal1Id, {
+    id: goal1Id,
+    userProfileId: user1Id,
+    name: "Clear skin",
+    description: "Reduce acne",
+    timeframe: "12 weeks",
+    complete: false,
+    order: 0,
+    createdAt: new Date("2025-01-01"),
+    updatedAt: new Date("2025-01-01"),
+  });
+
+  const deps: GoalDeps = {
+    repo,
+    now: () => new Date("2025-01-15T12:00:00Z")
+  };
+
+  const result = await getGoals(user1Id, deps);
+
+  expect(result.success).toBe(true);
+  if (result.success) {
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].name).toBe("Clear skin");
+  }
+});
+```
+
+### Update Operation
+
+**IMPORTANT:** For update tests, manually set up the store with `repo._store.set()`. Do NOT create through the action first.
+
+```typescript
+it("updates goal name successfully", async () => {
+  const repo = makeGoalsRepoFake();
+
+  // Manually set up existing goal
+  repo._store.set(goal1Id, {
+    id: goal1Id,
+    userProfileId: user1Id,
+    name: "Old name",
+    description: "Description",
+    timeframe: "4 weeks",
+    complete: false,
+    order: 0,
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+  });
+
+  const deps: GoalDeps = {
+    repo,
+    now: () => new Date("2025-01-15T10:30:00Z")
+  };
+
+  const result = await updateGoal(goal1Id, { name: "New name" }, deps);
+
+  expect(result.success).toBe(true);
+  expect(repo._store.get(goal1Id)!.name).toBe("New name");
+});
+```
+
+**Why manual setup?**
+- Clearer test setup (explicit Given state)
+- Follows pattern used in goal-actions, routine-actions, etc.
+- Avoids dependency on create action working
+
+### Delete Operation
+
+```typescript
+it("deletes goal successfully", async () => {
+  const repo = makeGoalsRepoFake();
+
+  // Manually set up goal to delete
+  repo._store.set(goal1Id, {
+    id: goal1Id,
+    userProfileId: user1Id,
+    name: "Goal to delete",
+    description: "Desc",
+    timeframe: "4w",
+    complete: false,
+    order: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  const deps: GoalDeps = {
+    repo,
+    now: () => new Date("2025-01-15T10:30:00Z")
+  };
+
+  const result = await deleteGoal(goal1Id, deps);
+
+  expect(result.success).toBe(true);
+  expect(repo._store.has(goal1Id)).toBe(false);
+});
+```
+
+## 5. Testing Try-Catch Error Handling
+
+To test that actions properly catch and handle database errors:
+
+```typescript
+describe("Error Handling", () => {
+  it("createGoal handles repository errors", async () => {
+    const repo = makeGoalsRepoFake();
+
+    // Mock the repo method to throw an error
+    repo.create = async () => {
+      throw new Error("Database connection failed");
+    };
+
+    const deps: GoalDeps = {
+      repo,
+      now: () => new Date("2025-01-15T10:30:00Z")
+    };
+
+    const data = {
+      name: "Test goal",
+      description: "Test description",
+      timeframe: "4 weeks",
+    };
+
+    const result = await createGoal(user1Id, data, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe("Failed to create goal");
+    }
+  });
+
+  it("updateGoal handles repository errors", async () => {
+    const repo = makeGoalsRepoFake();
+
+    // Mock update to throw
+    repo.update = async () => {
+      throw new Error("Database connection failed");
+    };
+
+    const deps: GoalDeps = {
+      repo,
+      now: () => new Date("2025-01-15T10:30:00Z")
+    };
+
+    const result = await updateGoal(goal1Id, { name: "Updated" }, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe("Failed to update goal");
+    }
+  });
+});
+```
+
+**Pattern:**
+1. Create fake repo
+2. Override the specific method to throw an error
+3. Call the action
+4. Verify it returns `{ success: false, error: "..." }`
+
+**Do NOT:**
+- Use try-catch in the test itself
+- Test implementation details of how errors are logged
+
+## 6. Validation Testing
+
+Test all Zod validation scenarios:
+
+```typescript
+it("returns error when userId is invalid format", async () => {
+  const deps: GoalDeps = {
+    repo: makeGoalsRepoFake(),
+    now: () => new Date("2025-01-15T10:30:00Z")
+  };
+
+  const result = await getGoals("invalid-id", deps);
+
+  expect(result.success).toBe(false);
+  if (!result.success) {
+    expect(result.error).toBe("Invalid user ID");
+  }
+});
+
+it("returns error when name is empty", async () => {
+  const deps: GoalDeps = {
+    repo: makeGoalsRepoFake(),
+    now: () => new Date("2025-01-15T10:30:00Z")
+  };
+
+  const data = {
+    name: "",
+    description: "Description",
+    timeframe: "4 weeks",
+  };
+
+  const result = await createGoal(user1Id, data, deps);
+
+  expect(result.success).toBe(false);
+  if (!result.success) {
+    expect(result.error).toBe("Invalid data");
+  }
+});
+
+it("returns error when name is whitespace only", async () => {
+  const deps: GoalDeps = {
+    repo: makeGoalsRepoFake(),
+    now: () => new Date("2025-01-15T10:30:00Z")
+  };
+
+  const data = {
+    name: "   ",
+    description: "Description",
+    timeframe: "4 weeks",
+  };
+
+  const result = await createGoal(user1Id, data, deps);
+
+  expect(result.success).toBe(false);
+  if (!result.success) {
+    expect(result.error).toBe("Invalid data");
+  }
+});
+```
+
+## 7. Fixed UUIDs for Tests
+
+Use consistent UUIDs across test files:
+
+```typescript
+describe("Goal Actions - Unit Tests", () => {
+  // Test UUIDs - increment last segment
+  const user1Id = "550e8400-e29b-41d4-a716-446655440000";
+  const user2Id = "550e8400-e29b-41d4-a716-446655440001";
+  const goal1Id = "650e8400-e29b-41d4-a716-446655440001";
+  const goal2Id = "650e8400-e29b-41d4-a716-446655440002";
+  // ...
+});
+```
+
+**Why different prefixes?**
+- Users: `550e8400...`
+- Goals: `650e8400...`
+- Routines: `750e8400...`
+- Makes it clear what entity type you're referencing
+
+## 8. Complete Test File Template
+
+```typescript
+import { describe, it, expect, beforeEach } from "vitest";
+import { makeGoalsRepoFake } from "./goals.repo.fake";
+import {
+  getGoals,
+  createGoal,
+  updateGoal,
+  deleteGoal,
+  type GoalDeps,
+} from "./actions";
+
+describe("Goal Actions - Unit Tests", () => {
+  let repo: ReturnType<typeof makeGoalsRepoFake>;
+  let deps: GoalDeps;
+  let mockNow: Date;
+
+  // Test UUIDs
+  const user1Id = "550e8400-e29b-41d4-a716-446655440000";
+  const goal1Id = "650e8400-e29b-41d4-a716-446655440001";
+
+  beforeEach(() => {
+    repo = makeGoalsRepoFake();
+    mockNow = new Date("2025-01-15T10:00:00Z");
+    deps = {
+      repo,
+      now: () => mockNow,
+    };
+  });
+
+  describe("getGoals", () => {
+    it("returns empty array when user has no goals", async () => {
+      const result = await getGoals(user1Id, deps);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual([]);
+      }
+    });
+  });
+
+  describe("createGoal", () => {
+    it("creates goal successfully with all required fields", async () => {
+      const data = {
+        name: "Clear skin",
+        description: "Reduce acne breakouts",
+        timeframe: "12 weeks",
+      };
+
+      const result = await createGoal(user1Id, data, deps);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.name).toBe("Clear skin");
+      }
+    });
+  });
+
+  describe("updateGoal", () => {
+    it("updates goal name successfully", async () => {
+      // Manually set up store
+      repo._store.set(goal1Id, {
+        id: goal1Id,
+        userProfileId: user1Id,
+        name: "Old name",
+        description: "Description",
+        timeframe: "4 weeks",
+        complete: false,
+        order: 0,
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
+      });
+
+      const result = await updateGoal(goal1Id, { name: "New name" }, deps);
+
+      expect(result.success).toBe(true);
+      expect(repo._store.get(goal1Id)!.name).toBe("New name");
+    });
+  });
+
+  describe("deleteGoal", () => {
+    it("deletes goal successfully", async () => {
+      repo._store.set(goal1Id, {
+        id: goal1Id,
+        userProfileId: user1Id,
+        name: "Goal to delete",
+        description: "Desc",
+        timeframe: "4w",
+        complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await deleteGoal(goal1Id, deps);
+
+      expect(result.success).toBe(true);
+      expect(repo._store.has(goal1Id)).toBe(false);
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("createGoal handles repository errors", async () => {
+      repo.create = async () => {
+        throw new Error("Database connection failed");
+      };
+
+      const data = {
+        name: "Test goal",
+        description: "Test description",
+        timeframe: "4 weeks",
+      };
+
+      const result = await createGoal(user1Id, data, deps);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe("Failed to create goal");
+      }
+    });
+  });
+});
+```
+
+## 9. Common Test Scenarios Checklist
+
+For every CRUD action, write tests for:
+
+### Create Action:
+- ✓ Successfully creates with valid data
+- ✓ Returns error when required field is empty
+- ✓ Returns error when required field is whitespace only
+- ✓ Sets timestamps correctly (createdAt, updatedAt)
+- ✓ Returns created entity with all fields
+- ✓ Handles repository errors (try-catch)
+
+### Get/Read Action:
+- ✓ Returns data when entity exists
+- ✓ Returns null/empty when entity doesn't exist
+- ✓ Returns error when ID is invalid format
+- ✓ Filters by correct user (doesn't return other users' data)
+- ✓ Returns data in correct order (if order is promised)
+- ✓ Handles repository errors (try-catch)
+
+### Update Action:
+- ✓ Successfully updates each field individually
+- ✓ Successfully updates all fields at once
+- ✓ Updates updatedAt timestamp
+- ✓ Does NOT update createdAt timestamp
+- ✓ Returns error when ID is invalid
+- ✓ Returns error when entity not found
+- ✓ Returns error when updating field to empty/whitespace
+- ✓ Handles empty update object
+- ✓ Handles repository errors (try-catch)
+
+### Delete Action:
+- ✓ Successfully deletes entity
+- ✓ Returns error when ID is invalid
+- ✓ Returns error when entity not found
+- ✓ Handles repository errors (try-catch)
+
+## 10. Anti-Patterns to Avoid
+
+### ❌ Don't create through action in update/delete tests
+```typescript
+// BAD
+it("updates goal", async () => {
+  const createResult = await createGoal(userId, data, deps);
+  const goalId = createResult.data.id;
+
+  const result = await updateGoal(goalId, { name: "New" }, deps);
+  // ...
+});
+```
+
+```typescript
+// GOOD
+it("updates goal", async () => {
+  repo._store.set(goal1Id, {
+    id: goal1Id,
+    // ... full goal object
+  });
+
+  const result = await updateGoal(goal1Id, { name: "New" }, deps);
+  // ...
+});
+```
+
+### ❌ Don't use different repos for different tests in same describe
+```typescript
+// BAD
+it("test 1", async () => {
+  const repo = makeGoalsRepoFake(); // Different instance
+  // ...
+});
+
+it("test 2", async () => {
+  const repo = makeGoalsRepoFake(); // Different instance
+  // ...
+});
+```
+
+```typescript
+// GOOD - use beforeEach
+let repo: ReturnType<typeof makeGoalsRepoFake>;
+
+beforeEach(() => {
+  repo = makeGoalsRepoFake();
+});
+```
+
+### ❌ Don't test try-catch by wrapping in try-catch
+```typescript
+// BAD
+it("handles errors", async () => {
+  try {
+    await createGoal(userId, data, deps);
+    fail("Should have thrown");
+  } catch (e) {
+    expect(e.message).toBe("...");
+  }
+});
+```
+
+```typescript
+// GOOD
+it("handles errors", async () => {
+  repo.create = async () => {
+    throw new Error("Database connection failed");
+  };
+
+  const result = await createGoal(userId, data, deps);
+
+  expect(result.success).toBe(false);
+  if (!result.success) {
+    expect(result.error).toBe("Failed to create goal");
+  }
+});
+```
+
+### ❌ Don't share state between tests
+```typescript
+// BAD
+const sharedGoal = { id: "1", name: "Shared" };
+
+it("test 1", async () => {
+  repo._store.set("1", sharedGoal);
+  // Modifies sharedGoal
+});
+
+it("test 2", async () => {
+  repo._store.set("1", sharedGoal); // Now has modifications from test 1
+});
+```
+
+```typescript
+// GOOD
+it("test 1", async () => {
+  repo._store.set("1", {
+    id: "1",
+    name: "Goal 1",
+    // ... fresh object
+  });
+});
+
+it("test 2", async () => {
+  repo._store.set("1", {
+    id: "1",
+    name: "Goal 2",
+    // ... fresh object
+  });
+});
+```
+
+## Summary
+
+**Follow these patterns exactly:**
+1. Use Result type: `{ success: true; data: T } | { success: false; error: string }`
+2. Use dependency injection with `Deps` type
+3. Create fake repos with `Map` storage and `_store` exposed
+4. Use `repo._store.set()` to manually set up data for update/delete tests
+5. Test try-catch by mocking repo methods to throw
+6. Use fixed UUIDs and timestamps
+7. Test all validation scenarios
+8. Write one behavior per test
+
+**These patterns are used in:**
+- `goal-actions/`
+- `routine-actions/`
+- `routine-info-actions/`
+- `coach-notes-actions/`
+- `progress-photos-actions/`
+- `profile-header-actions/`

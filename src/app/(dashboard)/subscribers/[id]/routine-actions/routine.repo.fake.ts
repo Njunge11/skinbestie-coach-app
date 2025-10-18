@@ -2,6 +2,7 @@
 
 export interface RoutineProduct {
   id: string;
+  routineId: string;
   userProfileId: string;
   routineStep: string;
   productName: string;
@@ -16,6 +17,7 @@ export interface RoutineProduct {
 }
 
 export interface NewRoutineProduct {
+  routineId: string;
   userProfileId: string;
   routineStep: string;
   productName: string;

@@ -14,6 +14,7 @@ describe("Routine Product Actions - Unit Tests", () => {
   // Test UUIDs
   const user1Id = "550e8400-e29b-41d4-a716-446655440000";
   const user2Id = "550e8400-e29b-41d4-a716-446655440001";
+  const routineId = "450e8400-e29b-41d4-a716-446655440000";
   const product1Id = "650e8400-e29b-41d4-a716-446655440001";
   const product2Id = "650e8400-e29b-41d4-a716-446655440002";
   const product3Id = "650e8400-e29b-41d4-a716-446655440003";
@@ -41,6 +42,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       // Add evening product first (order should prioritize morning)
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Evening Cleanser",
@@ -55,6 +57,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       // Add morning product
       repo._store.set(product2Id, {
         id: product2Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning Cleanser",
@@ -88,6 +91,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "User 1 Product",
@@ -101,6 +105,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product2Id, {
         id: product2Id,
+        routineId,
         userProfileId: user2Id,
         routineStep: "Cleanser",
         productName: "User 2 Product",
@@ -149,6 +154,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning Cleanser",
@@ -162,6 +168,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product2Id, {
         id: product2Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Evening Cleanser",
@@ -193,6 +200,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning Cleanser",
@@ -206,6 +214,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product2Id, {
         id: product2Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Evening Cleanser",
@@ -237,6 +246,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Moisturizer",
         productName: "Product 1",
@@ -250,6 +260,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product2Id, {
         id: product2Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product 2",
@@ -263,6 +274,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product3Id, {
         id: product3Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Product 3",
@@ -319,6 +331,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       };
 
       const data = {
+        routineId,
         routineStep: "Cleanser",
         productName: "CeraVe Hydrating Cleanser",
         instructions: "Apply to damp skin",
@@ -348,6 +361,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       };
 
       const data = {
+        routineId,
         routineStep: "Cleanser",
         productName: "CeraVe Hydrating Cleanser",
         productUrl: "https://example.com/product",
@@ -374,6 +388,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       };
 
       const data = {
+        routineId,
         routineStep: "Exfoliant",
         productName: "AHA Toner",
         instructions: "Apply with cotton pad",
@@ -396,10 +411,11 @@ describe("Routine Product Actions - Unit Tests", () => {
       const deps: RoutineProductDeps = {
         repo,
         now: () => new Date("2025-01-15T10:30:00Z")
-        
+
       };
 
       const data = {
+        routineId,
         routineStep: "Cleanser",
         productName: "First Morning Product",
         instructions: "Apply",
@@ -421,6 +437,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       // Add existing morning products
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product 1",
@@ -434,6 +451,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product2Id, {
         id: product2Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Product 2",
@@ -452,6 +470,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       };
 
       const data = {
+        routineId,
         routineStep: "Moisturizer",
         productName: "Third Morning Product",
         instructions: "Apply",
@@ -473,6 +492,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       // Add existing morning products
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning Product",
@@ -491,6 +511,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       };
 
       const data = {
+        routineId,
         routineStep: "Cleanser",
         productName: "First Evening Product",
         instructions: "Apply",
@@ -513,10 +534,11 @@ describe("Routine Product Actions - Unit Tests", () => {
       const deps: RoutineProductDeps = {
         repo,
         now: () => fixedNow
-        
+
       };
 
       const data = {
+        routineId,
         routineStep: "Cleanser",
         productName: "Product",
         instructions: "Apply",
@@ -537,10 +559,11 @@ describe("Routine Product Actions - Unit Tests", () => {
       const deps: RoutineProductDeps = {
         repo: makeRoutineProductsRepoFake(),
         now: () => new Date("2025-01-15T10:30:00Z")
-        
+
       };
 
       const data = {
+        routineId,
         routineStep: "Cleanser",
         productName: "Product",
         instructions: "Apply",
@@ -770,6 +793,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Old Product",
@@ -798,6 +822,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
@@ -830,6 +855,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Exfoliant",
         productName: "Product",
@@ -867,6 +893,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
@@ -926,6 +953,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Valid Product",
@@ -956,6 +984,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
@@ -986,6 +1015,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
@@ -1016,6 +1046,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Valid Product",
@@ -1046,6 +1077,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
@@ -1076,6 +1108,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product",
@@ -1108,6 +1141,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product to delete",
@@ -1169,6 +1203,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       // Given: three morning products with initial order 0, 1, 2
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "First",
@@ -1182,6 +1217,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product2Id, {
         id: product2Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Second",
@@ -1195,6 +1231,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product3Id, {
         id: product3Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Moisturizer",
         productName: "Third",
@@ -1233,6 +1270,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       // Morning products
       repo._store.set("750e8400-e29b-41d4-a716-446655440001", {
         id: "750e8400-e29b-41d4-a716-446655440001",
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Morning 1",
@@ -1246,6 +1284,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set("750e8400-e29b-41d4-a716-446655440002", {
         id: "750e8400-e29b-41d4-a716-446655440002",
+        routineId,
         userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Morning 2",
@@ -1260,6 +1299,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       // Evening product
       repo._store.set("750e8400-e29b-41d4-a716-446655440003", {
         id: "750e8400-e29b-41d4-a716-446655440003",
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Evening 1",
@@ -1300,6 +1340,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product1Id, {
         id: product1Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Cleanser",
         productName: "Product 1",
@@ -1313,6 +1354,7 @@ describe("Routine Product Actions - Unit Tests", () => {
 
       repo._store.set(product2Id, {
         id: product2Id,
+        routineId,
         userProfileId: user1Id,
         routineStep: "Serum",
         productName: "Product 2",
@@ -1387,6 +1429,7 @@ describe("Routine Product Actions - Unit Tests", () => {
       };
 
       const data = {
+        routineId,
         routineStep: "Cleanser",
         productName: "Test Product",
         instructions: "Apply to damp skin",

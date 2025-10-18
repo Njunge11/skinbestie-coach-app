@@ -16,6 +16,12 @@ import {
   reorderGoals as reorderGoalsAction,
 } from "../goal-actions/actions";
 import {
+  createRoutine as createRoutineAction,
+  updateRoutine as updateRoutineAction,
+  deleteRoutine as deleteRoutineAction,
+} from "../routine-info-actions/actions";
+import { copyTemplateToUser } from "@/app/(dashboard)/routine-management/template-actions/copy-template";
+import {
   createRoutineProduct,
   updateRoutineProduct,
   deleteRoutineProduct,
@@ -31,19 +37,29 @@ import type {
   Client,
   Goal,
   Photo,
+  Routine,
   RoutineProduct,
   CoachNote,
   EditableClientData,
   GoalFormData,
+  RoutineFormData,
   RoutineProductFormData,
 } from "../types";
+
+interface Template {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
 interface ClientPageWrapperProps {
   initialClient: Client;
   initialPhotos: Photo[];
   initialGoals: Goal[];
+  initialRoutine: Routine | null;
   initialRoutineProducts: RoutineProduct[];
   initialCoachNotes: CoachNote[];
+  initialTemplates: Template[];
   userId: string;
   adminId: string;
 }
@@ -52,14 +68,17 @@ export function ClientPageWrapper({
   initialClient,
   initialPhotos,
   initialGoals,
+  initialRoutine,
   initialRoutineProducts,
   initialCoachNotes,
+  initialTemplates,
   userId,
   adminId,
 }: ClientPageWrapperProps) {
   const [client, setClient] = useState<Client>(initialClient);
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [goals, setGoals] = useState<Goal[]>(initialGoals);
+  const [routine, setRoutine] = useState<Routine | null>(initialRoutine);
   const [routineProducts, setRoutineProducts] = useState<RoutineProduct[]>(
     initialRoutineProducts
   );
@@ -210,16 +229,136 @@ export function ClientPageWrapper({
     }
   };
 
+  const handleCreateRoutine = async (data: RoutineFormData) => {
+    // Call server action
+    const result = await createRoutineAction(userId, data);
+
+    if (result.success) {
+      // Update routine in state
+      setRoutine(result.data);
+      // Update client hasRoutine flag
+      setClient((prev) => ({ ...prev, hasRoutine: true }));
+    } else {
+      console.error("Failed to create routine:", result.error);
+      toast.error(result.error || "Failed to create routine");
+    }
+  };
+
+  const handleUpdateRoutine = async (data: RoutineFormData) => {
+    if (!routine) return;
+
+    // Optimistically update UI
+    const previousRoutine = routine;
+    setRoutine((prev) => (prev ? { ...prev, ...data } : prev));
+
+    // Call server action
+    const result = await updateRoutineAction(routine.id, data);
+
+    if (!result.success) {
+      // Revert on error
+      setRoutine(previousRoutine);
+      console.error("Failed to update routine:", result.error);
+      toast.error(result.error || "Failed to update routine");
+    } else {
+      setRoutine(result.data);
+    }
+  };
+
+  const handleCreateRoutineFromTemplate = async (
+    templateId: string,
+    routineName: string,
+    startDate: Date,
+    endDate: Date | null
+  ) => {
+    // Call server action
+    const result = await copyTemplateToUser(templateId, userId, {
+      name: routineName,
+      startDate,
+      endDate,
+    });
+
+    if (result.success) {
+      // Update routine and products in state
+      setRoutine(result.data.routine);
+      setRoutineProducts(result.data.products);
+      // Update client hasRoutine flag
+      setClient((prev) => ({ ...prev, hasRoutine: true }));
+      toast.success("Routine created successfully");
+    } else {
+      console.error("Failed to create routine from template:", result.error);
+      toast.error(result.error || "Failed to create routine");
+    }
+  };
+
+  const handleCreateBlankRoutine = async (
+    routineName: string,
+    startDate: Date,
+    endDate: Date | null
+  ) => {
+    // Call server action
+    const result = await createRoutineAction(userId, {
+      name: routineName,
+      startDate,
+      endDate,
+    });
+
+    if (result.success) {
+      // Update routine in state
+      setRoutine(result.data);
+      // Update client hasRoutine flag
+      setClient((prev) => ({ ...prev, hasRoutine: true }));
+      toast.success("Routine created successfully");
+    } else {
+      console.error("Failed to create blank routine:", result.error);
+      toast.error(result.error || "Failed to create routine");
+    }
+  };
+
+  const handleDeleteRoutine = async () => {
+    if (!routine) return;
+
+    // Optimistically update UI
+    const previousRoutine = routine;
+    const previousProducts = routineProducts;
+    setRoutine(null);
+    setRoutineProducts([]);
+    setClient((prev) => ({ ...prev, hasRoutine: false }));
+
+    // Call server action
+    const result = await deleteRoutineAction(routine.id);
+
+    if (!result.success) {
+      // Revert on error
+      setRoutine(previousRoutine);
+      setRoutineProducts(previousProducts);
+      setClient((prev) => ({ ...prev, hasRoutine: true }));
+      console.error("Failed to delete routine:", result.error);
+      toast.error(result.error || "Failed to delete routine");
+    } else {
+      toast.success("Routine deleted successfully");
+    }
+  };
+
   const handleAddRoutineProduct = async (
     timeOfDay: "morning" | "evening",
     data: RoutineProductFormData
   ) => {
-    // Call server action
-    const result = await createRoutineProduct(userId, { ...data, timeOfDay });
+    if (!routine) {
+      toast.error("No routine exists. Please create a routine first.");
+      return;
+    }
+
+    // Call server action with routineId
+    const result = await createRoutineProduct(userId, {
+      ...data,
+      routineId: routine.id,
+      timeOfDay,
+    });
 
     if (result.success) {
       // Add to UI
       setRoutineProducts((prev) => [...prev, result.data]);
+      toast.success("Product added successfully");
     } else {
       console.error("Failed to create routine product:", result.error);
       toast.error("Failed to create routine product");
@@ -361,7 +500,13 @@ export function ClientPageWrapper({
           />
 
           <RoutineSection
+            routine={routine}
             products={routineProducts}
+            templates={initialTemplates}
+            onCreateFromTemplate={handleCreateRoutineFromTemplate}
+            onCreateBlank={handleCreateBlankRoutine}
+            onUpdateRoutine={handleUpdateRoutine}
+            onDeleteRoutine={handleDeleteRoutine}
             onAddProduct={handleAddRoutineProduct}
             onUpdateProduct={handleUpdateRoutineProduct}
             onDeleteProduct={handleDeleteRoutineProduct}

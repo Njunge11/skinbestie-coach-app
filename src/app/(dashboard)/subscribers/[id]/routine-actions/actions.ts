@@ -23,6 +23,7 @@ type Result<T> = SuccessResult<T> | ErrorResult;
 
 // Input types
 export type CreateRoutineProductInput = {
+  routineId: string;
   routineStep: string;
   productName: string;
   productUrl?: string;
@@ -48,12 +49,16 @@ const timeOfDaySchema = z.enum(["morning", "evening"]);
 
 const createRoutineProductSchema = z.object({
   userId: uuidSchema,
+  routineId: uuidSchema,
   routineStep: requiredStringSchema,
   productName: requiredStringSchema,
-  productUrl: z.string().optional(),
+  productUrl: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().url().nullable().optional()
+  ),
   instructions: requiredStringSchema,
   frequency: requiredStringSchema,
-  days: z.array(z.string()).optional(),
+  days: z.array(z.string()).nullable().optional(),
   timeOfDay: timeOfDaySchema,
 });
 
@@ -61,10 +66,13 @@ const updateRoutineProductSchema = z.object({
   productId: uuidSchema,
   routineStep: z.string().trim().min(1).optional(),
   productName: z.string().trim().min(1).optional(),
-  productUrl: z.string().optional(),
+  productUrl: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().url().nullable().optional()
+  ),
   instructions: z.string().trim().min(1).optional(),
   frequency: z.string().trim().min(1).optional(),
-  days: z.array(z.string()).optional(),
+  days: z.array(z.string()).nullable().optional(),
 });
 
 const deleteRoutineProductSchema = z.object({
@@ -113,10 +121,12 @@ export async function getRoutineProductsByTimeOfDay(
   const { repo } = deps;
 
   // Validate input with Zod
-  const validation = z.object({
-    userId: uuidSchema,
-    timeOfDay: timeOfDaySchema,
-  }).safeParse({ userId, timeOfDay });
+  const validation = z
+    .object({
+      userId: uuidSchema,
+      timeOfDay: timeOfDaySchema,
+    })
+    .safeParse({ userId, timeOfDay });
 
   if (!validation.success) {
     return { success: false, error: "Invalid data" };
@@ -163,21 +173,23 @@ export async function createRoutineProduct(
     );
 
     // Calculate order (max order + 1, or 0 if no products)
-    const order = existingProducts.length > 0
-      ? Math.max(...existingProducts.map((p) => p.order)) + 1
-      : 0;
+    const order =
+      existingProducts.length > 0
+        ? Math.max(...existingProducts.map((p) => p.order)) + 1
+        : 0;
 
     const timestamp = now();
 
     // Create product with validated data (already trimmed by Zod)
     const newProduct: NewRoutineProduct = {
+      routineId: validation.data.routineId,
       userProfileId: validation.data.userId,
       routineStep: validation.data.routineStep,
       productName: validation.data.productName,
-      productUrl: validation.data.productUrl,
+      productUrl: validation.data.productUrl ?? undefined,
       instructions: validation.data.instructions,
       frequency: validation.data.frequency,
-      days: validation.data.days,
+      days: validation.data.days ?? undefined,
       timeOfDay: validation.data.timeOfDay,
       order,
       createdAt: timestamp,
@@ -227,7 +239,7 @@ export async function updateRoutineProduct(
     }
 
     if (validation.data.productUrl !== undefined) {
-      updateData.productUrl = validation.data.productUrl;
+      updateData.productUrl = validation.data.productUrl ?? undefined;
     }
 
     if (validation.data.instructions !== undefined) {
@@ -239,11 +251,14 @@ export async function updateRoutineProduct(
     }
 
     if (validation.data.days !== undefined) {
-      updateData.days = validation.data.days;
+      updateData.days = validation.data.days ?? undefined;
     }
 
     // Update product
-    const updatedProduct = await repo.update(validation.data.productId, updateData);
+    const updatedProduct = await repo.update(
+      validation.data.productId,
+      updateData
+    );
 
     if (!updatedProduct) {
       return { success: false, error: "Routine product not found" };

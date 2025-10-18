@@ -397,6 +397,60 @@ Is it an internal component/hook/utility?
 
 ---
 
+## Error Recovery Workflows
+
+**Focus on complete recovery workflows, not isolated error states.**
+
+### ✅ Good - Complete Error Recovery
+```typescript
+it('user encounters validation errors and recovers to submit successfully', async () => {
+  const user = userEvent.setup();
+  render(<Form />);
+
+  // User submits empty form
+  await user.click(screen.getByRole('button', { name: /submit/i }));
+
+  // User sees ALL validation errors
+  expect(await screen.findByText(/name is required/i)).toBeInTheDocument();
+  expect(screen.getByText(/email is required/i)).toBeInTheDocument();
+
+  // User fixes name but not email
+  await user.type(screen.getByLabelText(/name/i), 'John');
+  await user.click(screen.getByRole('button', { name: /submit/i }));
+
+  // User still sees email error
+  expect(screen.queryByText(/name is required/i)).not.toBeInTheDocument();
+  expect(await screen.findByText(/email is required/i)).toBeInTheDocument();
+
+  // User fixes email
+  await user.type(screen.getByLabelText(/email/i), 'john@example.com');
+  await user.click(screen.getByRole('button', { name: /submit/i }));
+
+  // User succeeds
+  expect(await screen.findByText(/success/i)).toBeInTheDocument();
+});
+```
+
+### ❌ Bad - Testing Error Permutations
+```typescript
+// Don't create separate tests for every validation rule
+it('shows error when name is missing', () => {});
+it('shows error when email is missing', () => {});
+it('shows error when phone is missing', () => {});
+it('shows error when name is too short', () => {});
+it('shows error when name is too long', () => {});
+it('shows error when email is invalid', () => {});
+// ... 20 more tests for every field/rule combination
+```
+
+**Why this is bad:**
+- Tests implementation (validation rules) not behavior (user experience)
+- Doesn't test recovery (the important part)
+- Creates brittle tests that break when validation changes
+- Misses the real workflow (users fix multiple errors incrementally)
+
+---
+
 ## Key Takeaways
 
 1. **Test behavior, not implementation**
@@ -405,3 +459,4 @@ Is it an internal component/hook/utility?
 4. **Mock at the network boundary, not the component boundary**
 5. **Write complete user workflows, not isolated unit tests**
 6. **Don't test implementation details** (state, props, handlers, CSS)
+7. **Focus on error recovery workflows, not error permutations**

@@ -41,8 +41,24 @@ export interface GoalFormData {
   timeframe: string;
 }
 
+export interface Routine {
+  id: string;
+  name: string;
+  startDate: Date;
+  endDate: Date | null;
+}
+
+export interface RoutineFormData {
+  name: string;
+  startDate: Date;
+  endDate?: Date | null;
+}
+
+export type RoutineStatus = "not_started" | "ongoing" | "complete";
+
 export interface RoutineProduct {
   id: string;
+  routineId: string;
   routineStep: string;
   productName: string;
   productUrl?: string;

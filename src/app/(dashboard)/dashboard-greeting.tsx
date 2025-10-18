@@ -8,10 +8,10 @@ export default function DashboardGreeting({ name }: DashboardGreetingProps) {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight">
+      <h1 className="text-2xl font-bold text-gray-900">
         {greeting}, {name}
       </h1>
-      <p className="mt-2 text-muted-foreground text-lg">
+      <p className="mt-1 text-sm text-gray-600">
         Manage your clients efficiently
       </p>
     </div>

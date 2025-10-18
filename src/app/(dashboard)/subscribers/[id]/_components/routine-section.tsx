@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Check, X, ChevronsUpDown } from "lucide-react";
+import { Plus, Check, X, ChevronsUpDown, Trash2 } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -41,41 +41,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { RoutineItem } from "./routine-item";
-import type { RoutineProduct, RoutineProductFormData } from "../types";
+import { AddRoutineModal } from "./add-routine-modal";
+import { EditRoutineDialog } from "./edit-routine-dialog";
+import { DeleteRoutineDialog } from "./delete-routine-dialog";
+import { getRoutineStatus, formatRoutineStatus, formatRoutineDateRange } from "../utils/routine-status";
+import type { Routine, RoutineProduct, RoutineProductFormData, RoutineFormData } from "../types";
+import { ROUTINE_STEPS, FREQUENCIES, DAYS_OF_WEEK } from "@/lib/routine-constants";
 
-const ROUTINE_STEPS = [
-  "Cleanser",
-  "Makeup Remover / Micellar Water",
-  "Toner / Essence",
-  "Serum / Treatment",
-  "Eye Cream",
-  "Moisturizer / Cream",
-  "Sunscreen (SPF)",
-  "Exfoliant / Peel",
-  "Mask",
-  "Spot Treatment",
-  "Facial Oil",
-  "Overnight Mask / Sleeping Pack",
-  "Lip Care",
-  "Neck / Décolletage Care",
-];
-
-const FREQUENCIES = ["Daily", "2x per week", "3x per week"];
-
-const DAYS_OF_WEEK = [
-  { value: "Mon", label: "Mon" },
-  { value: "Tue", label: "Tue" },
-  { value: "Wed", label: "Wed" },
-  { value: "Thu", label: "Thu" },
-  { value: "Fri", label: "Fri" },
-  { value: "Sat", label: "Sat" },
-  { value: "Sun", label: "Sun" },
-];
+interface Template {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
 interface RoutineSectionProps {
+  routine: Routine | null;
   products: RoutineProduct[];
+  templates: Template[];
+  onCreateFromTemplate: (templateId: string, routineName: string, startDate: Date, endDate: Date | null) => Promise<void>;
+  onCreateBlank: (routineName: string, startDate: Date, endDate: Date | null) => Promise<void>;
+  onUpdateRoutine: (data: RoutineFormData) => Promise<void>;
+  onDeleteRoutine: () => Promise<void>;
   onAddProduct: (
     timeOfDay: "morning" | "evening",
     data: RoutineProductFormData
@@ -89,12 +78,22 @@ interface RoutineSectionProps {
 }
 
 export function RoutineSection({
+  routine,
   products,
+  templates,
+  onCreateFromTemplate,
+  onCreateBlank,
+  onUpdateRoutine,
+  onDeleteRoutine,
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
   onReorderProducts,
 }: RoutineSectionProps) {
+  const [isAddRoutineOpen, setIsAddRoutineOpen] = useState(false);
+  const [isEditRoutineOpen, setIsEditRoutineOpen] = useState(false);
+  const [isDeleteRoutineOpen, setIsDeleteRoutineOpen] = useState(false);
+
   // Split products into morning and evening
   const morningProducts = products.filter((p) => p.timeOfDay === "morning");
   const eveningProducts = products.filter((p) => p.timeOfDay === "evening");
@@ -140,10 +139,7 @@ export function RoutineSection({
     }
   };
 
-  const handleEdit = (
-    id: string,
-    data: RoutineProductFormData
-  ) => {
+  const handleEdit = (id: string, data: RoutineProductFormData) => {
     onUpdateProduct(id, data);
   };
 
@@ -174,6 +170,11 @@ export function RoutineSection({
       frequency: "Daily",
       days: undefined,
     });
+  };
+
+  const handleDeleteRoutine = () => {
+    onDeleteRoutine();
+    setIsDeleteRoutineOpen(false);
   };
 
   const renderAddForm = (timeOfDay: "morning" | "evening") => (
@@ -336,116 +337,201 @@ export function RoutineSection({
     </div>
   );
 
+  // Empty state when no routine exists
+  if (!routine) {
+    return (
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Current Routine</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-16">
+              <p className="text-sm text-gray-500 mb-1">No routine set yet</p>
+              <p className="text-xs text-gray-400 mb-6">
+                Create a routine to track skincare products
+              </p>
+              <Button variant="outline" onClick={() => setIsAddRoutineOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Routine
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <AddRoutineModal
+          open={isAddRoutineOpen}
+          onOpenChange={setIsAddRoutineOpen}
+          templates={templates}
+          onCreateFromTemplate={onCreateFromTemplate}
+          onCreateBlank={onCreateBlank}
+        />
+      </>
+    );
+  }
+
+  // Routine exists - show routine header and products
+  const status = getRoutineStatus(routine);
+  const statusLabel = formatRoutineStatus(status);
+  const dateRange = formatRoutineDateRange(routine);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Current Routine</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Morning Routine */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-              ☀️
+    <>
+      <Card>
+        <CardHeader className="space-y-3">
+          {/* Routine Header */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xl">{routine.name}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">{dateRange}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant={status === "ongoing" ? "default" : "secondary"}>
+                  {statusLabel}
+                </Badge>
+              </div>
             </div>
-            <span className="text-sm font-medium text-gray-900">Morning</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditRoutineOpen(true)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsDeleteRoutineOpen(true)}
+                className="h-9 w-9 p-0"
+                aria-label="Delete routine"
+              >
+                <Trash2 className="w-4 h-4 text-gray-500" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Morning Routine */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
+                ☀️
+              </div>
+              <span className="text-sm font-medium text-gray-900">Morning</span>
+            </div>
+
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => handleDragEnd(event, "morning")}
+            >
+              <SortableContext
+                items={morningProducts.map((p) => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {morningProducts.map((product, index) => (
+                    <RoutineItem
+                      key={product.id}
+                      product={product}
+                      index={index}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+
+                  {morningProducts.length === 0 && addingTo !== "morning" && (
+                    <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
+                      <p className="text-xs text-gray-400">No routine set</p>
+                    </div>
+                  )}
+
+                  {addingTo === "morning" ? (
+                    renderAddForm("morning")
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setAddingTo("morning")}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {morningProducts.length === 0 ? "Add Step" : "Add Another Step"}
+                    </Button>
+                  )}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={(event) => handleDragEnd(event, "morning")}
-          >
-            <SortableContext
-              items={morningProducts.map((p) => p.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-2">
-                {morningProducts.map((product, index) => (
-                  <RoutineItem
-                    key={product.id}
-                    product={product}
-                    index={index}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                ))}
-
-                {morningProducts.length === 0 && addingTo !== "morning" && (
-                  <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-400">No routine set</p>
-                  </div>
-                )}
-
-                {addingTo === "morning" ? (
-                  renderAddForm("morning")
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setAddingTo("morning")}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {morningProducts.length === 0 ? "Add Step" : "Add Another Step"}
-                  </Button>
-                )}
+          {/* Evening Routine */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+                🌙
               </div>
-            </SortableContext>
-          </DndContext>
-        </div>
-
-        {/* Evening Routine */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
-              🌙
+              <span className="text-sm font-medium text-gray-900">Evening</span>
             </div>
-            <span className="text-sm font-medium text-gray-900">Evening</span>
-          </div>
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={(event) => handleDragEnd(event, "evening")}
-          >
-            <SortableContext
-              items={eveningProducts.map((p) => p.id)}
-              strategy={verticalListSortingStrategy}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => handleDragEnd(event, "evening")}
             >
-              <div className="space-y-2">
-                {eveningProducts.map((product, index) => (
-                  <RoutineItem
-                    key={product.id}
-                    product={product}
-                    index={index}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                ))}
+              <SortableContext
+                items={eveningProducts.map((p) => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {eveningProducts.map((product, index) => (
+                    <RoutineItem
+                      key={product.id}
+                      product={product}
+                      index={index}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
 
-                {eveningProducts.length === 0 && addingTo !== "evening" && (
-                  <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-400">No routine set</p>
-                  </div>
-                )}
+                  {eveningProducts.length === 0 && addingTo !== "evening" && (
+                    <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
+                      <p className="text-xs text-gray-400">No routine set</p>
+                    </div>
+                  )}
 
-                {addingTo === "evening" ? (
-                  renderAddForm("evening")
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setAddingTo("evening")}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {eveningProducts.length === 0 ? "Add Step" : "Add Another Step"}
-                  </Button>
-                )}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </div>
-      </CardContent>
-    </Card>
+                  {addingTo === "evening" ? (
+                    renderAddForm("evening")
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setAddingTo("evening")}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {eveningProducts.length === 0 ? "Add Step" : "Add Another Step"}
+                    </Button>
+                  )}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialogs */}
+      <EditRoutineDialog
+        open={isEditRoutineOpen}
+        onOpenChange={setIsEditRoutineOpen}
+        routine={routine}
+        onUpdate={onUpdateRoutine}
+      />
+
+      <DeleteRoutineDialog
+        open={isDeleteRoutineOpen}
+        onOpenChange={setIsDeleteRoutineOpen}
+        onConfirm={handleDeleteRoutine}
+        routineName={routine.name}
+      />
+    </>
   );
 }

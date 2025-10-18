@@ -27,7 +27,7 @@ export default function Sidebar({
   const navItems: NavItem[] = [
     { href: "/", label: "Home", icon: Home },
     { href: "/subscribers", label: "Subscribers", icon: Users },
-    { href: "/routine", label: "Routine Management", icon: Calendar },
+    { href: "/routine-management", label: "Routine Management", icon: Calendar },
   ];
 
   const handleLogout = (): void => {
