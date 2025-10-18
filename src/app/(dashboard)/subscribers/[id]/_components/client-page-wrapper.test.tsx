@@ -19,6 +19,7 @@ vi.mock("../routine-info-actions/actions");
 vi.mock("../routine-actions/actions");
 vi.mock("../coach-notes-actions/actions");
 vi.mock("../progress-photos-actions/actions");
+vi.mock("@/app/(dashboard)/routine-management/template-actions/copy-template");
 
 import { updateUserProfile } from "../profile-header-actions/actions";
 import {
@@ -27,12 +28,15 @@ import {
   deleteGoal,
 } from "../goal-actions/actions";
 import {
+  createRoutine as createRoutineAction,
   updateRoutine,
   deleteRoutine,
 } from "../routine-info-actions/actions";
 import {
   createRoutineProduct,
+  updateRoutineProduct,
   deleteRoutineProduct,
+  reorderRoutineProducts as reorderRoutineProductsAction,
 } from "../routine-actions/actions";
 import {
   createCoachNote,
@@ -40,6 +44,7 @@ import {
   deleteCoachNote,
 } from "../coach-notes-actions/actions";
 import { updatePhotoFeedback } from "../progress-photos-actions/actions";
+import { copyTemplateToUser } from "@/app/(dashboard)/routine-management/template-actions/copy-template";
 import { toast } from "sonner";
 
 /**
@@ -1564,6 +1569,476 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify server was called
       expect(deleteRoutine).toHaveBeenCalledWith("routine-1");
+    });
+  });
+
+  describe("Routine Creation Workflows", () => {
+
+    it("Create Routine From Template - Failure - template selected, server fails, routine not created, toast shown", async () => {
+      const user = userEvent.setup();
+      const template = {
+        id: "template-1",
+        name: "Anti-Aging Template",
+        description: "Complete anti-aging routine",
+      };
+
+      // Mock server failure
+      vi.mocked(copyTemplateToUser).mockResolvedValueOnce({
+        success: false,
+        error: "Failed to copy template",
+      });
+
+      render(
+        <ClientPageWrapper
+          initialClient={mockClient}
+          initialPhotos={[mockPhoto]}
+          initialGoals={[]}
+          initialRoutine={null}
+          initialRoutineProducts={[]}
+          initialCoachNotes={[]}
+          initialTemplates={[template]}
+          userId="user-1"
+          adminId="admin-1"
+        />
+      );
+
+      // User sees empty state message
+      expect(screen.getByText(/create a routine/i)).toBeInTheDocument();
+
+      // User clicks "Add Routine" button
+      const createButton = screen.getByRole("button", { name: /add routine/i });
+      await user.click(createButton);
+
+      // User sees "New routine" dialog and selects "From template" option
+      expect(await screen.findByText(/new routine/i)).toBeInTheDocument();
+      const fromTemplateOption = screen.getByText(/from template/i);
+      await user.click(fromTemplateOption);
+
+      // Template is auto-selected, user clicks "Continue"
+      const continueButton = screen.getByRole("button", { name: /continue/i });
+      await user.click(continueButton);
+
+      // User fills start date (routine name is pre-filled from template)
+      const startDateInput = screen.getByLabelText(/start date/i);
+      await user.type(startDateInput, "2025-01-15");
+
+      // User clicks "Create routine" button to submit
+      const createRoutineButton = screen.getByRole("button", { name: /create routine/i });
+      await user.click(createRoutineButton);
+
+      // Wait for server response - routine should NOT appear
+      await waitFor(() => {
+        expect(screen.queryByText("Anti-Aging Template")).not.toBeInTheDocument();
+      });
+
+      // Verify error toast shown
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to copy template");
+      });
+
+      // Verify server was called
+      expect(copyTemplateToUser).toHaveBeenCalledWith(
+        "template-1",
+        "user-1",
+        expect.objectContaining({
+          name: "Anti-Aging Template", // Pre-filled from template
+        })
+      );
+    });
+
+    it("Create Blank Routine - Success - routine created, appears in UI, hasRoutine becomes true, toast shown", async () => {
+      const user = userEvent.setup();
+      const newRoutine: Routine = {
+        id: "routine-1",
+        name: "My Blank Routine",
+        startDate: new Date("2025-01-15"),
+        endDate: null,
+      };
+
+      // Mock successful creation
+      vi.mocked(createRoutineAction).mockResolvedValueOnce({
+        success: true,
+        data: newRoutine,
+      });
+
+      render(
+        <ClientPageWrapper
+          initialClient={mockClient}
+          initialPhotos={[mockPhoto]}
+          initialGoals={[]}
+          initialRoutine={null}
+          initialRoutineProducts={[]}
+          initialCoachNotes={[]}
+          initialTemplates={[]}
+          userId="user-1"
+          adminId="admin-1"
+        />
+      );
+
+      // Initially no routine exists
+      expect(screen.getByText(/create a routine/i)).toBeInTheDocument();
+
+      // User clicks "Add Routine" button
+      const createButton = screen.getByRole("button", { name: /add routine/i });
+      await user.click(createButton);
+
+      // User sees "New routine" dialog and selects "Start from scratch"
+      expect(await screen.findByText(/new routine/i)).toBeInTheDocument();
+      const blankOption = screen.getByText(/start from scratch/i);
+      await user.click(blankOption);
+
+      // User fills routine name
+      const routineNameInput = screen.getByLabelText(/routine name/i);
+      await user.type(routineNameInput, "My Blank Routine");
+
+      // User fills start date
+      const startDateInput = screen.getByLabelText(/start date/i);
+      await user.type(startDateInput, "2025-01-15");
+
+      // User clicks "Create routine" button to submit
+      const createRoutineButton = screen.getByRole("button", { name: /create routine/i });
+      await user.click(createRoutineButton);
+
+      // Verify routine appears
+      await waitFor(() => {
+        expect(screen.getByText("My Blank Routine")).toBeInTheDocument();
+      });
+
+      // Verify success toast shown
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith("Routine created successfully");
+      });
+
+      // Verify server action called
+      expect(createRoutineAction).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({
+          name: "My Blank Routine",
+        })
+      );
+
+      // Verify hasRoutine flag updated (no more "Create a routine" message in empty state)
+      await waitFor(() => {
+        expect(screen.queryByText(/create a routine to track skincare products/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it("Create Blank Routine - Failure - form filled, server fails, routine not created, toast shown", async () => {
+      const user = userEvent.setup();
+
+      // Mock server failure
+      vi.mocked(createRoutineAction).mockResolvedValueOnce({
+        success: false,
+        error: "Database error",
+      });
+
+      render(
+        <ClientPageWrapper
+          initialClient={mockClient}
+          initialPhotos={[mockPhoto]}
+          initialGoals={[]}
+          initialRoutine={null}
+          initialRoutineProducts={[]}
+          initialCoachNotes={[]}
+          initialTemplates={[]}
+          userId="user-1"
+          adminId="admin-1"
+        />
+      );
+
+      // User clicks "Add Routine" button
+      const createButton = screen.getByRole("button", { name: /add routine/i });
+      await user.click(createButton);
+
+      // User selects blank routine option
+      const blankOption = await screen.findByText(/start from scratch/i);
+      await user.click(blankOption);
+
+      // User fills routine name
+      const routineNameInput = screen.getByLabelText(/routine name/i);
+      await user.type(routineNameInput, "My Blank Routine");
+
+      // User fills start date
+      const startDateInput = screen.getByLabelText(/start date/i);
+      await user.type(startDateInput, "2025-01-15");
+
+      // User clicks "Create routine" button to submit
+      const createRoutineButton = screen.getByRole("button", { name: /create routine/i });
+      await user.click(createRoutineButton);
+
+      // Wait for server response - routine should NOT appear
+      await waitFor(() => {
+        expect(screen.queryByText("My Blank Routine")).not.toBeInTheDocument();
+      });
+
+      // Verify error toast shown
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Database error");
+      });
+
+      // Verify server was called
+      expect(createRoutineAction).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({
+          name: "My Blank Routine",
+        })
+      );
+
+      // Still shows "Create a routine" empty state message (hasRoutine still false)
+      expect(screen.getByText(/create a routine to track skincare products/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Routine Product Management - Missing Coverage", () => {
+
+    it("Add Product Without Routine - user tries to add product, sees error toast, product not added", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <ClientPageWrapper
+          initialClient={mockClient}
+          initialPhotos={[mockPhoto]}
+          initialGoals={[]}
+          initialRoutine={null}
+          initialRoutineProducts={[]}
+          initialCoachNotes={[]}
+          initialTemplates={[]}
+          userId="user-1"
+          adminId="admin-1"
+        />
+      );
+
+      // Note: When no routine exists, the "Add Step" button should not be visible
+      // But if somehow the handler is called (through props drilling), it should show error
+      // This is more of an edge case test for the handler itself
+      // We can't directly trigger this through UI since button is conditionally rendered
+      // So we'll verify the createRoutineProduct mock is NOT called
+
+      // Verify "Create a routine" message is shown (no routine exists)
+      expect(screen.getByText(/create a routine/i)).toBeInTheDocument();
+
+      // Verify no "Add Step" buttons are visible (routine section shows empty state)
+      expect(screen.queryByRole("button", { name: /add step/i })).not.toBeInTheDocument();
+    });
+
+    it("Update Routine Product - Success - changes show immediately, server called, state persists", async () => {
+      const user = userEvent.setup();
+      const routine: Routine = {
+        id: "routine-1",
+        name: "Morning Routine",
+        startDate: new Date("2025-01-01"),
+        endDate: null,
+      };
+
+      const product: RoutineProduct = {
+        id: "product-1",
+        routineId: "routine-1",
+        routineStep: "Cleanser",
+        productName: "Original Cleanser",
+        instructions: "Apply to wet face",
+        frequency: "Daily",
+        timeOfDay: "morning",
+      };
+
+      const updatedProduct: RoutineProduct = {
+        ...product,
+        productName: "Updated Cleanser",
+        instructions: "Massage gently for 60 seconds",
+      };
+
+      // Mock successful update
+      vi.mocked(updateRoutineProduct).mockResolvedValueOnce({
+        success: true,
+        data: updatedProduct,
+      });
+
+      render(
+        <ClientPageWrapper
+          initialClient={{ ...mockClient, hasRoutine: true }}
+          initialPhotos={[mockPhoto]}
+          initialGoals={[]}
+          initialRoutine={routine}
+          initialRoutineProducts={[product]}
+          initialCoachNotes={[]}
+          initialTemplates={[]}
+          userId="user-1"
+          adminId="admin-1"
+        />
+      );
+
+      // Verify initial product
+      expect(screen.getByText("Original Cleanser")).toBeInTheDocument();
+      expect(screen.getByText("Apply to wet face")).toBeInTheDocument();
+
+      // Click on product to edit
+      const productCard = screen.getByText("Original Cleanser");
+      await user.click(productCard);
+
+      // Edit product details
+      const nameInput = screen.getByPlaceholderText(/product name/i);
+      const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+
+      await user.clear(nameInput);
+      await user.type(nameInput, "Updated Cleanser");
+      await user.clear(instructionsInput);
+      await user.type(instructionsInput, "Massage gently for 60 seconds");
+
+      // Click Save button
+      const saveButtons = screen.getAllByRole("button", { name: /save/i });
+      await user.click(saveButtons[0]);
+
+      // Verify optimistic update
+      await waitFor(() => {
+        expect(screen.getByText("Updated Cleanser")).toBeInTheDocument();
+        expect(screen.getByText("Massage gently for 60 seconds")).toBeInTheDocument();
+      });
+
+      // Verify server action called
+      await waitFor(() => {
+        expect(updateRoutineProduct).toHaveBeenCalledWith(
+          "product-1",
+          expect.objectContaining({
+            productName: "Updated Cleanser",
+            instructions: "Massage gently for 60 seconds",
+          })
+        );
+      });
+
+      // Verify state persists
+      expect(screen.getByText("Updated Cleanser")).toBeInTheDocument();
+      expect(screen.getByText("Massage gently for 60 seconds")).toBeInTheDocument();
+    });
+
+    it("Update Routine Product - Failure - changes show, server fails, reverts, toast shown", async () => {
+      const user = userEvent.setup();
+      const routine: Routine = {
+        id: "routine-1",
+        name: "Morning Routine",
+        startDate: new Date("2025-01-01"),
+        endDate: null,
+      };
+
+      const product: RoutineProduct = {
+        id: "product-1",
+        routineId: "routine-1",
+        routineStep: "Cleanser",
+        productName: "Original Cleanser",
+        instructions: "Apply to wet face",
+        frequency: "Daily",
+        timeOfDay: "morning",
+      };
+
+      // Mock server failure
+      vi.mocked(updateRoutineProduct).mockResolvedValueOnce({
+        success: false,
+        error: "Failed to update product",
+      });
+
+      render(
+        <ClientPageWrapper
+          initialClient={{ ...mockClient, hasRoutine: true }}
+          initialPhotos={[mockPhoto]}
+          initialGoals={[]}
+          initialRoutine={routine}
+          initialRoutineProducts={[product]}
+          initialCoachNotes={[]}
+          initialTemplates={[]}
+          userId="user-1"
+          adminId="admin-1"
+        />
+      );
+
+      // Verify initial product
+      expect(screen.getByText("Original Cleanser")).toBeInTheDocument();
+
+      // Click on product to edit
+      const productCard = screen.getByText("Original Cleanser");
+      await user.click(productCard);
+
+      // Edit product name
+      const nameInput = screen.getByPlaceholderText(/product name/i);
+      await user.clear(nameInput);
+      await user.type(nameInput, "Updated Cleanser");
+
+      // Click Save button
+      const saveButtons = screen.getAllByRole("button", { name: /save/i });
+      await user.click(saveButtons[0]);
+
+      // Wait for server response - should revert to original
+      await waitFor(() => {
+        expect(screen.getByText("Original Cleanser")).toBeInTheDocument();
+        expect(screen.queryByText("Updated Cleanser")).not.toBeInTheDocument();
+      });
+
+      // Verify error toast shown
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to update routine product");
+      });
+
+      // Verify server was called
+      expect(updateRoutineProduct).toHaveBeenCalledWith(
+        "product-1",
+        expect.objectContaining({
+          productName: "Updated Cleanser",
+        })
+      );
+    });
+
+  });
+
+  describe("Coach Notes - Missing Coverage", () => {
+
+    it("Add Coach Note - Failure - note typed, server fails, note not added, toast shown", async () => {
+      const user = userEvent.setup();
+
+      // Mock server failure
+      vi.mocked(createCoachNote).mockResolvedValueOnce({
+        success: false,
+        error: "Failed to create coach note",
+      });
+
+      render(
+        <ClientPageWrapper
+          initialClient={mockClient}
+          initialPhotos={[mockPhoto]}
+          initialGoals={[]}
+          initialRoutine={null}
+          initialRoutineProducts={[]}
+          initialCoachNotes={[]}
+          initialTemplates={[]}
+          userId="user-1"
+          adminId="admin-1"
+        />
+      );
+
+      // Click add note button
+      const addButton = screen.getByLabelText("Add note");
+      await user.click(addButton);
+
+      // Type note content
+      const textarea = screen.getByPlaceholderText("Add a note...");
+      await user.type(textarea, "This note will fail to save");
+
+      // Save
+      const saveButtons = screen.getAllByRole("button", { name: /save/i });
+      await user.click(saveButtons[0]);
+
+      // Wait for server response - note should NOT appear
+      await waitFor(() => {
+        expect(screen.queryByText("This note will fail to save")).not.toBeInTheDocument();
+      });
+
+      // Verify error toast shown
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to create coach note");
+      });
+
+      // Verify server was called
+      expect(createCoachNote).toHaveBeenCalledWith(
+        "user-1",
+        "admin-1",
+        "This note will fail to save"
+      );
     });
   });
 });

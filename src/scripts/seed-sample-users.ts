@@ -1,5 +1,5 @@
-import { db } from "./index";
-import { userProfiles } from "./schema";
+import { db } from "../lib/db/index";
+import { userProfiles } from "../lib/db/schema";
 
 // Sample data arrays
 const firstNames = [

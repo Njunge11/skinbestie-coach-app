@@ -17,8 +17,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "dotenv -e .env.local -- tsx src/lib/db/seed.ts",
-    "seed:photos": "dotenv -e .env.local -- tsx scripts/seed-progress-photos.ts",
+    "seed:sample-users": "dotenv -e .env.local -- tsx src/scripts/seed-sample-users.ts",
+    "seed:photos": "dotenv -e .env.local -- tsx src/scripts/seed-progress-photos.ts",
     "seed:profiles": "dotenv -e .env.local -- tsx src/scripts/seed-profiles.ts"
   },
   "dependencies": {

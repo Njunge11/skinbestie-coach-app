@@ -914,4 +914,320 @@ describe("RoutineSection - Complete User Workflows", () => {
     expect(startDateInput.value).toBe("2025-03-15");
     expect(endDateInput.value).toBe("2025-06-15");
   });
+
+  it("user cancels editing a product without saving changes", async () => {
+    const user = userEvent.setup();
+
+    const existingRoutine: Routine = {
+      id: "routine-1",
+      name: "My Routine",
+      startDate: new Date("2025-01-01"),
+      endDate: null,
+      userProfileId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const existingProducts: RoutineProduct[] = [
+      {
+        id: "product-1",
+        routineId: "routine-1",
+        routineStep: "Cleanser",
+        productName: "Original Name",
+        productUrl: null,
+        instructions: "Original instructions",
+        frequency: "Daily",
+        days: null,
+        timeOfDay: "morning",
+      },
+    ];
+
+    render(
+      <RoutineSection
+        routine={existingRoutine}
+        products={existingProducts}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+      />
+    );
+
+    // User clicks on product to edit
+    await user.click(screen.getByText("Original Name"));
+
+    // User sees edit form
+    expect(screen.getByPlaceholderText(/product name/i)).toBeInTheDocument();
+
+    // User makes changes
+    const nameInput = screen.getByPlaceholderText(/product name/i);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Changed Name");
+
+    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    await user.clear(instructionsInput);
+    await user.type(instructionsInput, "Changed instructions");
+
+    // User clicks Cancel
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    // Form closes - onUpdateProduct should NOT have been called
+    expect(mockOnUpdateProduct).not.toHaveBeenCalled();
+
+    // User sees original product name (changes discarded)
+    expect(screen.getByText("Original Name")).toBeInTheDocument();
+    expect(screen.getByText("Original instructions")).toBeInTheDocument();
+  });
+
+  it("user changes frequency from 2x per week back to Daily and days are cleared", async () => {
+    const user = userEvent.setup();
+
+    const existingRoutine: Routine = {
+      id: "routine-1",
+      name: "My Routine",
+      startDate: new Date("2025-01-01"),
+      endDate: null,
+      userProfileId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const existingProducts: RoutineProduct[] = [
+      {
+        id: "product-1",
+        routineId: "routine-1",
+        routineStep: "Exfoliant / Peel",
+        productName: "AHA Toner",
+        productUrl: null,
+        instructions: "Apply with cotton pad",
+        frequency: "2x per week",
+        days: ["Mon", "Thu"],
+        timeOfDay: "morning",
+      },
+    ];
+
+    render(
+      <RoutineSection
+        routine={existingRoutine}
+        products={existingProducts}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+      />
+    );
+
+    // User clicks on product to edit
+    await user.click(screen.getByText("AHA Toner"));
+
+    // User sees current frequency is 2x per week with day selection UI
+    expect(screen.getByText(/select 2 days/i)).toBeInTheDocument();
+
+    // User changes frequency back to Daily
+    const comboboxes = screen.getAllByRole("combobox");
+    await user.click(comboboxes[1]); // Frequency combobox (index 1 because routine step is index 0)
+    await user.click(screen.getByRole("option", { name: /^daily$/i }));
+
+    // Day selection UI should disappear
+    await waitFor(() => {
+      expect(screen.queryByText(/select 2 days/i)).not.toBeInTheDocument();
+    });
+
+    // User saves
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    // Verify days are cleared (undefined)
+    expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
+      routineStep: "Exfoliant / Peel",
+      productName: "AHA Toner",
+      productUrl: null,
+      instructions: "Apply with cotton pad",
+      frequency: "Daily",
+      days: undefined,
+    });
+  });
+
+  it("user deselects a day and cannot select more than max days", async () => {
+    const user = userEvent.setup();
+
+    const existingRoutine: Routine = {
+      id: "routine-1",
+      name: "My Routine",
+      startDate: new Date("2025-01-01"),
+      endDate: null,
+      userProfileId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    render(
+      <RoutineSection
+        routine={existingRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+      />
+    );
+
+    // User clicks "Add Step" in morning section
+    const addStepButtons = screen.getAllByRole("button", { name: /add step/i });
+    await user.click(addStepButtons[0]);
+
+    // User selects routine step and fills basics
+    const comboboxes = screen.getAllByRole("combobox");
+    await user.click(comboboxes[0]);
+    await user.click(screen.getByText("Serum / Treatment"));
+    await user.type(screen.getByPlaceholderText(/product name/i), "Vitamin C Serum");
+    await user.type(screen.getByPlaceholderText(/instructions/i), "Apply in the morning");
+
+    // User changes frequency to 2x per week
+    await user.click(comboboxes[1]);
+    await user.click(screen.getByText("2x per week"));
+
+    // User selects Mon and Thu
+    const monButton = screen.getByRole("button", { name: /^mon$/i });
+    const thuButton = screen.getByRole("button", { name: /^thu$/i });
+    const wedButton = screen.getByRole("button", { name: /^wed$/i });
+
+    await user.click(monButton);
+    await user.click(thuButton);
+
+    // Wed button should now be disabled (max 2 days reached)
+    expect(wedButton).toBeDisabled();
+
+    // User deselects Mon
+    await user.click(monButton);
+
+    // Now Wed should be enabled again
+    await waitFor(() => {
+      expect(wedButton).not.toBeDisabled();
+    });
+
+    // User can now select Wed
+    await user.click(wedButton);
+
+    // User saves
+    await user.click(screen.getByRole("button", { name: /^add$/i }));
+
+    // Verify product added with Thu and Wed (not Mon)
+    expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
+      routineStep: "Serum / Treatment",
+      productName: "Vitamin C Serum",
+      productUrl: "",
+      instructions: "Apply in the morning",
+      frequency: "2x per week",
+      days: expect.arrayContaining(["Thu", "Wed"]),
+    });
+  });
+
+  it("user sees product with URL displayed as clickable link", async () => {
+    const existingRoutine: Routine = {
+      id: "routine-1",
+      name: "My Routine",
+      startDate: new Date("2025-01-01"),
+      endDate: null,
+      userProfileId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const existingProducts: RoutineProduct[] = [
+      {
+        id: "product-1",
+        routineId: "routine-1",
+        routineStep: "Moisturizer / Cream",
+        productName: "CeraVe Moisturizer",
+        productUrl: "https://example.com/cerave-moisturizer",
+        instructions: "Apply twice daily",
+        frequency: "Daily",
+        days: null,
+        timeOfDay: "morning",
+      },
+    ];
+
+    render(
+      <RoutineSection
+        routine={existingRoutine}
+        products={existingProducts}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+      />
+    );
+
+    // User sees product name as clickable link
+    const productLink = screen.getByRole("link", { name: /cerave moisturizer/i });
+    expect(productLink).toHaveAttribute("href", "https://example.com/cerave-moisturizer");
+    expect(productLink).toHaveAttribute("target", "_blank");
+    expect(productLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("user sees days displayed in frequency badge for product with 2x per week", async () => {
+    const existingRoutine: Routine = {
+      id: "routine-1",
+      name: "My Routine",
+      startDate: new Date("2025-01-01"),
+      endDate: null,
+      userProfileId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const existingProducts: RoutineProduct[] = [
+      {
+        id: "product-1",
+        routineId: "routine-1",
+        routineStep: "Exfoliant / Peel",
+        productName: "Glycolic Acid Toner",
+        productUrl: null,
+        instructions: "Use in the evening",
+        frequency: "2x per week",
+        days: ["Mon", "Thu"],
+        timeOfDay: "evening",
+      },
+    ];
+
+    render(
+      <RoutineSection
+        routine={existingRoutine}
+        products={existingProducts}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+      />
+    );
+
+    // User sees frequency badge with days displayed
+    expect(screen.getByText(/2x per week/)).toBeInTheDocument();
+    expect(screen.getByText(/Mon, Thu/)).toBeInTheDocument();
+  });
 });
