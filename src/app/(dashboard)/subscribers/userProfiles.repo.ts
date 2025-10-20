@@ -6,29 +6,39 @@ import { eq, or, and, ilike, sql, desc, asc, gte } from "drizzle-orm";
 export function makeUserProfilesRepo(database: typeof db) {
   return {
     async findById(id: string) {
-      return await database.query.userProfiles.findFirst({
-        where: (acct, { eq }) => eq(acct.id, id),
-      });
+      const result = await database
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.id, id))
+        .limit(1);
+      return result[0] || null;
     },
 
     async findByEmail(email: string) {
-      return await database.query.userProfiles.findFirst({
-        where: (acct, { eq }) => eq(acct.email, email),
-      });
+      const result = await database
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.email, email))
+        .limit(1);
+      return result[0] || null;
     },
 
     async findByEmailAndPhone(email: string, phoneNumber: string) {
-      return await database.query.userProfiles.findFirst({
-        where: (acct, { and, eq }) =>
-          and(eq(acct.email, email), eq(acct.phoneNumber, phoneNumber)),
-      });
+      const result = await database
+        .select()
+        .from(userProfiles)
+        .where(and(eq(userProfiles.email, email), eq(userProfiles.phoneNumber, phoneNumber)))
+        .limit(1);
+      return result[0] || null;
     },
 
     async findByEmailOrPhone(email: string, phoneNumber: string) {
-      return await database.query.userProfiles.findFirst({
-        where: (acct, { or, eq }) =>
-          or(eq(acct.email, email), eq(acct.phoneNumber, phoneNumber)),
-      });
+      const result = await database
+        .select()
+        .from(userProfiles)
+        .where(or(eq(userProfiles.email, email), eq(userProfiles.phoneNumber, phoneNumber)))
+        .limit(1);
+      return result[0] || null;
     },
 
     async create(data: typeof userProfiles.$inferInsert) {
@@ -55,7 +65,7 @@ export function makeUserProfilesRepo(database: typeof db) {
       limit?: number;
       offset?: number;
     }) {
-      const whereConditions = [];
+      const whereConditions: Parameters<typeof and>= [];
 
       // Search filter (name or email)
       if (filters.searchQuery && filters.searchQuery.trim()) {
@@ -65,7 +75,7 @@ export function makeUserProfilesRepo(database: typeof db) {
             ilike(userProfiles.firstName, searchTerm),
             ilike(userProfiles.lastName, searchTerm),
             ilike(userProfiles.email, searchTerm)
-          )
+          )!
         );
       }
 
@@ -84,7 +94,7 @@ export function makeUserProfilesRepo(database: typeof db) {
           or(
             eq(userProfiles.isSubscribed, false),
             sql`${userProfiles.isSubscribed} IS NULL`
-          )
+          )!
         );
       }
 
@@ -97,18 +107,18 @@ export function makeUserProfilesRepo(database: typeof db) {
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
       // Build ORDER BY clause
-      let orderByClause;
-      if (filters.sortBy === "name") {
-        orderByClause =
-          filters.sortOrder === "asc"
+      const orderByClause =
+        filters.sortBy === "name"
+          ? filters.sortOrder === "asc"
             ? [asc(userProfiles.firstName), asc(userProfiles.lastName)]
-            : [desc(userProfiles.firstName), desc(userProfiles.lastName)];
-      } else if (filters.sortBy === "email") {
-        orderByClause = filters.sortOrder === "asc" ? asc(userProfiles.email) : desc(userProfiles.email);
-      } else {
-        // Default: createdAt
-        orderByClause = filters.sortOrder === "asc" ? asc(userProfiles.createdAt) : desc(userProfiles.createdAt);
-      }
+            : [desc(userProfiles.firstName), desc(userProfiles.lastName)]
+          : filters.sortBy === "email"
+            ? filters.sortOrder === "asc"
+              ? [asc(userProfiles.email)]
+              : [desc(userProfiles.email)]
+            : filters.sortOrder === "asc"
+              ? [asc(userProfiles.createdAt)]
+              : [desc(userProfiles.createdAt)];
 
       // Get total count
       const countResult = await database
@@ -123,7 +133,7 @@ export function makeUserProfilesRepo(database: typeof db) {
         .select()
         .from(userProfiles)
         .where(whereClause)
-        .orderBy(orderByClause)
+        .orderBy(...orderByClause)
         .limit(filters.limit || 20)
         .offset(filters.offset || 0);
 

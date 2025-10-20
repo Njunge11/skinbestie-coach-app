@@ -38,7 +38,7 @@ export function InviteBookingModal({
     queryKey: ["eventTypes"],
     queryFn: async () => {
       const result = await fetchEventTypes();
-      if (result.success) {
+      if (result.success && result.data) {
         setSelectedEventType(result.data[0] || "");
         return result.data;
       }
@@ -50,7 +50,7 @@ export function InviteBookingModal({
   const generateLinkMutation = useMutation({
     mutationFn: async (eventType: string) => {
       const result = await generateBookingLink(eventType);
-      if (result.success) {
+      if (result.success && result.data) {
         return result.data.link;
       }
       throw new Error(result.error);
@@ -91,7 +91,7 @@ export function InviteBookingModal({
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select an event type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px]">
                   {eventTypes?.map((type) => (
                     <SelectItem key={type} value={type}>
                       {type}

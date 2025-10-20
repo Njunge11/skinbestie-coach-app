@@ -76,7 +76,7 @@ const { db, client } = await import('@/lib/db/index');
 
 // Apply migrations ONCE before all tests (not before each test)
 beforeAll(async () => {
-  await applyMigrations(client as PGlite);
+  await applyMigrations(client as unknown as PGlite);
 });
 
 // Cleanup after each test
@@ -93,7 +93,7 @@ afterEach(async () => {
 
 // Free up resources after all tests are done
 afterAll(async () => {
-  if (client && typeof (client as PGlite).close === 'function') {
-    await (client as PGlite).close();
+  if (client && typeof (client as unknown as PGlite).close === 'function') {
+    await (client as unknown as PGlite).close();
   }
 });

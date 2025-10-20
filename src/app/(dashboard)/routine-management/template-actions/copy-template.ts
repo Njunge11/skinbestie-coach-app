@@ -122,6 +122,7 @@ export async function copyTemplateToUser(
       name: validation.data.name,
       startDate: validation.data.startDate,
       endDate: validation.data.endDate || null,
+      status: "draft",
       createdAt: timestamp,
       updatedAt: timestamp,
     });

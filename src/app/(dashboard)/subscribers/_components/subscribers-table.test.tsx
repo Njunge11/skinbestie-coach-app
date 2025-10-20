@@ -184,7 +184,6 @@ describe("SubscribersTable - UI Tests", () => {
 
   it("user filters by completion status triggering API call", async () => {
     const user = userEvent.setup();
-    const { getUserProfiles } = await import("../actions");
 
     renderWithProviders(<SubscribersTable />);
 

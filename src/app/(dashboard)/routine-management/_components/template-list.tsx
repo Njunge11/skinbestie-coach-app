@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Edit, Trash2, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,

@@ -98,7 +98,7 @@ export function LoginFormState({ onForgotPassword, onSubmit, error, onClearError
           )}
         </Field>
         <Field>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full bg-black hover:bg-gray-800 text-white" disabled={isSubmitting}>
             {isSubmitting ? "Logging in..." : "Login"}
           </Button>
         </Field>

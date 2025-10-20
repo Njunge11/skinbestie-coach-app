@@ -6,17 +6,15 @@ import {
   createAdminAction,
   type AuthDeps,
 } from "./auth";
-import { admins } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 
 // Fake database
 function makeFakeDb() {
-  const store = new Map<string, any>();
+  const store = new Map<string, Record<string, unknown>>();
 
   return {
     select: () => ({
       from: () => ({
-        where: (condition: any) => ({
+        where: () => ({
           limit: async (n: number) => {
             // Extract email from condition for lookup
             const entries = Array.from(store.values());
@@ -26,7 +24,7 @@ function makeFakeDb() {
       }),
     }),
     insert: () => ({
-      values: (data: any) => ({
+      values: (data: Record<string, unknown>) => ({
         returning: async () => {
           const admin = {
             ...data,
@@ -40,7 +38,7 @@ function makeFakeDb() {
       }),
     }),
     update: () => ({
-      set: (data: any) => ({
+      set: () => ({
         where: () => Promise.resolve(),
       }),
     }),
@@ -51,7 +49,7 @@ function makeFakeDb() {
 describe("Auth Server Actions - Unit Tests", () => {
   describe("createAdminAction", () => {
     it("creates admin when valid email and name provided", async () => {
-      const fakeDb = makeFakeDb() as any;
+      const fakeDb = makeFakeDb() as AuthDeps["db"];
       const deps: AuthDeps = {
         db: fakeDb,
         createNewVerificationCode: vi.fn(),
@@ -72,7 +70,7 @@ describe("Auth Server Actions - Unit Tests", () => {
     });
 
     it("rejects invalid email format", async () => {
-      const fakeDb = makeFakeDb() as any;
+      const fakeDb = makeFakeDb() as AuthDeps["db"];
       const deps: AuthDeps = {
         db: fakeDb,
         createNewVerificationCode: vi.fn(),
@@ -92,7 +90,7 @@ describe("Auth Server Actions - Unit Tests", () => {
     });
 
     it("normalizes email to lowercase", async () => {
-      const fakeDb = makeFakeDb() as any;
+      const fakeDb = makeFakeDb() as AuthDeps["db"];
       const deps: AuthDeps = {
         db: fakeDb,
         createNewVerificationCode: vi.fn(),
@@ -114,7 +112,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
   describe("forgotPasswordAction", () => {
     it("sends verification code for existing admin", async () => {
-      const fakeDb = makeFakeDb() as any;
+      const fakeDb = makeFakeDb() as AuthDeps["db"];
       fakeDb._store.set("ada@example.com", {
         id: "admin_1",
         email: "ada@example.com",
@@ -154,7 +152,7 @@ describe("Auth Server Actions - Unit Tests", () => {
     });
 
     it("returns error for non-existent admin", async () => {
-      const fakeDb = makeFakeDb() as any;
+      const fakeDb = makeFakeDb() as AuthDeps["db"];
       fakeDb.select = () => ({
         from: () => ({
           where: () => ({
@@ -183,7 +181,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
     it("rejects invalid email format", async () => {
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: vi.fn(),
         markCodeAsUsed: vi.fn(),
@@ -210,7 +208,7 @@ describe("Auth Server Actions - Unit Tests", () => {
       });
 
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: mockValidateCode,
         markCodeAsUsed: vi.fn(),
@@ -229,7 +227,7 @@ describe("Auth Server Actions - Unit Tests", () => {
       const mockValidateCode = vi.fn().mockResolvedValue(null);
 
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: mockValidateCode,
         markCodeAsUsed: vi.fn(),
@@ -248,7 +246,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
     it("rejects invalid code format", async () => {
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: vi.fn(),
         markCodeAsUsed: vi.fn(),
@@ -268,7 +266,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
   describe("resetPasswordAction", () => {
     it("resets password when valid code and password provided", async () => {
-      const fakeDb = makeFakeDb() as any;
+      const fakeDb = makeFakeDb() as AuthDeps["db"];
 
       const mockValidateCode = vi.fn().mockResolvedValue({
         id: "code_1",
@@ -317,7 +315,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
     it("rejects password without uppercase letter", async () => {
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: vi.fn(),
         markCodeAsUsed: vi.fn(),
@@ -342,7 +340,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
     it("rejects password without lowercase letter", async () => {
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: vi.fn(),
         markCodeAsUsed: vi.fn(),
@@ -367,7 +365,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
     it("rejects password without number", async () => {
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: vi.fn(),
         markCodeAsUsed: vi.fn(),
@@ -392,7 +390,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
     it("rejects password less than 8 characters", async () => {
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: vi.fn(),
         markCodeAsUsed: vi.fn(),
@@ -417,7 +415,7 @@ describe("Auth Server Actions - Unit Tests", () => {
 
     it("rejects mismatched passwords", async () => {
       const deps: AuthDeps = {
-        db: makeFakeDb() as any,
+        db: makeFakeDb() as AuthDeps["db"],
         createNewVerificationCode: vi.fn(),
         validateVerificationCode: vi.fn(),
         markCodeAsUsed: vi.fn(),

@@ -33,7 +33,7 @@ export function VerificationCodeEmail({ code }: VerificationCodeEmailProps) {
           <Text style={text}>This code will expire in 15 minutes.</Text>
 
           <Text style={warningText}>
-            If you didn't request a password reset, you can safely ignore this email.
+            If you didn&apos;t request a password reset, you can safely ignore this email.
           </Text>
 
           <Text style={footer}>

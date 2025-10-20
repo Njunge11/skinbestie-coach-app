@@ -12,7 +12,7 @@ interface DashboardShellProps {
     name: string;
     email: string;
     role: string;
-    avatar?: string | null;
+    avatar?: string;
   };
 }
 

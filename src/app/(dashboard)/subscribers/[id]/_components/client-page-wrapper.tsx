@@ -135,11 +135,6 @@ export function ClientPageWrapper({
     setSelectedPhotos([]);
   };
 
-  const handleCloseComparison = () => {
-    setSelectedPhotos([]);
-    setIsCompareMode(false);
-  };
-
   const handleAddGoal = async (data: GoalFormData) => {
     // Call server action
     const result = await createGoal(userId, data);
@@ -230,21 +225,6 @@ export function ClientPageWrapper({
     }
   };
 
-  const handleCreateRoutine = async (data: RoutineFormData) => {
-    // Call server action
-    const result = await createRoutineAction(userId, data);
-
-    if (result.success) {
-      // Update routine in state
-      setRoutine(result.data);
-      // Update client hasRoutine flag
-      setClient((prev) => ({ ...prev, hasRoutine: true }));
-    } else {
-      console.error("Failed to create routine:", result.error);
-      toast.error(result.error || "Failed to create routine");
-    }
-  };
-
   const handleUpdateRoutine = async (data: RoutineFormData) => {
     if (!routine) return;
 
@@ -302,7 +282,12 @@ export function ClientPageWrapper({
     if (result.success) {
       // Update routine and products in state
       setRoutine(result.data.routine);
-      setRoutineProducts(result.data.products);
+      setRoutineProducts(result.data.products.map(p => ({
+        ...p,
+        productUrl: p.productUrl ?? undefined,
+        days: p.days ?? undefined,
+        timeOfDay: p.timeOfDay as "morning" | "evening",
+      })));
       // Update client hasRoutine flag
       setClient((prev) => ({ ...prev, hasRoutine: true }));
       toast.success("Routine created successfully");

@@ -11,8 +11,8 @@ if (!CALENDLY_TOKEN) {
 
 // Dependencies interface for testing
 export interface BookingsDeps {
-  calendlyFetch: (endpoint: string, options?: RequestInit) => Promise<any>;
-  getCurrentUser: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  calendlyFetch: (endpoint: string, options?: RequestInit) => Promise<unknown>;
+  getCurrentUser: () => Promise<{ success: boolean; data?: unknown; error?: string }>;
   uuidToNumber: (uuid: string) => number;
   now: () => Date;
 }
@@ -77,7 +77,7 @@ export async function fetchBookings(filters?: BookingFilters, deps: BookingsDeps
       return { success: false, error: userResult.error };
     }
 
-    const userUri = userResult.data.uri;
+    const userUri = (userResult.data as Record<string, unknown>).uri as string;
 
     // Build query parameters
     const params = new URLSearchParams({
@@ -119,58 +119,58 @@ export async function fetchBookings(filters?: BookingFilters, deps: BookingsDeps
     }
 
     // Fetch scheduled events
-    const data = await deps.calendlyFetch(`/scheduled_events?${params.toString()}`);
+    const data = await deps.calendlyFetch(`/scheduled_events?${params.toString()}`) as Record<string, unknown>;
 
     // Fetch invitees for each event
     const events = await Promise.all(
-      data.collection.map(async (event: any) => {
+      (data.collection as Array<Record<string, unknown>>).map(async (event: Record<string, unknown>) => {
         try {
           const inviteeData = await deps.calendlyFetch(
-            `/scheduled_events/${event.uri.split("/").pop()}/invitees`
-          );
+            `/scheduled_events/${(event.uri as string).split("/").pop()}/invitees`
+          ) as Record<string, unknown>;
 
-          const invitee = inviteeData.collection[0]; // Get first invitee
-          const eventUuid = event.uri.split("/").pop() || "";
+          const invitee = (inviteeData.collection as Array<Record<string, unknown>>)[0]; // Get first invitee
+          const eventUuid = (event.uri as string).split("/").pop() || "";
 
           // Parse Q&A if exists
-          const qa = invitee?.questions_and_answers?.map((item: any) => ({
-            question: item.question,
-            answer: item.answer,
+          const qa = (invitee?.questions_and_answers as Array<Record<string, unknown>>)?.map((item) => ({
+            question: item.question as string,
+            answer: item.answer as string,
           })) || [];
 
           return {
             id: deps.uuidToNumber(eventUuid), // Generate numeric ID from UUID for display
             uuid: eventUuid, // Store actual UUID for API calls
-            start: new Date(event.start_time),
-            end: new Date(event.end_time),
-            title: event.name,
-            host: event.event_memberships[0]?.user_name || "Unknown",
-            location: event.location?.location || "Online",
-            meetingUrl: event.location?.join_url || "",
-            status: event.status === "active" ? "Active" : "Canceled",
+            start: new Date(event.start_time as string),
+            end: new Date(event.end_time as string),
+            title: event.name as string,
+            host: ((event.event_memberships as Array<Record<string, unknown>>)[0]?.user_name as string) || "Unknown",
+            location: ((event.location as Record<string, unknown>)?.location as string) || "Online",
+            meetingUrl: ((event.location as Record<string, unknown>)?.join_url as string) || "",
+            status: event.status === "active" ? "Active" as const : "Canceled" as const,
             invitee: {
-              name: invitee?.name || "Unknown",
-              email: invitee?.email || "unknown@example.com",
-              timezone: invitee?.timezone || "UTC",
+              name: (invitee?.name as string) || "Unknown",
+              email: (invitee?.email as string) || "unknown@example.com",
+              timezone: (invitee?.timezone as string) || "UTC",
             },
             qa,
-            rescheduleUrl: invitee?.reschedule_url || "",
-            cancelUrl: invitee?.cancel_url || "",
+            rescheduleUrl: (invitee?.reschedule_url as string) || "",
+            cancelUrl: (invitee?.cancel_url as string) || "",
           };
         } catch (error) {
           console.error(`Failed to fetch invitees for event ${event.uri}:`, error);
-          const eventUuid = event.uri.split("/").pop() || "";
+          const eventUuid = (event.uri as string).split("/").pop() || "";
           // Return event without invitee data if fetch fails
           return {
             id: deps.uuidToNumber(eventUuid),
             uuid: eventUuid,
-            start: new Date(event.start_time),
-            end: new Date(event.end_time),
-            title: event.name,
-            host: event.event_memberships[0]?.user_name || "Unknown",
-            location: event.location?.location || "Online",
-            meetingUrl: event.location?.join_url || "",
-            status: event.status === "active" ? "Active" : "Canceled",
+            start: new Date(event.start_time as string),
+            end: new Date(event.end_time as string),
+            title: event.name as string,
+            host: ((event.event_memberships as Array<Record<string, unknown>>)[0]?.user_name as string) || "Unknown",
+            location: ((event.location as Record<string, unknown>)?.location as string) || "Online",
+            meetingUrl: ((event.location as Record<string, unknown>)?.join_url as string) || "",
+            status: event.status === "active" ? "Active" as const : "Canceled" as const,
             invitee: {
               name: "Unknown",
               email: "unknown@example.com",
@@ -224,13 +224,13 @@ export async function generateBookingLink(eventType: string, deps: BookingsDeps 
       return { success: false, error: userResult.error };
     }
 
-    const userUri = userResult.data.uri;
+    const userUri = (userResult.data as Record<string, unknown>).uri as string;
 
     // Fetch user's event types to find the matching one
-    const eventTypesData = await deps.calendlyFetch(`/event_types?user=${userUri}`);
+    const eventTypesData = await deps.calendlyFetch(`/event_types?user=${userUri}`) as Record<string, unknown>;
 
-    const matchingEventType = eventTypesData.collection.find(
-      (et: any) => et.name === eventType
+    const matchingEventType = (eventTypesData.collection as Array<Record<string, unknown>>).find(
+      (et) => et.name === eventType
     );
 
     if (!matchingEventType) {
@@ -245,15 +245,15 @@ export async function generateBookingLink(eventType: string, deps: BookingsDeps 
       method: "POST",
       body: JSON.stringify({
         max_event_count: 1,
-        owner: matchingEventType.uri,
+        owner: (matchingEventType as Record<string, unknown>).uri,
         owner_type: "EventType",
       }),
-    });
+    }) as Record<string, unknown>;
 
     return {
       success: true,
       data: {
-        link: response.resource.booking_url,
+        link: ((response.resource as Record<string, unknown>).booking_url as string),
       },
     };
   } catch (error) {
@@ -273,16 +273,17 @@ export async function fetchHosts(deps: BookingsDeps = defaultDeps) {
       return { success: false, error: userResult.error };
     }
 
-    const userUri = userResult.data.uri;
+    const userUri = (userResult.data as Record<string, unknown>).uri as string;
 
     // Fetch scheduled events to extract unique hosts
-    const data = await deps.calendlyFetch(`/scheduled_events?user=${userUri}&count=100`);
+    const data = await deps.calendlyFetch(`/scheduled_events?user=${userUri}&count=100`) as Record<string, unknown>;
 
     const hosts = new Set<string>();
-    data.collection.forEach((event: any) => {
-      const hostName = event.event_memberships[0]?.user_name;
+    (data.collection as Array<Record<string, unknown>>).forEach((event) => {
+      const eventMemberships = event.event_memberships as Array<Record<string, unknown>>;
+      const hostName = eventMemberships?.[0]?.user_name;
       if (hostName) {
-        hosts.add(hostName);
+        hosts.add(hostName as string);
       }
     });
 
@@ -307,14 +308,14 @@ export async function fetchEventTypes(deps: BookingsDeps = defaultDeps) {
       return { success: false, error: userResult.error };
     }
 
-    const userUri = userResult.data.uri;
+    const userUri = (userResult.data as Record<string, unknown>).uri as string;
 
     // Fetch event types
-    const data = await deps.calendlyFetch(`/event_types?user=${userUri}`);
+    const data = await deps.calendlyFetch(`/event_types?user=${userUri}`) as Record<string, unknown>;
 
-    const eventTypes = data.collection
-      .filter((et: any) => et.active) // Only active event types
-      .map((et: any) => et.name);
+    const eventTypes = (data.collection as Array<Record<string, unknown>>)
+      .filter((et) => et.active) // Only active event types
+      .map((et) => et.name as string);
 
     return {
       success: true,

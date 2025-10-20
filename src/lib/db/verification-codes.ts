@@ -1,6 +1,6 @@
 import { db } from './index';
 import { verificationCodes, admins } from './schema';
-import type { NewVerificationCode, VerificationCode } from './schema';
+import type { VerificationCode } from './schema';
 import { eq, and, desc } from 'drizzle-orm';
 import {
   generateVerificationCode,

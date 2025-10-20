@@ -320,14 +320,13 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user sees skeleton while data loads then sees real data", async () => {
-    const user = userEvent.setup();
-    let resolvePromise: (value: any) => void;
-    const promise = new Promise((resolve) => {
+    let resolvePromise: (value: Awaited<ReturnType<typeof complianceActions.getComplianceStats>>) => void;
+    const promise = new Promise<Awaited<ReturnType<typeof complianceActions.getComplianceStats>>>((resolve) => {
       resolvePromise = resolve;
     });
 
     const mockGetComplianceStats = vi.spyOn(complianceActions, "getComplianceStats");
-    mockGetComplianceStats.mockReturnValueOnce(promise as any);
+    mockGetComplianceStats.mockReturnValueOnce(promise);
 
     render(<ComplianceSection userId="user_123" />);
 
@@ -438,7 +437,7 @@ describe("ComplianceSection - UI Tests", () => {
       }),
     });
 
-    const { rerender } = render(<ComplianceSection userId="user_123" />);
+    render(<ComplianceSection userId="user_123" />);
 
     const percentages = await screen.findAllByText("90%");
     expect(percentages.length).toBeGreaterThan(0);

@@ -46,11 +46,18 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json(admin, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/admins error:", error);
 
     // Check for unique constraint violation (duplicate email)
-    if (error.code === "23505" && error.constraint === "admins_email_unique") {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "23505" &&
+      "constraint" in error &&
+      error.constraint === "admins_email_unique"
+    ) {
       return NextResponse.json(
         { error: "Admin with this email already exists" },
         { status: 409 }

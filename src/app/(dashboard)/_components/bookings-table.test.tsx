@@ -319,9 +319,11 @@ describe("BookingsTable - UI Tests", () => {
     // User sees booking details drawer
     expect(await screen.findByRole("heading", { name: /event details/i })).toBeInTheDocument();
 
-    // Verify Q&A section is visible in the drawer (unique to drawer, not in table)
-    expect(screen.getByText("What is your main concern?")).toBeInTheDocument();
-    expect(screen.getByText("Acne treatment")).toBeInTheDocument();
+    // Verify reschedule URL is visible in drawer (unique to drawer, not in table)
+    expect(screen.getByText("Reschedule URL")).toBeInTheDocument();
+
+    // Verify Join Now link is visible for active meeting
+    expect(screen.getByRole("link", { name: /join now/i })).toBeInTheDocument();
   });
 
   it("user joins an active meeting", async () => {

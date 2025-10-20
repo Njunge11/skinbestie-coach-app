@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { InviteBookingModal } from "@/app/(dashboard)/_components/invite-booking-modal";
 import type { Client, EditableClientData } from "../types";
 
 interface ProfileHeaderProps {
@@ -16,6 +18,7 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ client, onUpdate }: ProfileHeaderProps) {
   const [editMode, setEditMode] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [editedData, setEditedData] = useState<EditableClientData>({
     occupation: client.occupation,
     bio: client.bio,
@@ -33,6 +36,17 @@ export function ProfileHeader({ client, onUpdate }: ProfileHeaderProps) {
 
   const handleCancel = () => {
     setEditMode(false);
+  };
+
+  const copyToClipboard = (text: string, message: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(message);
+  };
+
+  // Format phone number for WhatsApp (remove leading +)
+  const getWhatsAppLink = () => {
+    const phoneNumber = client.mobile.replace(/^\+/, '');
+    return `https://wa.me/${phoneNumber}`;
   };
 
   return (
@@ -101,13 +115,24 @@ export function ProfileHeader({ client, onUpdate }: ProfileHeaderProps) {
                       <Edit2 className="w-4 h-4 mr-2" />
                       Edit
                     </Button>
-                    <Button key="schedule" size="sm" variant="outline">
+                    <Button
+                      key="booking-link"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowInviteModal(true)}
+                    >
                       <Calendar className="w-4 h-4 mr-2" />
-                      Schedule
+                      Booking Link
                     </Button>
-                    <Button key="message" size="sm" variant="outline">
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Message
+                    <Button key="message" size="sm" variant="outline" asChild>
+                      <a
+                        href={getWhatsAppLink()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Message
+                      </a>
                     </Button>
                   </>
                 )}
@@ -195,22 +220,30 @@ export function ProfileHeader({ client, onUpdate }: ProfileHeaderProps) {
                     Edit
                   </Button>
                   <Button
-                    key="schedule-mobile"
+                    key="booking-link-mobile"
                     size="sm"
                     variant="outline"
+                    onClick={() => setShowInviteModal(true)}
                     className="flex-1"
                   >
                     <Calendar className="w-4 h-4 mr-2" />
-                    Schedule
+                    Booking Link
                   </Button>
                   <Button
                     key="message-mobile"
                     size="sm"
                     variant="outline"
                     className="flex-1"
+                    asChild
                   >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Message
+                    <a
+                      href={getWhatsAppLink()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Message
+                    </a>
                   </Button>
                 </>
               )}
@@ -218,6 +251,12 @@ export function ProfileHeader({ client, onUpdate }: ProfileHeaderProps) {
           </div>
         </div>
       </CardContent>
+
+      <InviteBookingModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onCopyLink={copyToClipboard}
+      />
     </Card>
   );
 }

@@ -30,7 +30,7 @@ export function DeleteRoutineDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete routine?</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{routineName}"? This will permanently delete the
+            Are you sure you want to delete &quot;{routineName}&quot;? This will permanently delete the
             routine and all associated products. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>

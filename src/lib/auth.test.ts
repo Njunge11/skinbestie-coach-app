@@ -61,7 +61,7 @@ describe('NextAuth authorize function', () => {
         passwordHash: 'hashed-password',
       };
 
-      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as any);
+      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as Awaited<ReturnType<typeof getAdminByEmail>>);
       vi.mocked(verifyPassword).mockResolvedValue(true);
 
       const credentials = {
@@ -92,7 +92,7 @@ describe('NextAuth authorize function', () => {
         passwordHash: 'hashed-password',
       };
 
-      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as any);
+      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as Awaited<ReturnType<typeof getAdminByEmail>>);
       vi.mocked(verifyPassword).mockResolvedValue(true);
 
       const credentials = {
@@ -188,7 +188,7 @@ describe('NextAuth authorize function', () => {
         passwordHash: null,
       };
 
-      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as any);
+      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as Awaited<ReturnType<typeof getAdminByEmail>>);
 
       const credentials = {
         email: 'admin@example.com',
@@ -213,7 +213,7 @@ describe('NextAuth authorize function', () => {
         passwordHash: null,
       };
 
-      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as any);
+      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as Awaited<ReturnType<typeof getAdminByEmail>>);
 
       const credentials = {
         email: 'admin@example.com',
@@ -238,7 +238,7 @@ describe('NextAuth authorize function', () => {
         passwordHash: 'hashed-password',
       };
 
-      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as any);
+      vi.mocked(getAdminByEmail).mockResolvedValue(mockAdmin as Awaited<ReturnType<typeof getAdminByEmail>>);
       vi.mocked(verifyPassword).mockResolvedValue(false);
 
       const credentials = {

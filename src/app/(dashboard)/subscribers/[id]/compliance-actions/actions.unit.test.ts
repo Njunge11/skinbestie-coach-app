@@ -996,7 +996,7 @@ describe("Compliance Actions - Unit Tests", () => {
       const endDate = addDays(new Date(), 5); // Ends 5 days from now, so 6 days including today
 
       const routineRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: routineId,
           userProfileId: user1Id,
           name: "Test Routine",
@@ -1009,7 +1009,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const userRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: user1Id,
           name: "Test User",
           email: "test@example.com",
@@ -1020,7 +1020,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const productRepo = {
-        findByRoutineId: async (id: string) => [
+        findByRoutineId: async () => [
           {
             id: productId,
             routineId,
@@ -1072,7 +1072,7 @@ describe("Compliance Actions - Unit Tests", () => {
       today.setHours(0, 0, 0, 0);
 
       const routineRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: routineId,
           userProfileId: user1Id,
           name: "Test Routine",
@@ -1085,7 +1085,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const userRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: user1Id,
           name: "Test User",
           email: "test@example.com",
@@ -1096,7 +1096,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const productRepo = {
-        findByRoutineId: async (id: string) => [
+        findByRoutineId: async () => [
           {
             id: productId,
             routineId,
@@ -1143,7 +1143,7 @@ describe("Compliance Actions - Unit Tests", () => {
       const endDate = addDays(new Date(), 13); // Ends 13 days from now (2 weeks)
 
       const routineRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: routineId,
           userProfileId: user1Id,
           name: "Test Routine",
@@ -1156,7 +1156,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const userRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: user1Id,
           name: "Test User",
           email: "test@example.com",
@@ -1167,7 +1167,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const productRepo = {
-        findByRoutineId: async (id: string) => [
+        findByRoutineId: async () => [
           {
             id: productId,
             routineId,
@@ -1219,7 +1219,7 @@ describe("Compliance Actions - Unit Tests", () => {
     it("returns error when routine not found", async () => {
       // Given: Routine repo that returns null
       const routineRepo = {
-        findById: async (id: string) => null,
+        findById: async () => null,
       };
 
       const deps = {
@@ -1250,7 +1250,7 @@ describe("Compliance Actions - Unit Tests", () => {
       today.setHours(0, 0, 0, 0);
 
       const routineRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: routineId,
           userProfileId: user1Id,
           name: "Test Routine",
@@ -1263,7 +1263,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const userRepo = {
-        findById: async (id: string) => null,
+        findById: async () => null,
       };
 
       const deps = {
@@ -1294,7 +1294,7 @@ describe("Compliance Actions - Unit Tests", () => {
       today.setHours(0, 0, 0, 0);
 
       const routineRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: routineId,
           userProfileId: user1Id,
           name: "Test Routine",
@@ -1307,7 +1307,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const userRepo = {
-        findById: async (id: string) => ({
+        findById: async () => ({
           id: user1Id,
           name: "Test User",
           email: "test@example.com",
@@ -1318,7 +1318,7 @@ describe("Compliance Actions - Unit Tests", () => {
       };
 
       const productRepo = {
-        findByRoutineId: async (id: string) => [], // No products
+        findByRoutineId: async () => [], // No products
       };
 
       const deps = {

@@ -244,7 +244,7 @@ export function SubscribersTable() {
       {/* Filters */}
       <TableFilters
         filters={filterConfig}
-        values={filters}
+        values={filters as unknown as Record<string, string>}
         onChange={handleFilterChange}
       />
 

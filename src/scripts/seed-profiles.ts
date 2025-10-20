@@ -15,7 +15,7 @@
  * - 10 coach notes spread over 5 months
  */
 
-import { subMonths, subWeeks, addDays, format } from "date-fns";
+import { subMonths, subWeeks, format } from "date-fns";
 import { db } from "@/lib/db";
 import {
   userProfiles,
@@ -356,8 +356,6 @@ async function seedProfile(profileId: string, index: number) {
     // Create notes spread over 5 months
     for (let i = 0; i < COACH_NOTES.length; i++) {
       const noteContent = COACH_NOTES[i];
-      // Spread notes over the 5-month period (roughly bi-weekly)
-      const weeksAgo = Math.floor((19 / COACH_NOTES.length) * i);
 
       const noteResult = await createCoachNote(profileId, adminId, noteContent);
       if (!noteResult.success) {

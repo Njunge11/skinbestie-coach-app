@@ -11,9 +11,6 @@ import {
 import type {
   UserProfileCreate,
   UserProfileUpdate,
-  UserProfileFilters,
-  UserProfilePagination,
-  UserProfileSort,
 } from "./schemas";
 import { makeUserProfilesRepoFake } from "./userProfiles.repo.fake";
 
@@ -24,7 +21,7 @@ describe("createUserProfile", () => {
   beforeEach(() => {
     repo = makeUserProfilesRepoFake();
     deps = {
-      repo: repo as any,
+      repo: repo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
   });
@@ -306,7 +303,7 @@ describe("createUserProfile", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as any,
+      repo: failingRepo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -334,7 +331,7 @@ describe("getUserProfileById", () => {
   beforeEach(() => {
     repo = makeUserProfilesRepoFake();
     deps = {
-      repo: repo as any,
+      repo: repo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
   });
@@ -378,7 +375,7 @@ describe("getUserProfileById", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as any,
+      repo: failingRepo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -398,7 +395,7 @@ describe("getUserProfileByEmail", () => {
   beforeEach(() => {
     repo = makeUserProfilesRepoFake();
     deps = {
-      repo: repo as any,
+      repo: repo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
   });
@@ -459,7 +456,7 @@ describe("getUserProfileByEmail", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as any,
+      repo: failingRepo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -479,7 +476,7 @@ describe("checkUserProfileExists", () => {
   beforeEach(() => {
     repo = makeUserProfilesRepoFake();
     deps = {
-      repo: repo as any,
+      repo: repo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
   });
@@ -577,7 +574,7 @@ describe("checkUserProfileExists", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as any,
+      repo: failingRepo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -600,7 +597,7 @@ describe("updateUserProfile", () => {
   beforeEach(() => {
     repo = makeUserProfilesRepoFake();
     deps = {
-      repo: repo as any,
+      repo: repo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
   });
@@ -764,7 +761,7 @@ describe("updateUserProfile", () => {
 
     const updateData = {
       skinType: "invalid", // Should be array
-    } as any;
+    } as unknown as UserProfileUpdate;
 
     const result = await updateUserProfile(created.id, updateData, deps);
 
@@ -783,7 +780,7 @@ describe("updateUserProfile", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as any,
+      repo: failingRepo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -807,7 +804,7 @@ describe("getUserProfiles", () => {
   beforeEach(() => {
     repo = makeUserProfilesRepoFake();
     deps = {
-      repo: repo as any,
+      repo: repo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
   });
@@ -1590,7 +1587,7 @@ describe("getUserProfiles", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as any,
+      repo: failingRepo as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 

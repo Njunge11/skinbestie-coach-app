@@ -15,7 +15,6 @@ interface BookingDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onCopyLink: (url: string, message: string) => void;
-  onCancelBooking: (eventUuid: string) => void;
 }
 
 export function BookingDetailsDrawer({
@@ -23,7 +22,6 @@ export function BookingDetailsDrawer({
   isOpen,
   onClose,
   onCopyLink,
-  onCancelBooking,
 }: BookingDetailsDrawerProps) {
   if (!booking) return null;
 
@@ -108,26 +106,6 @@ export function BookingDetailsDrawer({
             </div>
           </div>
 
-          {/* Q&A */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Questions & Answers
-            </h3>
-            <div className="space-y-3">
-              {booking.qa.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="bg-gray-50 rounded-lg p-3 border border-gray-200"
-                >
-                  <div className="text-xs font-medium text-gray-700 mb-1">
-                    {item.question}
-                  </div>
-                  <div className="text-sm text-gray-900">{item.answer}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Links */}
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Links</h3>
@@ -155,41 +133,23 @@ export function BookingDetailsDrawer({
                   </a>
                 </div>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-sm text-gray-700">Cancel URL</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      onCopyLink(booking.cancelUrl, "Cancel link copied")
-                    }
-                    className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                    title="Copy link"
-                  >
-                    <Copy size={16} />
-                  </button>
-                  <a
-                    href={booking.cancelUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                    title="Open link"
-                  >
-                    <ExternalLink size={16} />
-                  </a>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* Cancel Button */}
+          {/* Join Button */}
           {booking.status === "Active" && (
             <div className="pt-4 border-t">
               <Button
-                variant="destructive"
-                onClick={() => onCancelBooking(booking.uuid)}
+                asChild
                 className="w-full"
               >
-                Cancel Meeting
+                <a
+                  href={booking.meetingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Join Now
+                </a>
               </Button>
             </div>
           )}

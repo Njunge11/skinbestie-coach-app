@@ -10,10 +10,10 @@ if (!process.env.DATABASE_URL && !isTest) {
 }
 
 // Disable prefetch as it's not supported for "Transaction" pool mode
-const client = process.env.DATABASE_URL
+export const client = process.env.DATABASE_URL
   ? postgres(process.env.DATABASE_URL, { prepare: false })
   : null;
 
-export const db = client ? drizzle(client, { schema }) : null as any;
+export const db = client ? drizzle(client, { schema }) : (null as unknown as ReturnType<typeof drizzle>);
 
 export * from './schema';

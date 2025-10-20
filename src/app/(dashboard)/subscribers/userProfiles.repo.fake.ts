@@ -1,6 +1,8 @@
+import type { UserProfile } from "@/lib/db/schema";
+
 // Fake repository for testing (uses Map for in-memory storage)
 export function makeUserProfilesRepoFake() {
-  const store = new Map<string, any>();
+  const store = new Map<string, UserProfile>();
   let idCounter = 1;
 
   return {
@@ -36,9 +38,9 @@ export function makeUserProfilesRepoFake() {
       return null;
     },
 
-    async create(data: any) {
+    async create(data: Partial<UserProfile>) {
       const id = `user-${idCounter++}`;
-      const profile = {
+      const profile: UserProfile = {
         id,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -51,12 +53,12 @@ export function makeUserProfilesRepoFake() {
         isSubscribed: null,
         hasCompletedBooking: null,
         ...data, // Data comes last to override defaults
-      };
+      } as UserProfile;
       store.set(id, profile);
       return profile;
     },
 
-    async update(id: string, data: any) {
+    async update(id: string, data: Partial<UserProfile>) {
       const existing = store.get(id);
       if (!existing) return null;
 
@@ -107,7 +109,8 @@ export function makeUserProfilesRepoFake() {
 
       // Apply date range filter
       if (filters.dateRangeStart) {
-        profiles = profiles.filter((p) => p.createdAt >= filters.dateRangeStart);
+        const startDate = filters.dateRangeStart;
+        profiles = profiles.filter((p) => p.createdAt >= startDate);
       }
 
       // Apply sorting

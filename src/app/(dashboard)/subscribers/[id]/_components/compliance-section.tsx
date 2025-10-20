@@ -120,7 +120,7 @@ export function ComplianceSection({ userId }: ComplianceSectionProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Skeleton for 4 Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <Card key={i} className={i === 1 ? "bg-gradient-to-b from-primary to-primary/90 border-0" : ""}>
                 <CardContent className="p-6">
@@ -242,7 +242,7 @@ export function ComplianceSection({ userId }: ComplianceSectionProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* 4 Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Overall Adherence - Black with gradient */}
           <Card className="bg-gradient-to-b from-primary to-primary/90 border-0">
             <CardContent className="p-6 text-primary-foreground">

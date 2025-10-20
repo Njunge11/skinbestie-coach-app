@@ -8,7 +8,6 @@ import {
   reorderRoutineProducts,
   type RoutineProductDeps,
   type CreateRoutineProductWithRegenerationDeps,
-  type UpdateRoutineProductWithRegenerationDeps,
 } from "./actions";
 import { makeRoutineProductsRepoFake } from "./routine.repo.fake";
 
@@ -727,7 +726,7 @@ describe("Routine Product Actions - Unit Tests", () => {
         productName: "Product",
         instructions: "Apply",
         frequency: "Daily",
-        timeOfDay: "afternoon" as any,
+        timeOfDay: "afternoon" as "morning" | "evening", // Invalid value for test
       };
 
       const result = await createRoutineProduct(user1Id, data, deps);

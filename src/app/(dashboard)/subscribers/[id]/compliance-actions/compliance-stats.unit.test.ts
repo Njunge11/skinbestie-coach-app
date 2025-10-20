@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { getComplianceStats } from "./actions";
 import { makeRoutineStepCompletionsRepoFake } from "./routine-step-completions.repo.fake";
 import { makeRoutineProductsRepoFake } from "../routine-actions/routine.repo.fake";

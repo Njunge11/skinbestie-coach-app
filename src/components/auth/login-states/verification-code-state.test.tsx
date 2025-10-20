@@ -37,7 +37,6 @@ describe('VerificationCodeState', () => {
   });
 
   it('limits input to 6 characters', async () => {
-    const user = userEvent.setup();
     render(
       <VerificationCodeState
         onContinue={vi.fn()}
@@ -79,9 +78,8 @@ describe('VerificationCodeState', () => {
 
   it('shows loading state while submitting', async () => {
     const user = userEvent.setup();
-    let resolveSubmit: () => void;
-    const submitPromise = new Promise<void>((resolve) => {
-      resolveSubmit = resolve;
+    const submitPromise = new Promise<void>(() => {
+      // Never resolves - testing loading state
     });
     const handleSubmit = vi.fn(() => submitPromise);
 

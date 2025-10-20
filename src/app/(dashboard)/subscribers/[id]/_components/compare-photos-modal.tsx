@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { ZoomIn, ZoomOut, RotateCcw, X } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,

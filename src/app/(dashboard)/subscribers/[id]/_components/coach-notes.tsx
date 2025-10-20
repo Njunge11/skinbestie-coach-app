@@ -145,7 +145,7 @@ export function CoachNotes({
           </div>
         ) : (
           <div className="space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto scroll-smooth pr-2">
-            {notes.map((note, index) => (
+            {notes.map((note) => (
               <div key={note.id}>
                 {editingId === note.id ? (
                   <div className="space-y-2 pb-4 border-b border-border">
@@ -168,30 +168,30 @@ export function CoachNotes({
                     </div>
                   </div>
                 ) : (
-                  <div className="relative pl-4 border-l-2 border-border">
-                    <div className="flex-1 min-w-0 pb-4">
-                      <button
-                        onClick={() => handleStartEditing(note)}
-                        className="w-full text-left"
-                      >
-                        <p className="text-sm text-foreground leading-relaxed">
-                          {note.content}
-                        </p>
-                      </button>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="text-xs text-muted-foreground">
+                  <div className="relative pl-4 border-l-2 border-border pb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <button
+                          onClick={() => handleStartEditing(note)}
+                          className="w-full text-left"
+                        >
+                          <p className="text-sm text-foreground leading-relaxed">
+                            {note.content}
+                          </p>
+                        </button>
+                        <div className="text-xs text-muted-foreground mt-2">
                           {formatTimestamp(note.createdAt)}
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(note.id)}
-                          className="h-5 w-5 p-0 hover:text-destructive"
-                          aria-label="Delete note"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(note.id)}
+                        className="h-6 w-6 p-0 hover:text-destructive flex-shrink-0"
+                        aria-label="Delete note"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                     </div>
                   </div>
                 )}

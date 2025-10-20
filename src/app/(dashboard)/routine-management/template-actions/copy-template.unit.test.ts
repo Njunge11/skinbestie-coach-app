@@ -62,7 +62,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -91,6 +91,7 @@ describe("Copy Template to User - Unit Tests", () => {
         expect(result.data.routine.startDate).toEqual(new Date("2025-01-20"));
         expect(result.data.routine.endDate).toBe(null);
         expect(result.data.routine.userProfileId).toBe(userId);
+        expect(result.data.routine.status).toBe("draft");
 
         // Verify products were copied
         expect(result.data.products).toHaveLength(2);
@@ -128,7 +129,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -174,7 +175,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -209,7 +210,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -263,7 +264,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -297,7 +298,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -331,7 +332,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -365,7 +366,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -408,7 +409,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -469,7 +470,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -510,7 +511,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);
@@ -557,7 +558,7 @@ describe("Copy Template to User - Unit Tests", () => {
       // Mock createRoutineProduct for testing
       const productStore = new Map();
       let productIdCounter = 0;
-      const createRoutineProduct = async (data: any) => {
+      const createRoutineProduct = async (data: Parameters<CopyTemplateDeps["createRoutineProduct"]>[0]) => {
         const id = `rp_${++productIdCounter}`;
         const product = { ...data, id };
         productStore.set(id, product);

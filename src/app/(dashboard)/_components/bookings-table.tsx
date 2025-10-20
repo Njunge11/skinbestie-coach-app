@@ -66,7 +66,7 @@ export function BookingsTable() {
   });
 
   // Apply client-side filters (search and host)
-  const filteredData = allBookingsData.filter((booking) => {
+  const filteredData = allBookingsData.filter((booking: Booking) => {
     // Filter by search query (client name or email)
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
@@ -281,7 +281,7 @@ export function BookingsTable() {
       {/* Filters */}
       <TableFilters
         filters={filterConfig}
-        values={filters}
+        values={filters as unknown as Record<string, string>}
         onChange={handleFilterChange}
       />
 
@@ -302,10 +302,6 @@ export function BookingsTable() {
         isOpen={!!selectedBooking}
         onClose={() => setSelectedBooking(null)}
         onCopyLink={copyToClipboard}
-        onCancelBooking={(uuid) => {
-          setSelectedBooking(null);
-          setCancelEventUuid(uuid);
-        }}
       />
 
       <InviteBookingModal

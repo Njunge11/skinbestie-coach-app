@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClientPageWrapper } from "./client-page-wrapper";
 import type { Client, Goal, Photo, Routine, RoutineProduct, CoachNote } from "../types";
 
@@ -33,10 +34,8 @@ import {
   deleteRoutine,
 } from "../routine-info-actions/actions";
 import {
-  createRoutineProduct,
   updateRoutineProduct,
   deleteRoutineProduct,
-  reorderRoutineProducts as reorderRoutineProductsAction,
 } from "../routine-actions/actions";
 import {
   createCoachNote,
@@ -46,6 +45,19 @@ import {
 import { updatePhotoFeedback } from "../progress-photos-actions/actions";
 import { copyTemplateToUser } from "@/app/(dashboard)/routine-management/template-actions/copy-template";
 import { toast } from "sonner";
+
+// Helper function to render components with QueryClient
+function renderWithQueryClient(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+  );
+}
 
 /**
  * CLIENT PAGE WRAPPER - INTEGRATION TESTS
@@ -107,7 +119,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: { ...goal, complete: true },
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -158,7 +170,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: updatedGoal,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -229,7 +241,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         success: true,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -288,7 +300,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         success: true,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
@@ -340,7 +352,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: newNote,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -399,7 +411,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: updatedNote,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -456,7 +468,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         success: true,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -499,7 +511,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: { ...mockClient, occupation: "Senior Engineer", bio: "Lead developer" },
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -558,7 +570,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Failed to update profile",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -627,7 +639,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: newGoal,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -683,7 +695,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Failed to create goal",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -745,7 +757,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: updatedPhoto,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -788,7 +800,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Failed to update photo feedback",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -845,7 +857,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: updatedRoutine,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
@@ -908,7 +920,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Network error",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -959,7 +971,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Database error",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -1027,7 +1039,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Database error",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -1087,7 +1099,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Database error",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
@@ -1138,7 +1150,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Database error",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -1198,7 +1210,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Database error",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -1260,7 +1272,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         success: true,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
@@ -1323,7 +1335,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Database error",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
@@ -1383,7 +1395,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Failed to copy template",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -1456,7 +1468,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: newRoutine,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -1527,7 +1539,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Database error",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -1587,9 +1599,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
   describe("Routine Product Management - Missing Coverage", () => {
 
     it("Add Product Without Routine - user tries to add product, sees error toast, product not added", async () => {
-      const user = userEvent.setup();
-
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
@@ -1647,7 +1657,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         data: updatedProduct,
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
@@ -1729,7 +1739,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Failed to update product",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
@@ -1792,7 +1802,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         error: "Failed to create coach note",
       });
 
-      render(
+      renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}

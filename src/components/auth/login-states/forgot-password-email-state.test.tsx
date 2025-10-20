@@ -64,9 +64,8 @@ describe('ForgotPasswordEmailState', () => {
 
   it('shows loading state while submitting', async () => {
     const user = userEvent.setup();
-    let resolveSubmit: () => void;
-    const submitPromise = new Promise<void>((resolve) => {
-      resolveSubmit = resolve;
+    const submitPromise = new Promise<void>(() => {
+      // Never resolves - testing loading state
     });
     const handleSubmit = vi.fn(() => submitPromise);
 

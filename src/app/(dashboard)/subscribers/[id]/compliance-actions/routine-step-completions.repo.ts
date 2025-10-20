@@ -4,7 +4,7 @@
 
 import { db } from "@/lib/db";
 import { routineStepCompletions } from "@/lib/db/schema";
-import { eq, and, gte, lte, lt, inArray, sql } from "drizzle-orm";
+import { eq, and, gte, lte, lt, inArray } from "drizzle-orm";
 import type {
   RoutineStepCompletion,
   NewRoutineStepCompletion,
@@ -149,9 +149,10 @@ export function makeRoutineStepCompletionsRepo() {
       const result = await db
         .update(routineStepCompletions)
         .set(updates)
-        .where(inArray(routineStepCompletions.id, ids));
+        .where(inArray(routineStepCompletions.id, ids))
+        .returning({ id: routineStepCompletions.id });
 
-      return result.rowCount ?? 0;
+      return result.length;
     },
 
     /**
@@ -171,9 +172,10 @@ export function makeRoutineStepCompletionsRepo() {
             eq(routineStepCompletions.status, "pending"),
             lt(routineStepCompletions.gracePeriodEnd, now)
           )
-        );
+        )
+        .returning({ id: routineStepCompletions.id });
 
-      return result.rowCount ?? 0;
+      return result.length;
     },
 
     /**
@@ -200,9 +202,10 @@ export function makeRoutineStepCompletionsRepo() {
 
       const result = await db
         .delete(routineStepCompletions)
-        .where(and(...conditions));
+        .where(and(...conditions))
+        .returning({ id: routineStepCompletions.id });
 
-      return result.rowCount ?? 0;
+      return result.length;
     },
 
     /**
@@ -211,9 +214,10 @@ export function makeRoutineStepCompletionsRepo() {
     async deleteByUserId(userId: string): Promise<number> {
       const result = await db
         .delete(routineStepCompletions)
-        .where(eq(routineStepCompletions.userProfileId, userId));
+        .where(eq(routineStepCompletions.userProfileId, userId))
+        .returning({ id: routineStepCompletions.id });
 
-      return result.rowCount ?? 0;
+      return result.length;
     },
   };
 }

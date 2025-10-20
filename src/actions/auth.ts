@@ -169,7 +169,7 @@ export async function resetPasswordAction(
       confirmPassword,
     });
     if (!result.success) {
-      const firstError = result.error.issues?.[0] || result.error.errors?.[0];
+      const firstError = result.error.issues?.[0];
       return { success: false, error: firstError?.message || "Validation error" };
     }
 
@@ -230,7 +230,7 @@ export async function createAdminAction(email: string, name?: string, deps: Auth
     // Validate input
     const result = createAdminSchema.safeParse({ email, name });
     if (!result.success) {
-      const firstError = result.error.issues?.[0] || result.error.errors?.[0];
+      const firstError = result.error.issues?.[0];
       return { success: false, error: firstError?.message || "Validation error" };
     }
 

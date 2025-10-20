@@ -1,5 +1,5 @@
-import { db } from "../src/lib/db";
-import { progressPhotos } from "../src/lib/db/schema";
+import { db } from "../lib/db";
+import { progressPhotos } from "../lib/db/schema";
 
 const userId = "fa45293b-9896-44b0-ac7a-f60029ea37a1";
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   getTemplates,
   getTemplate,
@@ -6,22 +6,15 @@ import {
   updateTemplate,
   deleteTemplate,
   getTemplateProducts,
-  createTemplateProduct,
-  updateTemplateProduct,
-  deleteTemplateProduct,
-  reorderTemplateProducts,
   type TemplateDeps,
   type CreateTemplateInput,
   type UpdateTemplateInput,
-  type CreateTemplateProductInput,
-  type UpdateTemplateProductInput,
 } from "./actions";
 import { makeTemplateRepoFake } from "./template.repo.fake";
 
 // Fixed test data (follows TESTING.md)
 const adminId = "550e8400-e29b-41d4-a716-446655440000";
 const templateId = "550e8400-e29b-41d4-a716-446655440001";
-const productId = "550e8400-e29b-41d4-a716-446655440002";
 const mockNow = new Date("2025-01-15T10:00:00Z");
 
 describe("Template Actions - Unit Tests", () => {

@@ -142,7 +142,7 @@ describe("ProductForm", () => {
       );
     }
 
-    const { rerender } = render(<FormWrapper />);
+    render(<FormWrapper />);
 
     // User selects routine step
     const routineStepButton = screen.getByText(/select routine step/i);

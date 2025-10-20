@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
     name: session.user.name || session.user.email || "User",
     email: session.user.email || "",
     role: "Admin",
-    avatar: session.user.image,
+    avatar: session.user.image ?? undefined,
   };
 
   return <DashboardShell user={user}>{children}</DashboardShell>;

@@ -55,7 +55,7 @@ export function VerificationCodeState({
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-2xl font-bold">Enter verification code</h1>
           <p className="text-muted-foreground text-balance">
-            We've sent a 6-digit code to your email address
+            We&apos;ve sent a 6-digit code to your email address
           </p>
         </div>
         <Field>
