@@ -33,14 +33,17 @@ import { createGoal } from "@/app/(dashboard)/subscribers/[id]/goal-actions/acti
 import { copyTemplateToUser } from "@/app/(dashboard)/routine-management/template-actions/copy-template";
 import { publishRoutine } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/actions";
 import { makeRoutineStepCompletionsRepo } from "@/app/(dashboard)/subscribers/[id]/compliance-actions/routine-step-completions.repo";
-import { markStepComplete, markOverdueAsMissed } from "@/app/(dashboard)/subscribers/[id]/compliance-actions/actions";
+import {
+  markStepComplete,
+  markOverdueAsMissed,
+} from "@/app/(dashboard)/subscribers/[id]/compliance-actions/actions";
 import { createCoachNote } from "@/app/(dashboard)/subscribers/[id]/coach-notes-actions/actions";
 
 // Profile IDs to seed
 const PROFILE_IDS = [
-  "c6ae24e7-0a5e-439e-99e4-9d0c4d1249f3",
-  "3e11b1a0-0f93-462e-854c-c2928bf0bd10",
-  "062818ea-be4e-421b-adca-4e1182334ba6",
+  "047b8de6-6a42-4013-b155-349d90b20615",
+  "13ca97f7-f27f-429e-9fe5-61c06ce42a0f",
+  "2954a599-3448-4fc4-bdf7-abb13ce7220d",
 ];
 
 // Sample data pools
@@ -158,7 +161,9 @@ async function cleanupProfileData(profileId: string) {
 
   // Delete in correct order (respecting foreign keys)
   // 1. Delete routine step completions
-  await db.delete(routineStepCompletions).where(eq(routineStepCompletions.userProfileId, profileId));
+  await db
+    .delete(routineStepCompletions)
+    .where(eq(routineStepCompletions.userProfileId, profileId));
 
   // 2. Delete routine products (for routines belonging to this user)
   await db
@@ -166,13 +171,19 @@ async function cleanupProfileData(profileId: string) {
     .where(eq(skincareRoutineProducts.userProfileId, profileId));
 
   // 3. Delete routines
-  await db.delete(skincareRoutines).where(eq(skincareRoutines.userProfileId, profileId));
+  await db
+    .delete(skincareRoutines)
+    .where(eq(skincareRoutines.userProfileId, profileId));
 
   // 4. Delete progress photos
-  await db.delete(progressPhotos).where(eq(progressPhotos.userProfileId, profileId));
+  await db
+    .delete(progressPhotos)
+    .where(eq(progressPhotos.userProfileId, profileId));
 
   // 5. Delete goals
-  await db.delete(skincareGoals).where(eq(skincareGoals.userProfileId, profileId));
+  await db
+    .delete(skincareGoals)
+    .where(eq(skincareGoals.userProfileId, profileId));
 
   // 6. Delete coach notes
   await db.delete(coachNotes).where(eq(coachNotes.userProfileId, profileId));
@@ -202,7 +213,9 @@ async function seedProfile(profileId: string, index: number) {
     for (const goal of GOALS) {
       const result = await createGoal(profileId, goal);
       if (!result.success) {
-        throw new Error(`Failed to create goal "${goal.name}": ${result.error}`);
+        throw new Error(
+          `Failed to create goal "${goal.name}": ${result.error}`
+        );
       }
     }
 
@@ -218,7 +231,9 @@ async function seedProfile(profileId: string, index: number) {
     const startDate = subMonths(new Date(), 5);
     const routineName = `${template.name} - Custom Routine`;
 
-    console.log(`  → Creating routine from template (started ${format(startDate, "MMM d, yyyy")})...`);
+    console.log(
+      `  → Creating routine from template (started ${format(startDate, "MMM d, yyyy")})...`
+    );
     const routineResult = await copyTemplateToUser(template.id, profileId, {
       name: routineName,
       startDate,
@@ -269,13 +284,14 @@ async function seedProfile(profileId: string, index: number) {
 
       // Calculate "week number" from start (week 1 = high compliance, later weeks = lower)
       const weeksSinceStart = Math.floor(
-        (step.scheduledDate.getTime() - fiveMonthsAgo.getTime()) / (7 * 24 * 60 * 60 * 1000)
+        (step.scheduledDate.getTime() - fiveMonthsAgo.getTime()) /
+          (7 * 24 * 60 * 60 * 1000)
       );
 
       // Compliance patterns
       let onTimeProbability = 0.85; // Start at 85%
       if (weeksSinceStart > 2) onTimeProbability = 0.75; // Weeks 3-6: 75%
-      if (weeksSinceStart > 6) onTimeProbability = 0.70; // After week 6: 70%
+      if (weeksSinceStart > 6) onTimeProbability = 0.7; // After week 6: 70%
 
       // Morning steps have better compliance
       if (step.scheduledTimeOfDay === "morning") {
@@ -292,7 +308,9 @@ async function seedProfile(profileId: string, index: number) {
       const shouldComplete = randomBool(onTimeProbability + 0.15); // Total ~85-90% completion
 
       if (shouldComplete) {
-        const isOnTime = randomBool(onTimeProbability / (onTimeProbability + 0.15));
+        const isOnTime = randomBool(
+          onTimeProbability / (onTimeProbability + 0.15)
+        );
 
         if (isOnTime) {
           // Mark as on-time (completed before deadline)
@@ -315,13 +333,17 @@ async function seedProfile(profileId: string, index: number) {
       }
     }
 
-    console.log(`  → Marked: ${onTimeCount} on-time, ${lateCount} late, ${missedCount} left as pending`);
+    console.log(
+      `  → Marked: ${onTimeCount} on-time, ${lateCount} late, ${missedCount} left as pending`
+    );
 
     // Now mark all pending steps past their grace period as missed
     console.log("  → Marking overdue steps as missed...");
     const missedResult = await markOverdueAsMissed(profileId);
     if (missedResult.success) {
-      console.log(`  → Marked ${missedResult.data.count} overdue steps as missed`);
+      console.log(
+        `  → Marked ${missedResult.data.count} overdue steps as missed`
+      );
     }
 
     // 7. Create 20 weekly progress photos
