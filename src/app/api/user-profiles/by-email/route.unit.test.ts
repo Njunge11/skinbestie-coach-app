@@ -8,12 +8,12 @@ vi.mock("@/app/(dashboard)/subscribers/actions", () => ({
 }));
 
 // Mock the auth module
-vi.mock("../auth", () => ({
+vi.mock("../../auth", () => ({
   validateApiKey: vi.fn(),
 }));
 
 import { getUserProfileByEmail } from "@/app/(dashboard)/subscribers/actions";
-import { validateApiKey } from "../auth";
+import { validateApiKey } from "../../auth";
 
 describe("GET /api/user-profiles/by-email", () => {
   const validApiKey = "test-api-key-123";

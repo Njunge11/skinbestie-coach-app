@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkUserProfileExists } from "@/app/(dashboard)/subscribers/actions";
-import { validateApiKey } from "../auth";
+import { validateApiKey } from "../../auth";
 
 /**
  * GET /api/user-profiles/check?email=user@example.com&phoneNumber=+1234567890

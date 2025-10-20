@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUserProfile } from "@/app/(dashboard)/subscribers/actions";
-import { validateApiKey } from "./auth";
+import { validateApiKey } from "../auth";
 
 /**
  * POST /api/user-profiles
