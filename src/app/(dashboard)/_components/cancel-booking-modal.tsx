@@ -67,7 +67,6 @@ export function CancelBookingModal({
             Keep Meeting
           </Button>
           <Button
-            variant="destructive"
             onClick={handleCancel}
             disabled={cancelMutation.isPending}
           >

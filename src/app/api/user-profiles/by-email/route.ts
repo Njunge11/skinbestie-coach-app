@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserProfileByEmail } from "@/app/(dashboard)/subscribers/actions";
+import { validateApiKey } from "../auth";
 
 /**
  * GET /api/user-profiles/by-email?email=user@example.com
  * Get user profile by email
  */
 export async function GET(request: NextRequest) {
+  // Validate API key
+  const authError = validateApiKey(request);
+  if (authError) return authError;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const email = searchParams.get("email");

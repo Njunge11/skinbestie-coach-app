@@ -110,7 +110,7 @@ export function SubscribersTable() {
           <div className="flex items-center gap-2">
             <div className="w-24 bg-gray-200 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full"
+                className="bg-primary h-2 rounded-full"
                 style={{ width: `${progress.percentage}%` }}
               />
             </div>
@@ -127,15 +127,16 @@ export function SubscribersTable() {
       cell: ({ row }) => {
         const isCompleted = row.getValue("isCompleted") as boolean;
         return (
-          <span
-            className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
-              isCompleted
-                ? "bg-green-100 text-green-800"
-                : "bg-yellow-100 text-yellow-800"
-            }`}
-          >
-            {isCompleted ? "Completed" : "Incomplete"}
-          </span>
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isCompleted ? "bg-green-500" : "bg-yellow-500"
+              }`}
+            />
+            <span className="text-sm text-gray-700">
+              {isCompleted ? "Complete" : "Incomplete"}
+            </span>
+          </div>
         );
       },
     },

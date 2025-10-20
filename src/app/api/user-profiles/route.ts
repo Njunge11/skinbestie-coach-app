@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUserProfile } from "@/app/(dashboard)/subscribers/actions";
+import { validateApiKey } from "./auth";
 
 /**
  * POST /api/user-profiles
  * Create a new user profile
  */
 export async function POST(request: NextRequest) {
+  // Validate API key
+  const authError = validateApiKey(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
 

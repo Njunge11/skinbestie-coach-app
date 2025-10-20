@@ -278,11 +278,11 @@ describe("SubscribersTable - UI Tests", () => {
     // Wait for subscribers to load
     expect(await screen.findByText("John Doe")).toBeInTheDocument();
 
-    // User sees "Completed" badge for John
+    // User sees "Complete" status for John
     const johnRow = screen.getByText("John Doe").closest("tr");
-    expect(within(johnRow!).getByText("Completed")).toBeInTheDocument();
+    expect(within(johnRow!).getByText("Complete")).toBeInTheDocument();
 
-    // User sees "Incomplete" badges for Jane and Bob
+    // User sees "Incomplete" status for Jane and Bob
     const janeRow = screen.getByText("Jane Smith").closest("tr");
     expect(within(janeRow!).getByText("Incomplete")).toBeInTheDocument();
   });

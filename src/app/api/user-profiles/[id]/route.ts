@@ -3,6 +3,7 @@ import {
   getUserProfileById,
   updateUserProfile,
 } from "@/app/(dashboard)/subscribers/actions";
+import { validateApiKey } from "../auth";
 
 /**
  * GET /api/user-profiles/[id]
@@ -12,6 +13,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Validate API key
+  const authError = validateApiKey(request);
+  if (authError) return authError;
+
   try {
     const result = await getUserProfileById(params.id);
 
@@ -37,6 +42,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Validate API key
+  const authError = validateApiKey(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
 

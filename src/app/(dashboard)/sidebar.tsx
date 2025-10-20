@@ -57,7 +57,6 @@ export default function Sidebar({
               width={139}
               height={40}
               priority
-              className="brightness-0"
             />
           </div>
 

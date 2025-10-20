@@ -161,15 +161,14 @@ export function BookingsTable() {
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
         return (
-          <span
-            className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
-              status === "Active"
-                ? "bg-green-100 text-green-800"
-                : "bg-gray-100 text-gray-800"
-            }`}
-          >
-            {status}
-          </span>
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                status === "Active" ? "bg-green-500" : "bg-gray-400"
+              }`}
+            />
+            <span className="text-sm text-gray-700">{status}</span>
+          </div>
         );
       },
     },
