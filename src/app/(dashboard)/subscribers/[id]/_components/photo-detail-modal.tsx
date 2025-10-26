@@ -36,9 +36,11 @@ export function PhotoDetailModal({
     }
   }, [photo]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (photo) {
-      await onSave(photo.id, editingFeedback);
+      // Fire and forget - don't await for instant feedback
+      onSave(photo.id, editingFeedback);
+      // Close modal immediately
       onClose();
     }
   };

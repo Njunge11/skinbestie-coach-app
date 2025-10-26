@@ -159,10 +159,13 @@ describe("SubscribersTable - UI Tests", () => {
     const searchInput = screen.getByPlaceholderText(/search by name or email/i);
     await user.type(searchInput, "Jane");
 
-    // This triggers URL update on every keystroke, check the last call
-    const lastCall = mockPush.mock.calls[mockPush.mock.calls.length - 1];
-    expect(lastCall[0]).toContain("search=e");
-    expect(lastCall[1]).toEqual({ scroll: false });
+    // Wait for the 500ms debounce to trigger URL update
+    await vi.waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith(
+        expect.stringContaining("search=Jane"),
+        expect.objectContaining({ scroll: false })
+      );
+    }, { timeout: 1000 });
   });
 
   it("user searches for subscribers by email", async () => {
@@ -176,10 +179,13 @@ describe("SubscribersTable - UI Tests", () => {
     const searchInput = screen.getByPlaceholderText(/search by name or email/i);
     await user.type(searchInput, "bob");
 
-    // URL should update with search param (check last call after all keystrokes)
-    const lastCall = mockPush.mock.calls[mockPush.mock.calls.length - 1];
-    expect(lastCall[0]).toContain("search=b");
-    expect(lastCall[1]).toEqual({ scroll: false });
+    // Wait for the 500ms debounce to trigger URL update
+    await vi.waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith(
+        expect.stringContaining("search=bob"),
+        expect.objectContaining({ scroll: false })
+      );
+    }, { timeout: 1000 });
   });
 
   it("user filters by completion status triggering API call", async () => {

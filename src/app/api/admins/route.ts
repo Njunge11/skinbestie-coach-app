@@ -14,12 +14,17 @@ const createAdminSchema = z.object({
  * Create a new admin user
  */
 export async function POST(request: NextRequest) {
+  console.log("\x1b[36m=== CREATE ADMIN REQUEST ===\x1b[0m");
+
   // Validate API key
   const authError = validateApiKey(request);
-  if (authError) return authError;
+  if (authError) {
+    return authError;
+  }
 
   try {
     const body = await request.json();
+    console.log("Request body:", { email: body.email, name: body.name });
 
     // Validate request body
     const parseResult = createAdminSchema.safeParse(body);
@@ -44,6 +49,8 @@ export async function POST(request: NextRequest) {
         role: "admin",
       })
       .returning();
+
+    console.log(`✅ Admin created: ${admin.email} (${admin.id})`);
 
     return NextResponse.json(admin, { status: 201 });
   } catch (error: unknown) {

@@ -72,6 +72,7 @@ export async function getGoals(
 ): Promise<Result<Goal[]>> {
   const { repo } = deps;
 
+
   // Validate userId with Zod
   const validation = uuidSchema.safeParse(userId);
   if (!validation.success) {

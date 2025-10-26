@@ -7,7 +7,28 @@ export function makeUserProfilesRepo(database: typeof db) {
   return {
     async findById(id: string) {
       const result = await database
-        .select()
+        .select({
+          id: userProfiles.id,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          email: userProfiles.email,
+          phoneNumber: userProfiles.phoneNumber,
+          dateOfBirth: userProfiles.dateOfBirth,
+          skinType: userProfiles.skinType,
+          concerns: userProfiles.concerns,
+          hasAllergies: userProfiles.hasAllergies,
+          allergyDetails: userProfiles.allergyDetails,
+          isSubscribed: userProfiles.isSubscribed,
+          hasCompletedBooking: userProfiles.hasCompletedBooking,
+          occupation: userProfiles.occupation,
+          bio: userProfiles.bio,
+          timezone: userProfiles.timezone,
+          completedSteps: userProfiles.completedSteps,
+          isCompleted: userProfiles.isCompleted,
+          completedAt: userProfiles.completedAt,
+          createdAt: userProfiles.createdAt,
+          updatedAt: userProfiles.updatedAt,
+        })
         .from(userProfiles)
         .where(eq(userProfiles.id, id))
         .limit(1);
@@ -16,7 +37,28 @@ export function makeUserProfilesRepo(database: typeof db) {
 
     async findByEmail(email: string) {
       const result = await database
-        .select()
+        .select({
+          id: userProfiles.id,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          email: userProfiles.email,
+          phoneNumber: userProfiles.phoneNumber,
+          dateOfBirth: userProfiles.dateOfBirth,
+          skinType: userProfiles.skinType,
+          concerns: userProfiles.concerns,
+          hasAllergies: userProfiles.hasAllergies,
+          allergyDetails: userProfiles.allergyDetails,
+          isSubscribed: userProfiles.isSubscribed,
+          hasCompletedBooking: userProfiles.hasCompletedBooking,
+          occupation: userProfiles.occupation,
+          bio: userProfiles.bio,
+          timezone: userProfiles.timezone,
+          completedSteps: userProfiles.completedSteps,
+          isCompleted: userProfiles.isCompleted,
+          completedAt: userProfiles.completedAt,
+          createdAt: userProfiles.createdAt,
+          updatedAt: userProfiles.updatedAt,
+        })
         .from(userProfiles)
         .where(eq(userProfiles.email, email))
         .limit(1);
@@ -25,7 +67,28 @@ export function makeUserProfilesRepo(database: typeof db) {
 
     async findByEmailAndPhone(email: string, phoneNumber: string) {
       const result = await database
-        .select()
+        .select({
+          id: userProfiles.id,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          email: userProfiles.email,
+          phoneNumber: userProfiles.phoneNumber,
+          dateOfBirth: userProfiles.dateOfBirth,
+          skinType: userProfiles.skinType,
+          concerns: userProfiles.concerns,
+          hasAllergies: userProfiles.hasAllergies,
+          allergyDetails: userProfiles.allergyDetails,
+          isSubscribed: userProfiles.isSubscribed,
+          hasCompletedBooking: userProfiles.hasCompletedBooking,
+          occupation: userProfiles.occupation,
+          bio: userProfiles.bio,
+          timezone: userProfiles.timezone,
+          completedSteps: userProfiles.completedSteps,
+          isCompleted: userProfiles.isCompleted,
+          completedAt: userProfiles.completedAt,
+          createdAt: userProfiles.createdAt,
+          updatedAt: userProfiles.updatedAt,
+        })
         .from(userProfiles)
         .where(and(eq(userProfiles.email, email), eq(userProfiles.phoneNumber, phoneNumber)))
         .limit(1);
@@ -34,7 +97,28 @@ export function makeUserProfilesRepo(database: typeof db) {
 
     async findByEmailOrPhone(email: string, phoneNumber: string) {
       const result = await database
-        .select()
+        .select({
+          id: userProfiles.id,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          email: userProfiles.email,
+          phoneNumber: userProfiles.phoneNumber,
+          dateOfBirth: userProfiles.dateOfBirth,
+          skinType: userProfiles.skinType,
+          concerns: userProfiles.concerns,
+          hasAllergies: userProfiles.hasAllergies,
+          allergyDetails: userProfiles.allergyDetails,
+          isSubscribed: userProfiles.isSubscribed,
+          hasCompletedBooking: userProfiles.hasCompletedBooking,
+          occupation: userProfiles.occupation,
+          bio: userProfiles.bio,
+          timezone: userProfiles.timezone,
+          completedSteps: userProfiles.completedSteps,
+          isCompleted: userProfiles.isCompleted,
+          completedAt: userProfiles.completedAt,
+          createdAt: userProfiles.createdAt,
+          updatedAt: userProfiles.updatedAt,
+        })
         .from(userProfiles)
         .where(or(eq(userProfiles.email, email), eq(userProfiles.phoneNumber, phoneNumber)))
         .limit(1);
@@ -120,22 +204,43 @@ export function makeUserProfilesRepo(database: typeof db) {
               ? [asc(userProfiles.createdAt)]
               : [desc(userProfiles.createdAt)];
 
-      // Get total count
-      const countResult = await database
-        .select({ count: sql<number>`count(*)` })
-        .from(userProfiles)
-        .where(whereClause);
-
-      const totalCount = Number(countResult[0]?.count || 0);
-
-      // Get paginated data
-      const profiles = await database
-        .select()
+      // Get paginated data with total count in a single query using window function
+      const results = await database
+        .select({
+          id: userProfiles.id,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          email: userProfiles.email,
+          phoneNumber: userProfiles.phoneNumber,
+          dateOfBirth: userProfiles.dateOfBirth,
+          skinType: userProfiles.skinType,
+          concerns: userProfiles.concerns,
+          hasAllergies: userProfiles.hasAllergies,
+          allergyDetails: userProfiles.allergyDetails,
+          isSubscribed: userProfiles.isSubscribed,
+          hasCompletedBooking: userProfiles.hasCompletedBooking,
+          occupation: userProfiles.occupation,
+          bio: userProfiles.bio,
+          timezone: userProfiles.timezone,
+          completedSteps: userProfiles.completedSteps,
+          isCompleted: userProfiles.isCompleted,
+          completedAt: userProfiles.completedAt,
+          createdAt: userProfiles.createdAt,
+          updatedAt: userProfiles.updatedAt,
+          totalCount: sql<number>`count(*) OVER()`,
+        })
         .from(userProfiles)
         .where(whereClause)
         .orderBy(...orderByClause)
         .limit(filters.limit || 20)
         .offset(filters.offset || 0);
+
+      // Extract total count from first row (all rows have the same count due to window function)
+      const totalCount = results.length > 0 ? Number(results[0].totalCount) : 0;
+
+      // Remove totalCount from profiles (it's not part of the profile data)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const profiles = results.map(({ totalCount: _, ...profile }) => profile);
 
       return { profiles, totalCount };
     },

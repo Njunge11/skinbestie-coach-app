@@ -59,10 +59,15 @@ export function GoalsSection({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
+      console.log("🎯 DRAG END - Calculating new order");
       const oldIndex = goals.findIndex((goal) => goal.id === active.id);
       const newIndex = goals.findIndex((goal) => goal.id === over.id);
       const reorderedGoals = arrayMove(goals, oldIndex, newIndex);
+
+      console.log("🎯 Calling parent handler (onReorderGoals)");
+      // Parent handler updates state optimistically (before server call)
       onReorderGoals(reorderedGoals);
+      console.log("🎯 Parent handler called (not awaited)");
     }
   };
 

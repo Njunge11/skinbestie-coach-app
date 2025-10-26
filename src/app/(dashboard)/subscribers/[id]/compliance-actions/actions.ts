@@ -523,16 +523,10 @@ export async function getComplianceStats(
     // Filter out pending steps - only count completed or missed
     const countableCompletions = completions.filter((c) => c.status !== "pending");
 
-    // Fetch product details for all completions
+    // Fetch product details for all completions in a single batch query
     const productIds = [...new Set(countableCompletions.map((c) => c.routineProductId))];
-    const productsMap = new Map();
-
-    for (const productId of productIds) {
-      const product = await productsRepo.findById(productId);
-      if (product) {
-        productsMap.set(productId, product);
-      }
-    }
+    const products = await productsRepo.findByIds(productIds);
+    const productsMap = new Map(products.map((p) => [p.id, p]));
 
     // Calculate overall stats
     const overall = {

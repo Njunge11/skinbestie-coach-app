@@ -133,7 +133,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "CeraVe Hydrating Cleanser",
       productUrl: "",
       instructions: "Apply to damp skin, massage gently",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     });
   });
@@ -374,7 +374,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "Night Moisturizer",
       productUrl: "https://example.com/moisturizer",
       instructions: "Apply generously before bed",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     });
   });
@@ -400,7 +400,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         productName: "CeraVe Cleanser",
         productUrl: null,
         instructions: "Old instructions",
-        frequency: "Daily",
+        frequency: "daily",
         days: null,
         timeOfDay: "morning",
       },
@@ -445,7 +445,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "CeraVe Cleanser",
       productUrl: null,
       instructions: "Updated instructions",
-      frequency: "Daily",
+      frequency: "daily",
       days: null,
     });
   });
@@ -471,7 +471,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         productName: "Product to Delete",
         productUrl: null,
         instructions: "Some instructions",
-        frequency: "Daily",
+        frequency: "daily",
         days: null,
         timeOfDay: "morning",
       },
@@ -566,7 +566,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productUrl: "",
       instructions: "Apply with cotton pad",
       frequency: "2x per week",
-      days: expect.arrayContaining(["Mon", "Thu"]),
+      days: expect.arrayContaining(["Monday", "Thursday"]),
     });
   });
 
@@ -793,7 +793,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "Some Product",
       productUrl: "",
       instructions: "Some instructions",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     });
   });
@@ -936,7 +936,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         productName: "Original Name",
         productUrl: null,
         instructions: "Original instructions",
-        frequency: "Daily",
+        frequency: "daily",
         days: null,
         timeOfDay: "morning",
       },
@@ -1052,7 +1052,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "AHA Toner",
       productUrl: null,
       instructions: "Apply with cotton pad",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     });
   });
@@ -1126,14 +1126,14 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User saves
     await user.click(screen.getByRole("button", { name: /^add$/i }));
 
-    // Verify product added with Thu and Wed (not Mon)
+    // Verify product added with Thursday and Wednesday (not Monday)
     expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
       routineStep: "Serum / Treatment",
       productName: "Vitamin C Serum",
       productUrl: "",
       instructions: "Apply in the morning",
       frequency: "2x per week",
-      days: expect.arrayContaining(["Thu", "Wed"]),
+      days: expect.arrayContaining(["Thursday", "Wednesday"]),
     });
   });
 
@@ -1156,7 +1156,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         productName: "CeraVe Moisturizer",
         productUrl: "https://example.com/cerave-moisturizer",
         instructions: "Apply twice daily",
-        frequency: "Daily",
+        frequency: "daily",
         days: null,
         timeOfDay: "morning",
       },

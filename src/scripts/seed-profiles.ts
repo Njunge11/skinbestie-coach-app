@@ -6,10 +6,17 @@
  * IMPORTANT: This script is IDEMPOTENT - it will delete existing data for each
  * profile before seeding. Safe to re-run multiple times.
  *
- * For each profile ID, creates:
+ * Prerequisites:
+ * - At least one admin account must exist
+ * - At least one user profile must exist (creates data for first 3 profiles found)
+ *
+ * The script creates:
+ * - 1 routine template with morning and evening routines (if none exist)
+ *
+ * For each of the first 3 user profiles, creates:
  * - Updates profile with occupation and bio
  * - 5 goals
- * - 1 routine from first template (started 5 months ago)
+ * - 1 routine from template (started 5 months ago)
  * - ~150 days of compliance data (steps marked as completed/late/missed)
  * - 20 weekly progress photos with coach feedback
  * - 10 coach notes spread over 5 months
@@ -21,6 +28,7 @@ import {
   userProfiles,
   progressPhotos,
   routineTemplates,
+  routineTemplateProducts,
   skincareGoals,
   skincareRoutines,
   skincareRoutineProducts,
@@ -28,23 +36,12 @@ import {
   coachNotes,
   admins,
 } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { createGoal } from "@/app/(dashboard)/subscribers/[id]/goal-actions/actions";
+import { eq, sql } from "drizzle-orm";
 import { copyTemplateToUser } from "@/app/(dashboard)/routine-management/template-actions/copy-template";
 import { publishRoutine } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/actions";
 import { makeRoutineStepCompletionsRepo } from "@/app/(dashboard)/subscribers/[id]/compliance-actions/routine-step-completions.repo";
-import {
-  markStepComplete,
-  markOverdueAsMissed,
-} from "@/app/(dashboard)/subscribers/[id]/compliance-actions/actions";
-import { createCoachNote } from "@/app/(dashboard)/subscribers/[id]/coach-notes-actions/actions";
-
-// Profile IDs to seed
-const PROFILE_IDS = [
-  "047b8de6-6a42-4013-b155-349d90b20615",
-  "13ca97f7-f27f-429e-9fe5-61c06ce42a0f",
-  "2954a599-3448-4fc4-bdf7-abb13ce7220d",
-];
+import { markOverdueAsMissed } from "@/app/(dashboard)/subscribers/[id]/compliance-actions/actions";
+import { createTemplate } from "@/app/(dashboard)/routine-management/template-actions/actions";
 
 // Sample data pools
 const OCCUPATIONS = [
@@ -156,6 +153,121 @@ function randomBool(probability = 0.5): boolean {
   return Math.random() < probability;
 }
 
+async function createRoutineTemplates(adminId: string) {
+  console.log("\n🎨 Creating routine templates...");
+
+  // Check if templates already exist
+  const existingTemplates = await db.select().from(routineTemplates).limit(1);
+  if (existingTemplates.length > 0) {
+    console.log("  → Templates already exist, skipping creation");
+    return;
+  }
+
+  // Create "Complete Daily Routine" template
+  const templateResult = await createTemplate(adminId, {
+    name: "Complete Daily Routine",
+    description: "A comprehensive morning and evening skincare routine for acne-prone skin",
+  });
+
+  if (!templateResult.success) {
+    throw new Error(`Failed to create template: ${templateResult.error}`);
+  }
+
+  const template = templateResult.data;
+  console.log(`  → Created template: ${template.name}`);
+
+  // Morning routine products
+  const morningProducts = [
+    {
+      routineStep: "Cleanser",
+      productName: "CeraVe Foaming Facial Cleanser",
+      productUrl: "https://www.cerave.com/skincare/cleansers/foaming-facial-cleanser",
+      instructions: "Wet face, apply cleanser, massage gently for 60 seconds, rinse with lukewarm water",
+      frequency: "daily",
+      days: null,
+      timeOfDay: "morning" as const,
+    },
+    {
+      routineStep: "Toner",
+      productName: "Paula's Choice 2% BHA Liquid Exfoliant",
+      productUrl: "https://www.paulaschoice.com/skin-perfecting-2pct-bha-liquid-exfoliant/201.html",
+      instructions: "Apply to cotton pad or hands, gently swipe across face. Do not rinse",
+      frequency: "daily",
+      days: null,
+      timeOfDay: "morning" as const,
+    },
+    {
+      routineStep: "Serum",
+      productName: "The Ordinary Niacinamide 10% + Zinc 1%",
+      productUrl: "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100411.html",
+      instructions: "Apply 2-3 drops to entire face. Wait for absorption",
+      frequency: "daily",
+      days: null,
+      timeOfDay: "morning" as const,
+    },
+    {
+      routineStep: "Moisturizer",
+      productName: "CeraVe AM Facial Moisturizing Lotion SPF 30",
+      productUrl: "https://www.cerave.com/skincare/moisturizers/am-facial-moisturizing-lotion-with-sunscreen",
+      instructions: "Apply generously to face and neck. Use as last step",
+      frequency: "daily",
+      days: null,
+      timeOfDay: "morning" as const,
+    },
+  ];
+
+  // Evening routine products
+  const eveningProducts = [
+    {
+      routineStep: "Cleanser",
+      productName: "CeraVe Hydrating Facial Cleanser",
+      productUrl: "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+      instructions: "Wet face, apply cleanser, massage gently for 60 seconds, rinse with lukewarm water",
+      frequency: "daily",
+      days: null,
+      timeOfDay: "evening" as const,
+    },
+    {
+      routineStep: "Treatment",
+      productName: "Differin Adapalene Gel 0.1%",
+      productUrl: "https://www.differin.com/shop/differin-gel",
+      instructions: "Apply pea-sized amount to entire face. Start 3x per week, gradually increase",
+      frequency: "specific_days",
+      days: ["Monday", "Wednesday", "Friday"],
+      timeOfDay: "evening" as const,
+    },
+    {
+      routineStep: "Moisturizer",
+      productName: "CeraVe PM Facial Moisturizing Lotion",
+      productUrl: "https://www.cerave.com/skincare/moisturizers/pm-facial-moisturizing-lotion",
+      instructions: "Apply generously to face and neck. Use as last step",
+      frequency: "daily",
+      days: null,
+      timeOfDay: "evening" as const,
+    },
+  ];
+
+  // Add all products (batch insert)
+  console.log(`  → Adding ${morningProducts.length + eveningProducts.length} products (morning & evening)...`);
+  const allProducts = [...morningProducts, ...eveningProducts];
+  const productValues = allProducts.map((product) => ({
+    templateId: template.id,
+    routineStep: product.routineStep,
+    productName: product.productName,
+    productUrl: product.productUrl,
+    instructions: product.instructions,
+    frequency: product.frequency as "daily" | "2x per week" | "3x per week" | "specific_days",
+    days: product.days,
+    timeOfDay: product.timeOfDay,
+    order: product.timeOfDay === "morning"
+      ? morningProducts.findIndex(p => p === product)
+      : eveningProducts.findIndex(p => p === product),
+  }));
+  await db.insert(routineTemplateProducts).values(productValues);
+
+  console.log("  ✅ Templates created successfully!");
+}
+
 async function cleanupProfileData(profileId: string) {
   console.log("  → Cleaning up existing data...");
 
@@ -191,14 +303,15 @@ async function cleanupProfileData(profileId: string) {
   console.log("  → Cleanup complete");
 }
 
-async function seedProfile(profileId: string, index: number) {
-  console.log(`\n📝 Seeding profile ${index + 1}/3: ${profileId}`);
+async function seedProfile(profile: { id: string; firstName: string; lastName: string }, index: number) {
+  console.log(`\n📝 Seeding profile ${index + 1}/3: ${profile.firstName} ${profile.lastName}`);
+  const profileId = profile.id;
 
   try {
-    // 0. Clean up existing data first
+    // 1. Clean up existing data first
     await cleanupProfileData(profileId);
 
-    // 1. Update profile with occupation and bio
+    // 2. Update profile with occupation and bio
     console.log("  → Updating profile (occupation, bio)...");
     await db
       .update(userProfiles)
@@ -208,18 +321,19 @@ async function seedProfile(profileId: string, index: number) {
       })
       .where(eq(userProfiles.id, profileId));
 
-    // 2. Create 5 goals
+    // 3. Create 5 goals (batch insert)
     console.log("  → Creating 5 goals...");
-    for (const goal of GOALS) {
-      const result = await createGoal(profileId, goal);
-      if (!result.success) {
-        throw new Error(
-          `Failed to create goal "${goal.name}": ${result.error}`
-        );
-      }
-    }
+    const goalValues = GOALS.map((goal, index) => ({
+      userProfileId: profileId,
+      name: goal.name,
+      description: goal.description,
+      timeframe: goal.timeframe,
+      complete: false,
+      order: index,
+    }));
+    await db.insert(skincareGoals).values(goalValues);
 
-    // 3. Get first template
+    // 4. Get first template
     console.log("  → Fetching first template...");
     const templates = await db.select().from(routineTemplates).limit(1);
     if (templates.length === 0) {
@@ -227,7 +341,7 @@ async function seedProfile(profileId: string, index: number) {
     }
     const template = templates[0];
 
-    // 4. Create routine from template (started 5 months ago)
+    // 5. Create routine from template (started 5 months ago)
     const startDate = subMonths(new Date(), 5);
     const routineName = `${template.name} - Custom Routine`;
 
@@ -250,7 +364,7 @@ async function seedProfile(profileId: string, index: number) {
     console.log(`  → Routine created: ${routine.id}`);
     console.log(`  → Products: ${routineProducts.length}`);
 
-    // 5. Publish routine (generates steps from 5 months ago to future)
+    // 6. Publish routine (generates steps from 5 months ago to future)
     console.log("  → Publishing routine (generates steps)...");
     const publishResult = await publishRoutine(routine.id);
 
@@ -258,7 +372,7 @@ async function seedProfile(profileId: string, index: number) {
       throw new Error(`Failed to publish routine: ${publishResult.error}`);
     }
 
-    // 6. Mark historical steps as completed/late/missed
+    // 7. Mark historical steps as completed/late/missed
     console.log("  → Marking historical steps...");
     const completionsRepo = makeRoutineStepCompletionsRepo();
 
@@ -274,10 +388,14 @@ async function seedProfile(profileId: string, index: number) {
 
     console.log(`  → Found ${allSteps.length} historical steps to mark`);
 
-    // Mark steps with realistic pattern
+    // Mark steps with realistic pattern - BATCH PROCESSING FOR SPEED
     let onTimeCount = 0;
     let lateCount = 0;
-    let missedCount = 0;
+    let pendingCount = 0;
+
+    // Collect all updates in batches
+    const BATCH_SIZE = 100;
+    const updates: Array<{ id: string; completedAt: Date; status: "on-time" | "late" }> = [];
 
     for (const step of allSteps) {
       if (step.status !== "pending") continue; // Skip already marked steps
@@ -288,53 +406,86 @@ async function seedProfile(profileId: string, index: number) {
           (7 * 24 * 60 * 60 * 1000)
       );
 
-      // Compliance patterns
-      let onTimeProbability = 0.85; // Start at 85%
-      if (weeksSinceStart > 2) onTimeProbability = 0.75; // Weeks 3-6: 75%
-      if (weeksSinceStart > 6) onTimeProbability = 0.7; // After week 6: 70%
+      // Compliance patterns: completion rate (separate from on-time rate)
+      let completionRate = 0.90; // Start at 90% completion
+      if (weeksSinceStart > 2) completionRate = 0.87; // Weeks 3-6: 87%
+      if (weeksSinceStart > 6) completionRate = 0.85; // After week 6: 85%
+
+      // On-time rate (when completed)
+      let onTimeRate = 0.85; // 85% of completed steps are on-time
 
       // Morning steps have better compliance
       if (step.scheduledTimeOfDay === "morning") {
-        onTimeProbability += 0.05;
+        completionRate += 0.03;
+        onTimeRate += 0.03;
       }
 
       // Weekend steps have slightly worse compliance
       const dayOfWeek = step.scheduledDate.getDay();
       if (dayOfWeek === 0 || dayOfWeek === 6) {
-        onTimeProbability -= 0.05;
+        completionRate -= 0.05;
+        onTimeRate -= 0.05;
       }
 
       // Decide if completed, and if so, on-time or late
-      const shouldComplete = randomBool(onTimeProbability + 0.15); // Total ~85-90% completion
+      const shouldComplete = randomBool(completionRate);
 
       if (shouldComplete) {
-        const isOnTime = randomBool(
-          onTimeProbability / (onTimeProbability + 0.15)
-        );
+        const isOnTime = randomBool(onTimeRate);
 
         if (isOnTime) {
           // Mark as on-time (completed before deadline)
           const completedAt = new Date(
             step.onTimeDeadline.getTime() - Math.random() * 2 * 60 * 60 * 1000
           ); // Random time before deadline
-          await markStepComplete(step.id, profileId, completedAt);
+          updates.push({ id: step.id, completedAt, status: "on-time" });
           onTimeCount++;
         } else {
           // Mark as late (completed after deadline but within grace period)
+          const gracePeriodDuration = step.gracePeriodEnd.getTime() - step.onTimeDeadline.getTime();
           const completedAt = new Date(
-            step.onTimeDeadline.getTime() + Math.random() * 12 * 60 * 60 * 1000
-          ); // Random time after deadline but before grace end
-          await markStepComplete(step.id, profileId, completedAt);
+            step.onTimeDeadline.getTime() + Math.random() * gracePeriodDuration
+          ); // Random time within actual 24-hour grace period
+          updates.push({ id: step.id, completedAt, status: "late" });
           lateCount++;
         }
       } else {
-        // Leave as missed (we'll mark as missed by cron, but for seed just leave as pending)
-        missedCount++;
+        // Leave as pending
+        pendingCount++;
       }
     }
 
+    // Apply updates in batches using raw SQL for maximum speed
+    console.log(`  → Applying ${updates.length} completions in batches of ${BATCH_SIZE}...`);
+
+    for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+      const batch = updates.slice(i, i + BATCH_SIZE);
+
+      // Build CASE statements for batch update
+      const completedAtCases = batch.map((u) =>
+        `WHEN '${u.id}' THEN '${u.completedAt.toISOString()}'`
+      ).join(' ');
+
+      const statusCases = batch.map((u) =>
+        `WHEN '${u.id}' THEN '${u.status}'`
+      ).join(' ');
+
+      const ids = batch.map((u) => `'${u.id}'`).join(', ');
+
+      await db.execute(sql.raw(`
+        UPDATE routine_step_completions
+        SET
+          status = (CASE id ${statusCases} END)::completion_status,
+          completed_at = (CASE id ${completedAtCases} END)::timestamp,
+          updated_at = NOW()
+        WHERE id IN (${ids})
+      `));
+
+      console.log(`  → Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(updates.length / BATCH_SIZE)} complete`);
+    }
+
     console.log(
-      `  → Marked: ${onTimeCount} on-time, ${lateCount} late, ${missedCount} left as pending`
+      `  → Marked: ${onTimeCount} on-time, ${lateCount} late, ${pendingCount} left as pending`
     );
 
     // Now mark all pending steps past their grace period as missed
@@ -346,17 +497,15 @@ async function seedProfile(profileId: string, index: number) {
       );
     }
 
-    // 7. Create 20 weekly progress photos
+    // 8. Create 20 weekly progress photos (batch insert)
     console.log("  → Creating 20 weekly progress photos...");
-
+    const photoValues = [];
     for (let week = 0; week < 20; week++) {
       const photoDate = subWeeks(new Date(), 19 - week); // Start from 19 weeks ago
       const imageUrl = UNSPLASH_PHOTOS[week];
-
-      // 60% chance of coach feedback
       const feedback = randomBool(0.6) ? randomItem(COACH_FEEDBACK) : null;
 
-      await db.insert(progressPhotos).values({
+      photoValues.push({
         userProfileId: profileId,
         imageUrl,
         weekNumber: week + 1, // Week 1 to 20
@@ -364,8 +513,9 @@ async function seedProfile(profileId: string, index: number) {
         feedback,
       });
     }
+    await db.insert(progressPhotos).values(photoValues);
 
-    // 8. Create 10 coach notes spread over 5 months
+    // 9. Create 10 coach notes spread over 5 months (batch insert)
     console.log("  → Creating 10 coach notes...");
 
     // Get first admin
@@ -375,32 +525,83 @@ async function seedProfile(profileId: string, index: number) {
     }
     const adminId = adminList[0].id;
 
-    // Create notes spread over 5 months
-    for (let i = 0; i < COACH_NOTES.length; i++) {
-      const noteContent = COACH_NOTES[i];
+    // Create notes in batch
+    const noteValues = COACH_NOTES.map((content) => ({
+      userProfileId: profileId,
+      adminId: adminId,
+      content,
+    }));
+    await db.insert(coachNotes).values(noteValues);
 
-      const noteResult = await createCoachNote(profileId, adminId, noteContent);
-      if (!noteResult.success) {
-        throw new Error(`Failed to create coach note: ${noteResult.error}`);
-      }
-    }
-
-    console.log(`✅ Profile ${profileId} seeded successfully!`);
+    console.log(`✅ Profile ${profile.firstName} ${profile.lastName} seeded successfully!`);
+    return profile;
   } catch (error) {
-    console.error(`❌ Error seeding profile ${profileId}:`, error);
+    console.error(`❌ Error seeding profile ${profile.firstName} ${profile.lastName}:`, error);
     throw error;
   }
 }
 
 async function main() {
   console.log("🌱 Starting profile seeding...");
-  console.log(`📋 Seeding ${PROFILE_IDS.length} profiles\n`);
 
-  for (let i = 0; i < PROFILE_IDS.length; i++) {
-    await seedProfile(PROFILE_IDS[i], i);
+  // 1. Ensure admin exists (needed for creating templates)
+  console.log("\n👤 Checking for admin...");
+  const adminList = await db.select().from(admins).limit(1);
+
+  let admin;
+  if (adminList.length === 0) {
+    console.log("  → No admin found, creating one...");
+    const newAdmin = await db
+      .insert(admins)
+      .values({
+        email: "admin@skinbestie.com",
+        name: "Admin User",
+        passwordSet: false,
+        role: "admin",
+      })
+      .returning();
+    admin = newAdmin[0];
+    console.log(`  → Created admin: ${admin.email}`);
+  } else {
+    admin = adminList[0];
+    console.log(`  → Found admin: ${admin.email}`);
   }
 
+  // 2. Create routine templates
+  await createRoutineTemplates(admin.id);
+
+  // 3. Get first 3 user profiles
+  console.log("\n👥 Fetching user profiles...");
+  const profiles = await db
+    .select({
+      id: userProfiles.id,
+      firstName: userProfiles.firstName,
+      lastName: userProfiles.lastName,
+    })
+    .from(userProfiles)
+    .orderBy(userProfiles.createdAt)
+    .limit(3);
+
+  if (profiles.length === 0) {
+    throw new Error("No user profiles found. Please create at least one user profile first.");
+  }
+
+  console.log(`  → Found ${profiles.length} profile(s) to seed\n`);
+
+  // 4. Seed each profile
+  const seededProfiles: Array<{ firstName: string; lastName: string }> = [];
+  for (let i = 0; i < profiles.length; i++) {
+    const seededProfile = await seedProfile(profiles[i], i);
+    seededProfiles.push(seededProfile);
+  }
+
+  // 5. Print summary
   console.log("\n✨ All profiles seeded successfully!");
+  console.log("\n📊 Seeded profiles:");
+  seededProfiles.forEach((p, i) => {
+    console.log(`  ${i + 1}. ${p.firstName} ${p.lastName}`);
+  });
+
   process.exit(0);
 }
 

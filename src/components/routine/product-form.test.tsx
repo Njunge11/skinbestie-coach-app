@@ -16,7 +16,7 @@ describe("ProductForm", () => {
       productName: "",
       productUrl: null,
       instructions: "",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     };
 
@@ -69,7 +69,7 @@ describe("ProductForm", () => {
       productName: "",
       productUrl: null,
       instructions: "",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     };
 
@@ -116,7 +116,7 @@ describe("ProductForm", () => {
       productName: "",
       productUrl: null,
       instructions: "",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     };
 
@@ -158,7 +158,7 @@ describe("ProductForm", () => {
     await user.type(instructionsInput, "Apply in the morning");
 
     // User selects "2x per week" frequency
-    // Find the select trigger that contains "Daily"
+    // Find the select trigger that contains "Daily" (display label)
     const selectTriggers = screen.getAllByRole("combobox");
     const frequencySelect = selectTriggers.find(el => el.textContent?.includes("Daily"));
     await user.click(frequencySelect!);
@@ -192,7 +192,7 @@ describe("ProductForm", () => {
         productName: "",
         productUrl: null,
         instructions: "",
-        frequency: "Daily",
+        frequency: "daily",
         days: undefined,
       });
 
@@ -255,7 +255,7 @@ describe("ProductForm", () => {
         productName: "",
         productUrl: null,
         instructions: "",
-        frequency: "Daily",
+        frequency: "daily",
         days: undefined,
       });
 
@@ -302,7 +302,7 @@ describe("ProductForm", () => {
     const selectTriggersAgain = screen.getAllByRole("combobox");
     frequencySelect = selectTriggersAgain.find(el => el.textContent?.includes("2x per week"));
     await user.click(frequencySelect!);
-    await user.click(screen.getByRole("option", { name: /^daily$/i }));
+    await user.click(screen.getByRole("option", { name: /^Daily$/i }));
 
     // Days selection should disappear
     expect(screen.queryByText(/select 2 days/i)).not.toBeInTheDocument();

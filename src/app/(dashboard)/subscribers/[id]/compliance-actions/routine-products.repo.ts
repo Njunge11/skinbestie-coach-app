@@ -4,7 +4,7 @@
 
 import { db } from "@/lib/db";
 import { skincareRoutineProducts } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 
 export type RoutineProduct = {
   id: string;
@@ -13,7 +13,7 @@ export type RoutineProduct = {
   routineStep: string;
   productName: string;
   instructions: string;
-  frequency: string;
+  frequency: "daily" | "2x per week" | "3x per week" | "specific_days";
   days?: string[];
   timeOfDay: "morning" | "evening";
 };
@@ -38,7 +38,7 @@ export function makeRoutineProductsRepo() {
         })
         .from(skincareRoutineProducts)
         .where(eq(skincareRoutineProducts.routineId, routineId))
-        .orderBy(skincareRoutineProducts.order);
+        .orderBy(asc(skincareRoutineProducts.order));
 
       return results as RoutineProduct[];
     },

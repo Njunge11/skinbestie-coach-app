@@ -1,5 +1,12 @@
-import { pgTable, text, timestamp, boolean, uuid, varchar, date, uniqueIndex, index, integer } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, uuid, varchar, date, uniqueIndex, index, integer, pgEnum } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+
+// PostgreSQL Enums for type safety
+export const adminRoleEnum = pgEnum('admin_role', ['admin', 'superadmin']);
+export const routineStatusEnum = pgEnum('routine_status', ['draft', 'published']);
+export const frequencyEnum = pgEnum('frequency', ['daily', '2x per week', '3x per week', 'specific_days']);
+export const timeOfDayEnum = pgEnum('time_of_day', ['morning', 'evening']);
+export const completionStatusEnum = pgEnum('completion_status', ['pending', 'on-time', 'late', 'missed']);
 
 export const admins = pgTable('admins', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -7,22 +14,29 @@ export const admins = pgTable('admins', {
   name: text('name'),
   passwordHash: text('password_hash'),
   passwordSet: boolean('password_set').notNull().default(false),
-  role: text('role').notNull().default('admin'),
+  role: adminRoleEnum('role').notNull().default('admin'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const verificationCodes = pgTable('verification_codes', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  adminId: uuid('admin_id')
-    .notNull()
-    .references(() => admins.id, { onDelete: 'cascade' }),
-  codeHash: text('code_hash').notNull().unique(),
-  expiresAt: timestamp('expires_at').notNull(),
-  used: boolean('used').notNull().default(false),
-  usedAt: timestamp('used_at'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+export const verificationCodes = pgTable(
+  'verification_codes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    adminId: uuid('admin_id')
+      .notNull()
+      .references(() => admins.id, { onDelete: 'cascade' }),
+    codeHash: text('code_hash').notNull().unique(),
+    expiresAt: timestamp('expires_at').notNull(),
+    used: boolean('used').notNull().default(false),
+    usedAt: timestamp('used_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by admin
+    adminIdx: index('verification_codes_admin_idx').on(table.adminId),
+  })
+);
 
 export const userProfiles = pgTable(
   'user_profiles',
@@ -80,6 +94,8 @@ export const userProfiles = pgTable(
   (table) => ({
     emailIdx: uniqueIndex('user_profiles_email_idx').on(table.email),
     phoneIdx: uniqueIndex('user_profiles_phone_idx').on(table.phoneNumber),
+    // Index for name-based searches and sorting
+    nameIdx: index('user_profiles_name_idx').on(table.firstName, table.lastName),
   })
 );
 
@@ -116,6 +132,8 @@ export const skincareGoals = pgTable(
   (table) => ({
     // Index for efficient queries by user
     userProfileIdx: index('skincare_goals_user_profile_idx').on(table.userProfileId),
+    // Index for ordering/drag-drop operations
+    orderIdx: index('skincare_goals_order_idx').on(table.order),
 
     // Unique constraint to prevent duplicate order values per user
     uniqueOrderPerUser: uniqueIndex('skincare_goals_user_order_idx').on(
@@ -140,7 +158,7 @@ export const skincareRoutines = pgTable(
     name: text('name').notNull(),
     startDate: date('start_date', { mode: 'date' }).notNull(),
     endDate: date('end_date', { mode: 'date' }), // Optional - null means ongoing
-    status: text('status').notNull().default('draft'), // "draft" or "published"
+    status: routineStatusEnum('status').notNull().default('draft'), // "draft" or "published"
 
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -153,6 +171,8 @@ export const skincareRoutines = pgTable(
   (table) => ({
     // Index for efficient queries by user
     userProfileIdx: index('skincare_routines_user_profile_idx').on(table.userProfileId),
+    // Index for filtering by status (draft vs published)
+    statusIdx: index('skincare_routines_status_idx').on(table.status),
   })
 );
 
@@ -177,11 +197,11 @@ export const skincareRoutineProducts = pgTable(
     instructions: text('instructions').notNull(),
 
     // Frequency and scheduling
-    frequency: text('frequency').notNull(), // "Daily", "2x per week", "3x per week"
+    frequency: frequencyEnum('frequency').notNull(), // "daily", "2x per week", "3x per week", "specific_days"
     days: text('days').array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
 
     // Timing and ordering
-    timeOfDay: text('time_of_day').notNull(), // "morning" or "evening"
+    timeOfDay: timeOfDayEnum('time_of_day').notNull(), // "morning" or "evening"
     order: integer('order').notNull(), // Sequence within the time of day
 
     // Timestamps
@@ -197,6 +217,8 @@ export const skincareRoutineProducts = pgTable(
     routineIdx: index('skincare_routine_products_routine_idx').on(table.routineId),
     // Index for efficient queries by user
     userProfileIdx: index('skincare_routine_products_user_profile_idx').on(table.userProfileId),
+    // Index for ordering by time of day
+    timeOrderIdx: index('skincare_routine_products_time_order_idx').on(table.timeOfDay, table.order),
 
     // Unique constraint to prevent duplicate order values per routine per time of day
     uniqueOrderPerRoutineAndTime: uniqueIndex('skincare_routine_products_routine_time_order_idx').on(
@@ -231,6 +253,8 @@ export const routineTemplates = pgTable(
   (table) => ({
     // Index for efficient queries by creator
     createdByIdx: index('routine_templates_created_by_idx').on(table.createdBy),
+    // Index for searching/filtering templates by name
+    nameIdx: index('routine_templates_name_idx').on(table.name),
   })
 );
 
@@ -252,11 +276,11 @@ export const routineTemplateProducts = pgTable(
     instructions: text('instructions').notNull(),
 
     // Frequency and scheduling
-    frequency: text('frequency').notNull(), // "Daily", "2x per week", "3x per week"
+    frequency: frequencyEnum('frequency').notNull(), // "daily", "2x per week", "3x per week", "specific_days"
     days: text('days').array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
 
     // Timing and ordering
-    timeOfDay: text('time_of_day').notNull(), // "morning" or "evening"
+    timeOfDay: timeOfDayEnum('time_of_day').notNull(), // "morning" or "evening"
     order: integer('order').notNull(), // Sequence within the time of day
 
     // Timestamps
@@ -270,6 +294,8 @@ export const routineTemplateProducts = pgTable(
   (table) => ({
     // Index for efficient queries by template
     templateIdx: index('routine_template_products_template_idx').on(table.templateId),
+    // Index for ordering/drag-drop operations
+    orderIdx: index('routine_template_products_order_idx').on(table.order),
 
     // Unique constraint to prevent duplicate order values per template per time of day
     uniqueOrderPerTemplateAndTime: uniqueIndex('routine_template_products_template_time_order_idx').on(
@@ -375,7 +401,7 @@ export const routineStepCompletions = pgTable(
 
     // Scheduling information
     scheduledDate: date('scheduled_date', { mode: 'date' }).notNull(),
-    scheduledTimeOfDay: text('scheduled_time_of_day').notNull(), // 'morning' | 'evening'
+    scheduledTimeOfDay: timeOfDayEnum('scheduled_time_of_day').notNull(), // 'morning' | 'evening'
 
     // Precomputed deadlines (makes queries fast and simple)
     // These are calculated based on scheduledDate + user's timezone
@@ -384,7 +410,7 @@ export const routineStepCompletions = pgTable(
 
     // Completion information
     completedAt: timestamp('completed_at', { withTimezone: true }), // null = not completed yet
-    status: text('status').notNull().default('pending'), // 'pending' | 'on-time' | 'late' | 'missed'
+    status: completionStatusEnum('status').notNull().default('pending'), // 'pending' | 'on-time' | 'late' | 'missed'
 
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })

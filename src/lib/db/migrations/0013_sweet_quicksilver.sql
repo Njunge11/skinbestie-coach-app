@@ -1,0 +1,2 @@
+CREATE INDEX "routine_template_products_order_idx" ON "routine_template_products" USING btree ("order");--> statement-breakpoint
+CREATE INDEX "skincare_goals_order_idx" ON "skincare_goals" USING btree ("order");

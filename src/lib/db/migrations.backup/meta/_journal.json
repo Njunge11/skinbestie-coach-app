@@ -1,0 +1,125 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1759967552374,
+      "tag": "0000_amazing_johnny_blaze",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1759968141473,
+      "tag": "0001_sticky_ultragirl",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760483679270,
+      "tag": "0002_cold_hawkeye",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1760571727405,
+      "tag": "0003_gorgeous_mongu",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1760579862839,
+      "tag": "0004_unusual_marrow",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1760585748419,
+      "tag": "0005_ordinary_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760611631010,
+      "tag": "0006_dark_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1760621540398,
+      "tag": "0007_nebulous_lionheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1760737658222,
+      "tag": "0008_hesitant_gertrude_yorkes",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1760741146918,
+      "tag": "0009_steady_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1760804966562,
+      "tag": "0010_ancient_bloodstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1760810361078,
+      "tag": "0011_round_lady_ursula",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1760976491546,
+      "tag": "0012_slimy_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1760977381494,
+      "tag": "0013_sweet_quicksilver",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1760978656897,
+      "tag": "0016_swift_the_fallen",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1761015000000,
+      "tag": "0017_make_order_constraints_deferrable",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1761015100000,
+      "tag": "0018_fix_skincare_goals_deferrable",
+      "breakpoints": true
+    }
+  ]
+}

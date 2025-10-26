@@ -38,7 +38,7 @@ export function PasswordResetSuccessState({
         </div>
       </div>
       <Field>
-        <Button type="button" className="w-full" onClick={onBackToLogin}>
+        <Button type="button" className="w-full bg-black hover:bg-gray-800 text-white" onClick={onBackToLogin}>
           Back to login
         </Button>
       </Field>

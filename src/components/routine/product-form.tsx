@@ -27,13 +27,14 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ROUTINE_STEPS, FREQUENCIES, DAYS_OF_WEEK } from "@/lib/routine-constants";
+import type { Frequency } from "@/app/(dashboard)/subscribers/[id]/types";
 
 export interface ProductFormData {
   routineStep: string;
   productName: string;
   productUrl: string | null;
   instructions: string;
-  frequency: string;
+  frequency: Frequency;
   days: string[] | undefined;
 }
 
@@ -68,7 +69,7 @@ export function ProductForm({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
           <Command>
             <CommandInput placeholder="Search routine step..." />
             <CommandList>
@@ -126,8 +127,8 @@ export function ProductForm({
         onValueChange={(value) =>
           onChange({
             ...data,
-            frequency: value,
-            days: value === "Daily" ? undefined : data.days || [],
+            frequency: value as Frequency,
+            days: value === "daily" ? undefined : data.days || [],
           })
         }
       >
@@ -136,14 +137,14 @@ export function ProductForm({
         </SelectTrigger>
         <SelectContent>
           {FREQUENCIES.map((freq) => (
-            <SelectItem key={freq} value={freq}>
-              {freq}
+            <SelectItem key={freq.value} value={freq.value}>
+              {freq.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      {data.frequency !== "Daily" && (
+      {data.frequency !== "daily" && (
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
             Select Days

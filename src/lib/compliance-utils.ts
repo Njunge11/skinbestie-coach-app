@@ -74,11 +74,12 @@ export function shouldGenerateForDate(
   date: Date
 ): boolean {
   // Daily frequency: generate for every day
-  if (product.frequency === "Daily") {
+  // Note: Schema now uses PostgreSQL enum with lowercase "daily"
+  if (product.frequency === "daily") {
     return true;
   }
 
-  // For 2x/3x per week: check if day matches the scheduled days
+  // For 2x/3x per week or specific_days: check if day matches the scheduled days
   if (product.days && product.days.length > 0) {
     // Get the day name (e.g., "Monday", "Tuesday")
     const dayName = format(date, "EEEE");

@@ -3,8 +3,7 @@
 import { z } from "zod";
 import { makeTemplateRepo } from "./template.repo";
 import { makeRoutineRepo } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/routine.repo";
-import { db } from "@/lib/db";
-import { skincareRoutineProducts } from "@/lib/db/schema";
+import { db, skincareRoutineProducts, skincareRoutines } from "@/lib/db";
 import type { Routine } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/routine.repo.fake";
 
 // Type for routine product
@@ -28,7 +27,6 @@ type RoutineProduct = {
 export type CopyTemplateDeps = {
   templateRepo: ReturnType<typeof makeTemplateRepo>;
   routineRepo: ReturnType<typeof makeRoutineRepo>;
-  createRoutineProduct: (data: Omit<RoutineProduct, 'id'>) => Promise<RoutineProduct>;
   now: () => Date;
 };
 
@@ -36,13 +34,6 @@ export type CopyTemplateDeps = {
 const defaultDeps: CopyTemplateDeps = {
   templateRepo: makeTemplateRepo(),
   routineRepo: makeRoutineRepo(),
-  createRoutineProduct: async (data) => {
-    const [newProduct] = await db
-      .insert(skincareRoutineProducts)
-      .values(data)
-      .returning();
-    return newProduct as RoutineProduct;
-  },
   now: () => new Date(),
 };
 
@@ -83,7 +74,7 @@ export async function copyTemplateToUser(
   input: CopyTemplateInput,
   deps: CopyTemplateDeps = defaultDeps
 ): Promise<Result<{ routine: Routine; products: RoutineProduct[] }>> {
-  const { templateRepo, routineRepo, createRoutineProduct, now } = deps;
+  const { templateRepo, routineRepo, now } = deps;
 
   // Validate input with Zod
   const validation = copyTemplateSchema.safeParse({
@@ -99,39 +90,48 @@ export async function copyTemplateToUser(
   }
 
   try {
-    // 1. Fetch template
+    // Fetch template and validate BEFORE transaction
+    // (Read-only operations, failure here doesn't corrupt data)
     const template = await templateRepo.findById(validation.data.templateId);
     if (!template) {
       return { success: false, error: "Template not found" };
     }
 
-    // 2. Check if user already has a routine
+    // Check if user already has a routine BEFORE transaction
     const existingRoutine = await routineRepo.findByUserId(validation.data.userId);
     if (existingRoutine) {
       return { success: false, error: "User already has a routine" };
     }
 
-    // 3. Fetch all template products
+    // Fetch all template products BEFORE transaction
     const templateProducts = await templateRepo.findProductsByTemplateId(validation.data.templateId);
 
-    const timestamp = now();
+    // Wrap ONLY write operations in transaction for atomicity
+    const result = await db.transaction(async (tx) => {
+      const timestamp = now();
 
-    // 4. Create new routine for user
-    const newRoutine = await routineRepo.create({
-      userProfileId: validation.data.userId,
-      name: validation.data.name,
-      startDate: validation.data.startDate,
-      endDate: validation.data.endDate || null,
-      status: "draft",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
+      // Create new routine using tx directly (not repo)
+      // CRITICAL: Must use tx, not routineRepo.create() which uses global db
+      const [newRoutine] = await tx
+        .insert(skincareRoutines)
+        .values({
+          userProfileId: validation.data.userId,
+          name: validation.data.name,
+          startDate: validation.data.startDate,
+          endDate: validation.data.endDate || null,
+          status: "draft",
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        })
+        .returning();
 
-    // 5. Copy all products to new routine
-    const copiedProducts: RoutineProduct[] = [];
+      if (!newRoutine) {
+        throw new Error("Failed to create routine");
+      }
 
-    for (const templateProduct of templateProducts) {
-      const newProduct = await createRoutineProduct({
+      // Batch insert all products atomically using tx
+      // This is more efficient than N individual INSERTs
+      const productValues = templateProducts.map(templateProduct => ({
         routineId: newRoutine.id,
         userProfileId: validation.data.userId,
         routineStep: templateProduct.routineStep,
@@ -144,20 +144,27 @@ export async function copyTemplateToUser(
         order: templateProduct.order,
         createdAt: timestamp,
         updatedAt: timestamp,
-      });
+      }));
 
-      copiedProducts.push(newProduct);
-    }
+      // Single batch INSERT - much faster than N individual INSERTs
+      const copiedProducts = await tx
+        .insert(skincareRoutineProducts)
+        .values(productValues)
+        .returning();
+
+      return {
+        routine: newRoutine as Routine,
+        products: copiedProducts as RoutineProduct[],
+      };
+    });
 
     return {
       success: true,
-      data: {
-        routine: newRoutine,
-        products: copiedProducts,
-      },
+      data: result,
     };
   } catch (error) {
     console.error("Error copying template:", error);
-    return { success: false, error: "Failed to copy template" };
+    const errorMessage = error instanceof Error ? error.message : "Failed to copy template";
+    return { success: false, error: errorMessage };
   }
 }

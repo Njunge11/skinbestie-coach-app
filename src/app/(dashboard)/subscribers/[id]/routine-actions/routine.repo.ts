@@ -1,6 +1,6 @@
 // Real repository using Drizzle ORM (production)
 
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { skincareRoutineProducts } from "@/lib/db/schema";
 import type { RoutineProduct, NewRoutineProduct } from "./routine.repo.fake";
@@ -9,7 +9,21 @@ export function makeRoutineProductsRepo() {
   return {
     async findByUserId(userId: string): Promise<RoutineProduct[]> {
       const products = await db
-        .select()
+        .select({
+          id: skincareRoutineProducts.id,
+          routineId: skincareRoutineProducts.routineId,
+          userProfileId: skincareRoutineProducts.userProfileId,
+          routineStep: skincareRoutineProducts.routineStep,
+          productName: skincareRoutineProducts.productName,
+          productUrl: skincareRoutineProducts.productUrl,
+          instructions: skincareRoutineProducts.instructions,
+          frequency: skincareRoutineProducts.frequency,
+          days: skincareRoutineProducts.days,
+          timeOfDay: skincareRoutineProducts.timeOfDay,
+          order: skincareRoutineProducts.order,
+          createdAt: skincareRoutineProducts.createdAt,
+          updatedAt: skincareRoutineProducts.updatedAt,
+        })
         .from(skincareRoutineProducts)
         .where(eq(skincareRoutineProducts.userProfileId, userId))
         .orderBy(asc(skincareRoutineProducts.timeOfDay), asc(skincareRoutineProducts.order))
@@ -23,7 +37,21 @@ export function makeRoutineProductsRepo() {
       timeOfDay: "morning" | "evening"
     ): Promise<RoutineProduct[]> {
       const products = await db
-        .select()
+        .select({
+          id: skincareRoutineProducts.id,
+          routineId: skincareRoutineProducts.routineId,
+          userProfileId: skincareRoutineProducts.userProfileId,
+          routineStep: skincareRoutineProducts.routineStep,
+          productName: skincareRoutineProducts.productName,
+          productUrl: skincareRoutineProducts.productUrl,
+          instructions: skincareRoutineProducts.instructions,
+          frequency: skincareRoutineProducts.frequency,
+          days: skincareRoutineProducts.days,
+          timeOfDay: skincareRoutineProducts.timeOfDay,
+          order: skincareRoutineProducts.order,
+          createdAt: skincareRoutineProducts.createdAt,
+          updatedAt: skincareRoutineProducts.updatedAt,
+        })
         .from(skincareRoutineProducts)
         .where(
           and(
@@ -39,13 +67,53 @@ export function makeRoutineProductsRepo() {
 
     async findById(productId: string): Promise<RoutineProduct | null> {
       const [product] = await db
-        .select()
+        .select({
+          id: skincareRoutineProducts.id,
+          routineId: skincareRoutineProducts.routineId,
+          userProfileId: skincareRoutineProducts.userProfileId,
+          routineStep: skincareRoutineProducts.routineStep,
+          productName: skincareRoutineProducts.productName,
+          productUrl: skincareRoutineProducts.productUrl,
+          instructions: skincareRoutineProducts.instructions,
+          frequency: skincareRoutineProducts.frequency,
+          days: skincareRoutineProducts.days,
+          timeOfDay: skincareRoutineProducts.timeOfDay,
+          order: skincareRoutineProducts.order,
+          createdAt: skincareRoutineProducts.createdAt,
+          updatedAt: skincareRoutineProducts.updatedAt,
+        })
         .from(skincareRoutineProducts)
         .where(eq(skincareRoutineProducts.id, productId))
         .limit(1)
         .execute();
 
       return product ? (product as RoutineProduct) : null;
+    },
+
+    async findByIds(productIds: string[]): Promise<RoutineProduct[]> {
+      if (productIds.length === 0) return [];
+
+      const products = await db
+        .select({
+          id: skincareRoutineProducts.id,
+          routineId: skincareRoutineProducts.routineId,
+          userProfileId: skincareRoutineProducts.userProfileId,
+          routineStep: skincareRoutineProducts.routineStep,
+          productName: skincareRoutineProducts.productName,
+          productUrl: skincareRoutineProducts.productUrl,
+          instructions: skincareRoutineProducts.instructions,
+          frequency: skincareRoutineProducts.frequency,
+          days: skincareRoutineProducts.days,
+          timeOfDay: skincareRoutineProducts.timeOfDay,
+          order: skincareRoutineProducts.order,
+          createdAt: skincareRoutineProducts.createdAt,
+          updatedAt: skincareRoutineProducts.updatedAt,
+        })
+        .from(skincareRoutineProducts)
+        .where(inArray(skincareRoutineProducts.id, productIds))
+        .execute();
+
+      return products as RoutineProduct[];
     },
 
     async create(product: NewRoutineProduct): Promise<RoutineProduct> {
@@ -82,26 +150,30 @@ export function makeRoutineProductsRepo() {
     async updateMany(
       updates: Array<{ id: string; data: Partial<RoutineProduct> }>
     ): Promise<void> {
-      // To avoid unique constraint violations on (userProfileId, timeOfDay, order),
-      // we first set all products to temporary negative order values,
-      // then update to final order values
+      if (updates.length === 0) return;
 
-      // Step 1: Set all products to temporary negative orders
-      for (let i = 0; i < updates.length; i++) {
-        const { id, data } = updates[i];
-        await db
-          .update(skincareRoutineProducts)
-          .set({ order: -(i + 1), updatedAt: data.updatedAt })
-          .where(eq(skincareRoutineProducts.id, id));
-      }
+      // Use transaction - constraint is DEFERRABLE so we can update in one pass
+      await db.transaction(async (tx) => {
+        // Build CASE statements for batch update
+        const ids = updates.map((u) => `'${u.id}'`).join(", ");
 
-      // Step 2: Set final order values
-      for (const { id, data } of updates) {
-        await db
-          .update(skincareRoutineProducts)
-          .set(data)
-          .where(eq(skincareRoutineProducts.id, id));
-      }
+        const orderCases = updates
+          .map((u) => `WHEN '${u.id}' THEN ${u.data.order}`)
+          .join(" ");
+
+        const updatedAtCases = updates
+          .map((u) => `WHEN '${u.id}' THEN '${u.data.updatedAt?.toISOString()}'`)
+          .join(" ");
+
+        // Single batch UPDATE query - constraint check deferred to commit
+        await tx.execute(sql.raw(`
+          UPDATE skincare_routine_products
+          SET
+            "order" = (CASE id ${orderCases} END),
+            updated_at = (CASE id ${updatedAtCases} END)::timestamp
+          WHERE id IN (${ids})
+        `));
+      });
     },
   };
 }

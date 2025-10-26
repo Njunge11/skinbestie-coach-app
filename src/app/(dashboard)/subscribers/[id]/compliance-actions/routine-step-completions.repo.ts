@@ -4,7 +4,7 @@
 
 import { db } from "@/lib/db";
 import { routineStepCompletions } from "@/lib/db/schema";
-import { eq, and, gte, lte, lt, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, lt, inArray, asc } from "drizzle-orm";
 import type {
   RoutineStepCompletion,
   NewRoutineStepCompletion,
@@ -47,10 +47,22 @@ export function makeRoutineStepCompletionsRepo() {
      */
     async findByUserId(userId: string): Promise<RoutineStepCompletion[]> {
       const results = await db
-        .select()
+        .select({
+          id: routineStepCompletions.id,
+          routineProductId: routineStepCompletions.routineProductId,
+          userProfileId: routineStepCompletions.userProfileId,
+          scheduledDate: routineStepCompletions.scheduledDate,
+          scheduledTimeOfDay: routineStepCompletions.scheduledTimeOfDay,
+          onTimeDeadline: routineStepCompletions.onTimeDeadline,
+          gracePeriodEnd: routineStepCompletions.gracePeriodEnd,
+          completedAt: routineStepCompletions.completedAt,
+          status: routineStepCompletions.status,
+          createdAt: routineStepCompletions.createdAt,
+          updatedAt: routineStepCompletions.updatedAt,
+        })
         .from(routineStepCompletions)
         .where(eq(routineStepCompletions.userProfileId, userId))
-        .orderBy(routineStepCompletions.scheduledDate);
+        .orderBy(asc(routineStepCompletions.scheduledDate));
 
       return results as RoutineStepCompletion[];
     },
@@ -64,7 +76,19 @@ export function makeRoutineStepCompletionsRepo() {
       endDate: Date
     ): Promise<RoutineStepCompletion[]> {
       const results = await db
-        .select()
+        .select({
+          id: routineStepCompletions.id,
+          routineProductId: routineStepCompletions.routineProductId,
+          userProfileId: routineStepCompletions.userProfileId,
+          scheduledDate: routineStepCompletions.scheduledDate,
+          scheduledTimeOfDay: routineStepCompletions.scheduledTimeOfDay,
+          onTimeDeadline: routineStepCompletions.onTimeDeadline,
+          gracePeriodEnd: routineStepCompletions.gracePeriodEnd,
+          completedAt: routineStepCompletions.completedAt,
+          status: routineStepCompletions.status,
+          createdAt: routineStepCompletions.createdAt,
+          updatedAt: routineStepCompletions.updatedAt,
+        })
         .from(routineStepCompletions)
         .where(
           and(
@@ -73,7 +97,7 @@ export function makeRoutineStepCompletionsRepo() {
             lte(routineStepCompletions.scheduledDate, endDate)
           )
         )
-        .orderBy(routineStepCompletions.scheduledDate);
+        .orderBy(asc(routineStepCompletions.scheduledDate));
 
       return results as RoutineStepCompletion[];
     },
@@ -93,7 +117,19 @@ export function makeRoutineStepCompletionsRepo() {
       nextDay.setDate(nextDay.getDate() + 1);
 
       const results = await db
-        .select()
+        .select({
+          id: routineStepCompletions.id,
+          routineProductId: routineStepCompletions.routineProductId,
+          userProfileId: routineStepCompletions.userProfileId,
+          scheduledDate: routineStepCompletions.scheduledDate,
+          scheduledTimeOfDay: routineStepCompletions.scheduledTimeOfDay,
+          onTimeDeadline: routineStepCompletions.onTimeDeadline,
+          gracePeriodEnd: routineStepCompletions.gracePeriodEnd,
+          completedAt: routineStepCompletions.completedAt,
+          status: routineStepCompletions.status,
+          createdAt: routineStepCompletions.createdAt,
+          updatedAt: routineStepCompletions.updatedAt,
+        })
         .from(routineStepCompletions)
         .where(
           and(
@@ -102,7 +138,7 @@ export function makeRoutineStepCompletionsRepo() {
             lt(routineStepCompletions.scheduledDate, nextDay)
           )
         )
-        .orderBy(routineStepCompletions.scheduledTimeOfDay);
+        .orderBy(asc(routineStepCompletions.scheduledTimeOfDay));
 
       return results as RoutineStepCompletion[];
     },
@@ -112,7 +148,19 @@ export function makeRoutineStepCompletionsRepo() {
      */
     async findById(id: string): Promise<RoutineStepCompletion | null> {
       const [result] = await db
-        .select()
+        .select({
+          id: routineStepCompletions.id,
+          routineProductId: routineStepCompletions.routineProductId,
+          userProfileId: routineStepCompletions.userProfileId,
+          scheduledDate: routineStepCompletions.scheduledDate,
+          scheduledTimeOfDay: routineStepCompletions.scheduledTimeOfDay,
+          onTimeDeadline: routineStepCompletions.onTimeDeadline,
+          gracePeriodEnd: routineStepCompletions.gracePeriodEnd,
+          completedAt: routineStepCompletions.completedAt,
+          status: routineStepCompletions.status,
+          createdAt: routineStepCompletions.createdAt,
+          updatedAt: routineStepCompletions.updatedAt,
+        })
         .from(routineStepCompletions)
         .where(eq(routineStepCompletions.id, id))
         .limit(1);

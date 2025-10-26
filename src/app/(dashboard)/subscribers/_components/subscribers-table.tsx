@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useState, useEffect } from "react";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useDebounce } from "use-debounce";
 import { type ColumnDef, type PaginationState } from "@tanstack/react-table";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { DataTable } from "@/components/ui/data-table";
@@ -18,10 +19,49 @@ export function SubscribersTable() {
   // Read state from URL query params
   const page = parseInt(searchParams.get("page") || "0", 10);
   const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
-  const searchQuery = searchParams.get("search") || "";
+  const urlSearchQuery = searchParams.get("search") || "";
   const completionStatus = (searchParams.get("status") || "all") as UserProfileFilters["completionStatus"];
   const subscriptionStatus = (searchParams.get("subscription") || "all") as UserProfileFilters["subscriptionStatus"];
   const dateRange = (searchParams.get("dateRange") || "all") as UserProfileFilters["dateRange"];
+
+  // Update URL query params (defined early so useEffect can use it)
+  const updateQueryParams = useCallback(
+    (updates: Record<string, string | number>) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === "" || value === "all" || value === 0) {
+          params.delete(key);
+        } else {
+          params.set(key, String(value));
+        }
+      });
+
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  // CANONICAL PATTERN: Local state for instant input feedback
+  const [localSearchQuery, setLocalSearchQuery] = useState(urlSearchQuery);
+
+  // CANONICAL PATTERN: Debounced state for the query key
+  const [debouncedSearchQuery] = useDebounce(localSearchQuery, 500);
+
+  // Sync URL params to local state when URL changes (browser back/forward)
+  useEffect(() => {
+    setLocalSearchQuery(urlSearchQuery);
+  }, [urlSearchQuery]);
+
+  // Sync debounced state to URL params (for shareable URLs)
+  useEffect(() => {
+    if (debouncedSearchQuery !== urlSearchQuery) {
+      updateQueryParams({
+        search: debouncedSearchQuery,
+        page: 0, // Reset to first page
+      });
+    }
+  }, [debouncedSearchQuery, urlSearchQuery, updateQueryParams]);
 
   // Pagination state derived from URL
   const pagination: PaginationState = {
@@ -29,9 +69,9 @@ export function SubscribersTable() {
     pageSize: pageSize,
   };
 
-  // Filter state derived from URL
+  // Filter state using DEBOUNCED search (canonical pattern)
   const filters: UserProfileFilters = {
-    searchQuery,
+    searchQuery: debouncedSearchQuery, // ← Use debounced, not URL
     completionStatus,
     subscriptionStatus,
     dateRange,
@@ -52,6 +92,7 @@ export function SubscribersTable() {
       );
       return result.success ? result.data : null;
     },
+    placeholderData: keepPreviousData, // Show old results while loading new ones
   });
 
   const formatDate = (date: Date) => {
@@ -193,28 +234,15 @@ export function SubscribersTable() {
     },
   ];
 
-  // Update URL query params
-  const updateQueryParams = useCallback(
-    (updates: Record<string, string | number>) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value === "" || value === "all" || value === 0) {
-          params.delete(key);
-        } else {
-          params.set(key, String(value));
-        }
-      });
-
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [pathname, router, searchParams]
-  );
-
   const handleFilterChange = (id: string, value: string) => {
-    // Map filter IDs to query param keys
+    // CANONICAL PATTERN: Search updates local state (instant feedback)
+    if (id === "searchQuery") {
+      setLocalSearchQuery(value); // Instant update, debounce handles the rest
+      return;
+    }
+
+    // Other filters update URL directly
     const paramMap: Record<string, string> = {
-      searchQuery: "search",
       completionStatus: "status",
       subscriptionStatus: "subscription",
       dateRange: "dateRange",
@@ -236,6 +264,8 @@ export function SubscribersTable() {
   };
 
   const handleRowClick = (profile: UserProfile) => {
+    console.log("🔍 Row clicked:", profile.id);
+    console.log("🔍 Navigating to:", `/subscribers/${profile.id}`);
     router.push(`/subscribers/${profile.id}`);
   };
 
@@ -244,7 +274,12 @@ export function SubscribersTable() {
       {/* Filters */}
       <TableFilters
         filters={filterConfig}
-        values={filters as unknown as Record<string, string>}
+        values={{
+          searchQuery: localSearchQuery, // ← Use local state for instant feedback
+          completionStatus,
+          subscriptionStatus,
+          dateRange,
+        } as unknown as Record<string, string>}
         onChange={handleFilterChange}
       />
 

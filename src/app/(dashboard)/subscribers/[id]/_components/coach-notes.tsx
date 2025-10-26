@@ -27,6 +27,10 @@ export function CoachNotes({
   const [newNoteContent, setNewNoteContent] = useState("");
   const [editNoteContent, setEditNoteContent] = useState("");
 
+  // Loading states to prevent double-clicks
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const handleStartAdding = () => {
     setNewNoteContent("");
     setIsAdding(true);
@@ -38,10 +42,20 @@ export function CoachNotes({
   };
 
   const handleAddNote = async () => {
-    if (newNoteContent.trim()) {
-      await onAddNote(adminId, newNoteContent.trim());
+    if (newNoteContent.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+      const content = newNoteContent.trim();
+
+      // Close form IMMEDIATELY for instant feedback
       setIsAdding(false);
       setNewNoteContent("");
+
+      // Call server action in background
+      try {
+        await onAddNote(adminId, content);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -56,15 +70,28 @@ export function CoachNotes({
   };
 
   const handleSaveEdit = async (id: string) => {
-    if (editNoteContent.trim()) {
-      await onUpdateNote(id, editNoteContent.trim());
+    if (editNoteContent.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+      const content = editNoteContent.trim();
+
+      // Close edit mode IMMEDIATELY for instant feedback
       setEditingId(null);
       setEditNoteContent("");
+
+      // Fire and forget - don't await
+      onUpdateNote(id, content).finally(() => {
+        setIsSubmitting(false);
+      });
     }
   };
 
   const handleDelete = async (id: string) => {
-    await onDeleteNote(id);
+    if (deletingId) return; // Prevent double-click
+    setDeletingId(id);
+    // Fire and forget - don't await
+    onDeleteNote(id).finally(() => {
+      setDeletingId(null);
+    });
   };
 
   const formatTimestamp = (timestamp: Date | string) => {
@@ -123,11 +150,11 @@ export function CoachNotes({
               autoFocus
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleAddNote}>
+              <Button size="sm" onClick={handleAddNote} disabled={isSubmitting || !newNoteContent.trim()}>
                 <Check className="w-4 h-4 mr-2" />
-                Save
+                {isSubmitting ? "Saving..." : "Save"}
               </Button>
-              <Button size="sm" variant="outline" onClick={handleCancelAdding}>
+              <Button size="sm" variant="outline" onClick={handleCancelAdding} disabled={isSubmitting}>
                 <X className="w-4 h-4 mr-2" />
                 Cancel
               </Button>
@@ -148,7 +175,7 @@ export function CoachNotes({
             {notes.map((note) => (
               <div key={note.id}>
                 {editingId === note.id ? (
-                  <div className="space-y-2 pb-4 border-b border-border">
+                  <div className="space-y-2 pb-4 pl-1 pt-1">
                     <Textarea
                       value={editNoteContent}
                       onChange={(e) => setEditNoteContent(e.target.value)}
@@ -157,11 +184,11 @@ export function CoachNotes({
                       autoFocus
                     />
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleSaveEdit(note.id)}>
+                      <Button size="sm" onClick={() => handleSaveEdit(note.id)} disabled={isSubmitting || !editNoteContent.trim()}>
                         <Check className="w-4 h-4 mr-2" />
-                        Save
+                        {isSubmitting ? "Saving..." : "Save"}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={handleCancelEditing}>
+                      <Button size="sm" variant="outline" onClick={handleCancelEditing} disabled={isSubmitting}>
                         <X className="w-4 h-4 mr-2" />
                         Cancel
                       </Button>
@@ -187,10 +214,11 @@ export function CoachNotes({
                         size="sm"
                         variant="ghost"
                         onClick={() => handleDelete(note.id)}
+                        disabled={deletingId === note.id}
                         className="h-6 w-6 p-0 hover:text-destructive flex-shrink-0"
                         aria-label="Delete note"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className={deletingId === note.id ? "w-3 h-3 animate-pulse" : "w-3 h-3"} />
                       </Button>
                     </div>
                   </div>

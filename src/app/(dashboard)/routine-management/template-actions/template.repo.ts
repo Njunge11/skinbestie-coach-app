@@ -1,6 +1,6 @@
 // Real repository using Drizzle ORM (production)
 
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { routineTemplates, routineTemplateProducts } from "@/lib/db/schema";
 import type {
@@ -15,7 +15,14 @@ export function makeTemplateRepo() {
     // Template CRUD
     async findAll(): Promise<RoutineTemplate[]> {
       const templates = await db
-        .select()
+        .select({
+          id: routineTemplates.id,
+          name: routineTemplates.name,
+          description: routineTemplates.description,
+          createdBy: routineTemplates.createdBy,
+          createdAt: routineTemplates.createdAt,
+          updatedAt: routineTemplates.updatedAt,
+        })
         .from(routineTemplates)
         .orderBy(desc(routineTemplates.createdAt))
         .execute();
@@ -25,7 +32,14 @@ export function makeTemplateRepo() {
 
     async findById(templateId: string): Promise<RoutineTemplate | null> {
       const [template] = await db
-        .select()
+        .select({
+          id: routineTemplates.id,
+          name: routineTemplates.name,
+          description: routineTemplates.description,
+          createdBy: routineTemplates.createdBy,
+          createdAt: routineTemplates.createdAt,
+          updatedAt: routineTemplates.updatedAt,
+        })
         .from(routineTemplates)
         .where(eq(routineTemplates.id, templateId))
         .limit(1)
@@ -70,7 +84,20 @@ export function makeTemplateRepo() {
       templateId: string
     ): Promise<RoutineTemplateProduct[]> {
       const products = await db
-        .select()
+        .select({
+          id: routineTemplateProducts.id,
+          templateId: routineTemplateProducts.templateId,
+          routineStep: routineTemplateProducts.routineStep,
+          productName: routineTemplateProducts.productName,
+          productUrl: routineTemplateProducts.productUrl,
+          instructions: routineTemplateProducts.instructions,
+          frequency: routineTemplateProducts.frequency,
+          days: routineTemplateProducts.days,
+          timeOfDay: routineTemplateProducts.timeOfDay,
+          order: routineTemplateProducts.order,
+          createdAt: routineTemplateProducts.createdAt,
+          updatedAt: routineTemplateProducts.updatedAt,
+        })
         .from(routineTemplateProducts)
         .where(eq(routineTemplateProducts.templateId, templateId))
         .execute();
@@ -88,7 +115,20 @@ export function makeTemplateRepo() {
       productId: string
     ): Promise<RoutineTemplateProduct | null> {
       const [product] = await db
-        .select()
+        .select({
+          id: routineTemplateProducts.id,
+          templateId: routineTemplateProducts.templateId,
+          routineStep: routineTemplateProducts.routineStep,
+          productName: routineTemplateProducts.productName,
+          productUrl: routineTemplateProducts.productUrl,
+          instructions: routineTemplateProducts.instructions,
+          frequency: routineTemplateProducts.frequency,
+          days: routineTemplateProducts.days,
+          timeOfDay: routineTemplateProducts.timeOfDay,
+          order: routineTemplateProducts.order,
+          createdAt: routineTemplateProducts.createdAt,
+          updatedAt: routineTemplateProducts.updatedAt,
+        })
         .from(routineTemplateProducts)
         .where(eq(routineTemplateProducts.id, productId))
         .limit(1)
@@ -135,26 +175,30 @@ export function makeTemplateRepo() {
     async updateManyProducts(
       updates: Array<{ id: string; data: Partial<RoutineTemplateProduct> }>
     ): Promise<void> {
-      // To avoid unique constraint violations on (templateId, timeOfDay, order),
-      // we first set all products to temporary negative order values,
-      // then update to final order values
+      if (updates.length === 0) return;
 
-      // Step 1: Set all products to temporary negative orders
-      for (let i = 0; i < updates.length; i++) {
-        const { id, data } = updates[i];
-        await db
-          .update(routineTemplateProducts)
-          .set({ order: -(i + 1), updatedAt: data.updatedAt })
-          .where(eq(routineTemplateProducts.id, id));
-      }
+      // Use transaction - constraint is DEFERRABLE so we can update in one pass
+      await db.transaction(async (tx) => {
+        // Build CASE statements for batch update
+        const ids = updates.map((u) => `'${u.id}'`).join(", ");
 
-      // Step 2: Set final order values
-      for (const { id, data } of updates) {
-        await db
-          .update(routineTemplateProducts)
-          .set(data)
-          .where(eq(routineTemplateProducts.id, id));
-      }
+        const orderCases = updates
+          .map((u) => `WHEN '${u.id}' THEN ${u.data.order}`)
+          .join(" ");
+
+        const updatedAtCases = updates
+          .map((u) => `WHEN '${u.id}' THEN '${u.data.updatedAt?.toISOString()}'`)
+          .join(" ");
+
+        // Single batch UPDATE query - constraint check deferred to commit
+        await tx.execute(sql.raw(`
+          UPDATE routine_template_products
+          SET
+            "order" = (CASE id ${orderCases} END),
+            updated_at = (CASE id ${updatedAtCases} END)::timestamp
+          WHERE id IN (${ids})
+        `));
+      });
     },
   };
 }

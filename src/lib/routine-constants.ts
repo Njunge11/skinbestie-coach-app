@@ -15,14 +15,24 @@ export const ROUTINE_STEPS = [
   "Neck / Décolletage Care",
 ];
 
-export const FREQUENCIES = ["Daily", "2x per week", "3x per week"];
+export const FREQUENCIES = [
+  { value: "daily", label: "Daily" },
+  { value: "2x per week", label: "2x per week" },
+  { value: "3x per week", label: "3x per week" },
+] as const;
 
 export const DAYS_OF_WEEK = [
-  { value: "Mon", label: "Mon" },
-  { value: "Tue", label: "Tue" },
-  { value: "Wed", label: "Wed" },
-  { value: "Thu", label: "Thu" },
-  { value: "Fri", label: "Fri" },
-  { value: "Sat", label: "Sat" },
-  { value: "Sun", label: "Sun" },
+  { value: "Monday", label: "Mon" },
+  { value: "Tuesday", label: "Tue" },
+  { value: "Wednesday", label: "Wed" },
+  { value: "Thursday", label: "Thu" },
+  { value: "Friday", label: "Fri" },
+  { value: "Saturday", label: "Sat" },
+  { value: "Sunday", label: "Sun" },
 ];
+
+// Helper function to get display label for a frequency value
+export function getFrequencyLabel(value: string): string {
+  const frequency = FREQUENCIES.find(f => f.value === value);
+  return frequency?.label || value;
+}

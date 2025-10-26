@@ -62,7 +62,7 @@ export function ForgotPasswordEmailState({
           )}
         </Field>
         <Field>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full bg-black hover:bg-gray-800 text-white" disabled={isSubmitting}>
             {isSubmitting ? "Sending..." : "Continue"}
           </Button>
         </Field>

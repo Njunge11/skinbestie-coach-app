@@ -29,7 +29,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { RoutineProduct, RoutineProductFormData } from "../types";
+import type { RoutineProduct, RoutineProductFormData, Frequency } from "../types";
+import { getFrequencyLabel, ROUTINE_STEPS, FREQUENCIES, DAYS_OF_WEEK } from "@/lib/routine-constants";
 
 interface RoutineItemProps {
   product: RoutineProduct;
@@ -37,35 +38,6 @@ interface RoutineItemProps {
   onEdit: (id: string, data: RoutineProductFormData) => void;
   onDelete: (id: string) => void;
 }
-
-const ROUTINE_STEPS = [
-  "Cleanser",
-  "Makeup Remover / Micellar Water",
-  "Toner / Essence",
-  "Serum / Treatment",
-  "Eye Cream",
-  "Moisturizer / Cream",
-  "Sunscreen (SPF)",
-  "Exfoliant / Peel",
-  "Mask",
-  "Spot Treatment",
-  "Facial Oil",
-  "Overnight Mask / Sleeping Pack",
-  "Lip Care",
-  "Neck / Décolletage Care",
-];
-
-const FREQUENCIES = ["Daily", "2x per week", "3x per week"];
-
-const DAYS_OF_WEEK = [
-  { value: "Mon", label: "Mon" },
-  { value: "Tue", label: "Tue" },
-  { value: "Wed", label: "Wed" },
-  { value: "Thu", label: "Thu" },
-  { value: "Fri", label: "Fri" },
-  { value: "Sat", label: "Sat" },
-  { value: "Sun", label: "Sun" },
-];
 
 export function RoutineItem({
   product,
@@ -207,8 +179,8 @@ export function RoutineItem({
           onValueChange={(value) =>
             setEditData((prev) => ({
               ...prev,
-              frequency: value,
-              days: value === "Daily" ? undefined : prev.days || [],
+              frequency: value as Frequency,
+              days: value === "daily" ? undefined : prev.days || [],
             }))
           }
         >
@@ -217,14 +189,14 @@ export function RoutineItem({
           </SelectTrigger>
           <SelectContent>
             {FREQUENCIES.map((freq) => (
-              <SelectItem key={freq} value={freq}>
-                {freq}
+              <SelectItem key={freq.value} value={freq.value}>
+                {freq.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {editData.frequency !== "Daily" && (
+        {editData.frequency !== "daily" && (
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
               Select Days
@@ -323,7 +295,7 @@ export function RoutineItem({
             </Badge>
             {product.frequency && (
               <Badge variant="outline" className="font-normal">
-                {product.frequency}
+                {getFrequencyLabel(product.frequency)}
                 {product.days && product.days.length > 0 && (
                   <span className="ml-1">• {product.days.join(", ")}</span>
                 )}

@@ -57,7 +57,7 @@ describe("ProductList", () => {
         routineStep: "Cleanser",
         productName: "CeraVe Cleanser",
         instructions: "Apply to damp skin",
-        frequency: "Daily",
+        frequency: "daily",
       })
     );
   });
@@ -76,7 +76,7 @@ describe("ProductList", () => {
         productName: "CeraVe Cleanser",
         productUrl: null,
         instructions: "Apply to damp skin",
-        frequency: "Daily",
+        frequency: "daily",
         days: null,
       },
     ];
@@ -125,7 +125,7 @@ describe("ProductList", () => {
         routineStep: "Eye Cream",
         productName: "Retinol Eye Cream",
         instructions: "Apply around eyes",
-        frequency: "Daily",
+        frequency: "daily",
       })
     );
   });

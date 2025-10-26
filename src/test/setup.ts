@@ -85,7 +85,23 @@ afterEach(async () => {
   cleanup();
 
   // Database cleanup: clear data, keep schema (much faster than dropping/recreating)
-  await db.execute(sql`TRUNCATE TABLE admins, verification_codes, user_profiles RESTART IDENTITY CASCADE`);
+  // Truncate in reverse dependency order to avoid FK constraint issues
+  // CASCADE automatically handles dependent records
+  await db.execute(sql`
+    TRUNCATE TABLE
+      routine_step_completions,
+      skincare_routine_products,
+      routine_template_products,
+      skincare_routines,
+      routine_templates,
+      progress_photos,
+      skincare_goals,
+      coach_notes,
+      user_profiles,
+      verification_codes,
+      admins
+    RESTART IDENTITY CASCADE
+  `);
 
   // Clear captured verification codes
   sentVerificationCodes.clear();

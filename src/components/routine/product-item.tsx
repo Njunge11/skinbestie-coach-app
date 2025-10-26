@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ProductForm, ProductFormData } from "./product-form";
+import { getFrequencyLabel } from "@/lib/routine-constants";
+import type { Frequency, TimeOfDay } from "@/app/(dashboard)/subscribers/[id]/types";
 
 export interface Product {
   id: string;
@@ -15,8 +17,10 @@ export interface Product {
   productName: string;
   productUrl: string | null;
   instructions: string;
-  frequency: string;
+  frequency: Frequency;
   days: string[] | null;
+  timeOfDay: TimeOfDay;
+  order: number;
 }
 
 interface ProductItemProps {
@@ -131,7 +135,7 @@ export function ProductItem({
             </Badge>
             {product.frequency && (
               <Badge variant="outline" className="font-normal">
-                {product.frequency}
+                {getFrequencyLabel(product.frequency)}
                 {product.days && product.days.length > 0 && (
                   <span className="ml-1">• {product.days.join(", ")}</span>
                 )}

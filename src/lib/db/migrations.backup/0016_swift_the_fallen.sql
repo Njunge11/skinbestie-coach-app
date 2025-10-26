@@ -1,0 +1,1 @@
+CREATE INDEX "verification_codes_admin_idx" ON "verification_codes" USING btree ("admin_id");

@@ -12,7 +12,14 @@ export function makeCoachNotesRepo() {
 
     async findById(noteId: string): Promise<CoachNote | null> {
       const [note] = await db
-        .select()
+        .select({
+          id: coachNotes.id,
+          userProfileId: coachNotes.userProfileId,
+          adminId: coachNotes.adminId,
+          content: coachNotes.content,
+          createdAt: coachNotes.createdAt,
+          updatedAt: coachNotes.updatedAt,
+        })
         .from(coachNotes)
         .where(eq(coachNotes.id, noteId));
       return note || null;
@@ -20,7 +27,14 @@ export function makeCoachNotesRepo() {
 
     async findByUserProfileId(userProfileId: string): Promise<CoachNote[]> {
       const notes = await db
-        .select()
+        .select({
+          id: coachNotes.id,
+          userProfileId: coachNotes.userProfileId,
+          adminId: coachNotes.adminId,
+          content: coachNotes.content,
+          createdAt: coachNotes.createdAt,
+          updatedAt: coachNotes.updatedAt,
+        })
         .from(coachNotes)
         .where(eq(coachNotes.userProfileId, userProfileId))
         .orderBy(desc(coachNotes.createdAt));

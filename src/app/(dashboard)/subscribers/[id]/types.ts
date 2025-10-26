@@ -1,3 +1,7 @@
+// Type aliases matching database enums for type safety
+export type Frequency = "daily" | "2x per week" | "3x per week" | "specific_days";
+export type TimeOfDay = "morning" | "evening";
+
 export interface Client {
   id: string;
   name: string;
@@ -16,10 +20,14 @@ export interface Client {
 
 export interface Goal {
   id: string;
+  userProfileId: string;
   name: string;
   description: string;
   timeframe: string;
   complete: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Photo {
@@ -64,9 +72,12 @@ export interface RoutineProduct {
   productName: string;
   productUrl?: string;
   instructions: string;
-  frequency: string;
+  frequency: Frequency;
   days?: string[]; // For 2x or 3x per week
-  timeOfDay: "morning" | "evening";
+  timeOfDay: TimeOfDay;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface RoutineProductFormData {
@@ -74,7 +85,7 @@ export interface RoutineProductFormData {
   productName: string;
   productUrl?: string;
   instructions: string;
-  frequency: string;
+  frequency: Frequency;
   days?: string[];
 }
 

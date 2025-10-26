@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useOptimistic, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -48,11 +48,17 @@ interface TemplateListProps {
   onCreateClick: () => void;
 }
 
-export function TemplateList({ templates, templateDetails, onCreateClick }: TemplateListProps) {
+export function TemplateList({ templates, templateDetails: initialTemplateDetails, onCreateClick }: TemplateListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
   const router = useRouter();
+
+  // Optimistic updates - use prop directly as source of truth
+  const [optimisticTemplateDetails, setOptimisticTemplateDetails] = useOptimistic(
+    initialTemplateDetails,
+    (_state, newDetails: Record<string, TemplateDetails>) => newDetails
+  );
 
   const formatDate = (date: Date) => {
     const now = new Date();
@@ -128,7 +134,7 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
     <div className="space-y-4">
       {templates.map((template) => {
         const isExpanded = expandedId === template.id;
-        const details = templateDetails[template.id];
+        const details = optimisticTemplateDetails[template.id];
         const totalProducts = template.morningProducts + template.eveningProducts;
 
         return (
@@ -192,10 +198,37 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
                     products={details.morning}
                     timeOfDay="morning"
                     onAdd={async (data: ProductFormData) => {
+                      // Create optimistic product with temp ID
+                      const optimisticProduct: Product = {
+                        id: `temp-${Date.now()}`,
+                        routineStep: data.routineStep,
+                        productName: data.productName,
+                        productUrl: data.productUrl || null,
+                        instructions: data.instructions,
+                        frequency: data.frequency,
+                        days: data.days || null,
+                        timeOfDay: "morning",
+                        order: details.morning.length,
+                      };
+
+                      // Optimistic update
+                      const newDetails = {
+                        ...initialTemplateDetails,
+                        [template.id]: {
+                          ...initialTemplateDetails[template.id],
+                          morning: [...details.morning, optimisticProduct],
+                        },
+                      };
+
+                      startTransition(() => {
+                        setOptimisticTemplateDetails(newDetails);
+                      });
+
                       const result = await createTemplateProduct(template.id, {
                         ...data,
                         timeOfDay: "morning",
                       });
+
                       if (result.success) {
                         router.refresh();
                       } else {
@@ -203,7 +236,23 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
                       }
                     }}
                     onUpdate={async (id: string, data: ProductFormData) => {
+                      // Optimistic update
+                      const newDetails = {
+                        ...initialTemplateDetails,
+                        [template.id]: {
+                          ...initialTemplateDetails[template.id],
+                          morning: details.morning.map(p =>
+                            p.id === id ? { ...p, ...data, days: data.days || null } : p
+                          ),
+                        },
+                      };
+
+                      startTransition(() => {
+                        setOptimisticTemplateDetails(newDetails);
+                      });
+
                       const result = await updateTemplateProduct(id, data);
+
                       if (result.success) {
                         router.refresh();
                       } else {
@@ -211,7 +260,21 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
                       }
                     }}
                     onDelete={async (id: string) => {
+                      // Optimistic update
+                      const newDetails = {
+                        ...initialTemplateDetails,
+                        [template.id]: {
+                          ...initialTemplateDetails[template.id],
+                          morning: details.morning.filter(p => p.id !== id),
+                        },
+                      };
+
+                      startTransition(() => {
+                        setOptimisticTemplateDetails(newDetails);
+                      });
+
                       const result = await deleteTemplateProduct(id);
+
                       if (result.success) {
                         router.refresh();
                       } else {
@@ -219,14 +282,32 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
                       }
                     }}
                     onReorder={async (reorderedProducts: Product[]) => {
+                      console.log(`🎯 TEMPLATE REORDER (${template.id}, morning)`);
+
+                      // Update optimistically
+                      const newDetails = {
+                        ...initialTemplateDetails,
+                        [template.id]: {
+                          ...initialTemplateDetails[template.id],
+                          morning: reorderedProducts,
+                        },
+                      };
+
+                      startTransition(() => {
+                        setOptimisticTemplateDetails(newDetails);
+                        console.log("🟢 Optimistic update applied");
+                      });
+
                       const productIds = reorderedProducts.map((p) => p.id);
                       const result = await reorderTemplateProducts(
                         template.id,
                         "morning",
                         productIds
                       );
+
                       if (result.success) {
                         router.refresh();
+                        console.log("✅ Server synced");
                       } else {
                         toast.error(result.error);
                       }
@@ -238,10 +319,37 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
                     products={details.evening}
                     timeOfDay="evening"
                     onAdd={async (data: ProductFormData) => {
+                      // Create optimistic product with temp ID
+                      const optimisticProduct: Product = {
+                        id: `temp-${Date.now()}`,
+                        routineStep: data.routineStep,
+                        productName: data.productName,
+                        productUrl: data.productUrl || null,
+                        instructions: data.instructions,
+                        frequency: data.frequency,
+                        days: data.days || null,
+                        timeOfDay: "evening",
+                        order: details.evening.length,
+                      };
+
+                      // Optimistic update
+                      const newDetails = {
+                        ...initialTemplateDetails,
+                        [template.id]: {
+                          ...initialTemplateDetails[template.id],
+                          evening: [...details.evening, optimisticProduct],
+                        },
+                      };
+
+                      startTransition(() => {
+                        setOptimisticTemplateDetails(newDetails);
+                      });
+
                       const result = await createTemplateProduct(template.id, {
                         ...data,
                         timeOfDay: "evening",
                       });
+
                       if (result.success) {
                         router.refresh();
                       } else {
@@ -249,7 +357,23 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
                       }
                     }}
                     onUpdate={async (id: string, data: ProductFormData) => {
+                      // Optimistic update
+                      const newDetails = {
+                        ...initialTemplateDetails,
+                        [template.id]: {
+                          ...initialTemplateDetails[template.id],
+                          evening: details.evening.map(p =>
+                            p.id === id ? { ...p, ...data, days: data.days || null } : p
+                          ),
+                        },
+                      };
+
+                      startTransition(() => {
+                        setOptimisticTemplateDetails(newDetails);
+                      });
+
                       const result = await updateTemplateProduct(id, data);
+
                       if (result.success) {
                         router.refresh();
                       } else {
@@ -257,7 +381,21 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
                       }
                     }}
                     onDelete={async (id: string) => {
+                      // Optimistic update
+                      const newDetails = {
+                        ...initialTemplateDetails,
+                        [template.id]: {
+                          ...initialTemplateDetails[template.id],
+                          evening: details.evening.filter(p => p.id !== id),
+                        },
+                      };
+
+                      startTransition(() => {
+                        setOptimisticTemplateDetails(newDetails);
+                      });
+
                       const result = await deleteTemplateProduct(id);
+
                       if (result.success) {
                         router.refresh();
                       } else {
@@ -265,14 +403,32 @@ export function TemplateList({ templates, templateDetails, onCreateClick }: Temp
                       }
                     }}
                     onReorder={async (reorderedProducts: Product[]) => {
+                      console.log(`🎯 TEMPLATE REORDER (${template.id}, evening)`);
+
+                      // Update optimistically
+                      const newDetails = {
+                        ...initialTemplateDetails,
+                        [template.id]: {
+                          ...initialTemplateDetails[template.id],
+                          evening: reorderedProducts,
+                        },
+                      };
+
+                      startTransition(() => {
+                        setOptimisticTemplateDetails(newDetails);
+                        console.log("🟢 Optimistic update applied");
+                      });
+
                       const productIds = reorderedProducts.map((p) => p.id);
                       const result = await reorderTemplateProducts(
                         template.id,
                         "evening",
                         productIds
                       );
+
                       if (result.success) {
                         router.refresh();
+                        console.log("✅ Server synced");
                       } else {
                         toast.error(result.error);
                       }

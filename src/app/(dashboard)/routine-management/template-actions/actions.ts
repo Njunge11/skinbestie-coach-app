@@ -275,7 +275,7 @@ const createTemplateProductSchema = z.object({
     z.string().url().nullable().optional()
   ),
   instructions: requiredStringSchema,
-  frequency: requiredStringSchema,
+  frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]),
   days: z.array(z.string()).nullable().optional(),
   timeOfDay: z.enum(["morning", "evening"]),
 });
@@ -289,7 +289,7 @@ const updateTemplateProductSchema = z.object({
     z.string().url().nullable().optional()
   ),
   instructions: requiredStringSchema.optional(),
-  frequency: requiredStringSchema.optional(),
+  frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]).optional(),
   days: z.array(z.string()).nullable().optional(),
 });
 

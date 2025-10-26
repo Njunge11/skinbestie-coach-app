@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useOptimistic, startTransition } from "react";
 import { toast } from "sonner";
 import { ProfileHeader } from "./profile-header";
 import { ProgressPhotos } from "./progress-photos";
@@ -45,6 +45,7 @@ import type {
   GoalFormData,
   RoutineFormData,
   RoutineProductFormData,
+  Frequency,
 } from "../types";
 
 interface Template {
@@ -87,6 +88,29 @@ export function ClientPageWrapper({
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
 
+  // Optimistic state for drag-and-drop reordering
+  const [optimisticGoals, setOptimisticGoals] = useOptimistic(
+    goals,
+    (_state, newGoals: Goal[]) => newGoals
+  );
+  const [optimisticRoutineProducts, setOptimisticRoutineProducts] =
+    useOptimistic(
+      routineProducts,
+      (_state, newProducts: RoutineProduct[]) => newProducts
+    );
+
+  // Optimistic state for coach notes
+  const [optimisticCoachNotes, setOptimisticCoachNotes] = useOptimistic(
+    coachNotes,
+    (_state, newNotes: CoachNote[]) => newNotes
+  );
+
+  // Optimistic state for photos
+  const [optimisticPhotos, setOptimisticPhotos] = useOptimistic(
+    photos,
+    (_state, newPhotos: Photo[]) => newPhotos
+  );
+
   const handleUpdateClient = async (data: EditableClientData) => {
     // Optimistically update UI
     setClient((prev) => ({ ...prev, ...data }));
@@ -103,18 +127,18 @@ export function ClientPageWrapper({
   };
 
   const handleUpdatePhotoFeedback = async (id: string, feedback: string) => {
-    // Optimistically update UI
-    const previousPhotos = photos;
-    setPhotos((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, feedback } : p))
-    );
+    // Optimistic update
+    const newPhotos = photos.map((p) => (p.id === id ? { ...p, feedback } : p));
+    startTransition(() => {
+      setOptimisticPhotos(newPhotos);
+    });
 
     // Call server action
     const result = await updatePhotoFeedback(id, feedback);
 
-    if (!result.success) {
-      // Revert on error
-      setPhotos(previousPhotos);
+    if (result.success) {
+      setPhotos(newPhotos);
+    } else {
       console.error("Failed to update photo feedback:", result.error);
       toast.error("Failed to update photo feedback");
     }
@@ -136,12 +160,29 @@ export function ClientPageWrapper({
   };
 
   const handleAddGoal = async (data: GoalFormData) => {
+    // Create optimistic goal with temp ID
+    const optimisticGoal: Goal = {
+      id: `temp-${Date.now()}`,
+      userProfileId: userId,
+      ...data,
+      complete: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      order: goals.length,
+    };
+
+    // Optimistic update
+    const newGoals = [...goals, optimisticGoal];
+    startTransition(() => {
+      setOptimisticGoals(newGoals);
+    });
+
     // Call server action
     const result = await createGoal(userId, data);
 
     if (result.success) {
-      // Add to UI
-      setGoals((prev) => [...prev, result.data]);
+      // Replace temp goal with real one
+      setGoals((prev) => [...prev.filter(g => !g.id.startsWith('temp-')), result.data]);
     } else {
       console.error("Failed to create goal:", result.error);
       toast.error("Failed to create goal");
@@ -149,16 +190,18 @@ export function ClientPageWrapper({
   };
 
   const handleUpdateGoal = async (id: string, data: GoalFormData) => {
-    // Optimistically update UI
-    const previousGoals = goals;
-    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)));
+    // Optimistic update
+    const newGoals = goals.map((g) => (g.id === id ? { ...g, ...data } : g));
+    startTransition(() => {
+      setOptimisticGoals(newGoals);
+    });
 
     // Call server action
     const result = await updateGoal(id, data);
 
-    if (!result.success) {
-      // Revert on error
-      setGoals(previousGoals);
+    if (result.success) {
+      setGoals(newGoals);
+    } else {
       console.error("Failed to update goal:", result.error);
       toast.error("Failed to update goal");
     }
@@ -169,57 +212,67 @@ export function ClientPageWrapper({
     const goalToToggle = goals.find((g) => g.id === id);
     if (!goalToToggle) return;
 
-    // Optimistically update UI
-    const previousGoals = goals;
-    setGoals((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, complete: !g.complete } : g))
+    // Optimistic update
+    const newGoals = goals.map((g) =>
+      (g.id === id ? { ...g, complete: !g.complete } : g)
     );
+    startTransition(() => {
+      setOptimisticGoals(newGoals);
+    });
 
     // Call server action
     const result = await updateGoal(id, { complete: !goalToToggle.complete });
 
-    if (!result.success) {
-      // Revert on error
-      setGoals(previousGoals);
+    if (result.success) {
+      setGoals(newGoals);
+    } else {
       console.error("Failed to toggle goal:", result.error);
       toast.error("Failed to toggle goal");
     }
   };
 
   const handleDeleteGoal = async (id: string) => {
-    // Optimistically update UI
-    const previousGoals = goals;
-    setGoals((prev) => prev.filter((g) => g.id !== id));
+    // Optimistic update
+    const newGoals = goals.filter((g) => g.id !== id);
+    startTransition(() => {
+      setOptimisticGoals(newGoals);
+    });
 
     // Call server action
     const result = await deleteGoal(id);
 
-    if (!result.success) {
-      // Revert on error
-      setGoals(previousGoals);
+    if (result.success) {
+      setGoals(newGoals);
+    } else {
       console.error("Failed to delete goal:", result.error);
       toast.error("Failed to delete goal");
     }
   };
 
   const handleReorderGoals = async (reorderedGoals: Goal[]) => {
-    // Optimistically update UI
-    const previousGoals = goals;
-    setGoals(reorderedGoals);
+    console.log("🔵 handleReorderGoals called - BEFORE startTransition");
 
     // Extract IDs in new order
     const reorderedIds = reorderedGoals.map((g) => g.id);
 
-    console.log("Reordering goals:", reorderedIds);
+    // Optimistic update must be inside startTransition
+    startTransition(() => {
+      setOptimisticGoals(reorderedGoals);
+      console.log("🟢 setOptimisticGoals called - UI should update NOW");
+    });
 
+    console.log("⏳ Calling server action...");
     // Call server action
     const result = await reorderGoalsAction(userId, reorderedIds);
 
-    console.log("Reorder result:", result);
+    console.log("✅ Server action completed:", result);
 
-    if (!result.success) {
-      // Revert on error
-      setGoals(previousGoals);
+    if (result.success) {
+      // Update actual state on success
+      setGoals(reorderedGoals);
+      console.log("✅ Actual state updated");
+    } else {
+      // useOptimistic automatically reverts on error
       console.error("Failed to reorder goals:", result.error);
       toast.error("Failed to reorder goals");
     }
@@ -282,12 +335,15 @@ export function ClientPageWrapper({
     if (result.success) {
       // Update routine and products in state
       setRoutine(result.data.routine);
-      setRoutineProducts(result.data.products.map(p => ({
-        ...p,
-        productUrl: p.productUrl ?? undefined,
-        days: p.days ?? undefined,
-        timeOfDay: p.timeOfDay as "morning" | "evening",
-      })));
+      setRoutineProducts(
+        result.data.products.map((p) => ({
+          ...p,
+          productUrl: p.productUrl ?? undefined,
+          days: p.days ?? undefined,
+          timeOfDay: p.timeOfDay as "morning" | "evening",
+          frequency: p.frequency as Frequency,
+        }))
+      );
       // Update client hasRoutine flag
       setClient((prev) => ({ ...prev, hasRoutine: true }));
       toast.success("Routine created successfully");
@@ -355,6 +411,24 @@ export function ClientPageWrapper({
       return;
     }
 
+    // Create optimistic product with temp ID
+    const sameTimeProducts = routineProducts.filter(p => p.timeOfDay === timeOfDay);
+    const optimisticProduct: RoutineProduct = {
+      id: `temp-${Date.now()}`,
+      routineId: routine.id,
+      ...data,
+      timeOfDay,
+      order: sameTimeProducts.length,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Optimistic update
+    const newProducts = [...routineProducts, optimisticProduct];
+    startTransition(() => {
+      setOptimisticRoutineProducts(newProducts);
+    });
+
     // Call server action with routineId
     const result = await createRoutineProduct(userId, {
       ...data,
@@ -363,8 +437,8 @@ export function ClientPageWrapper({
     });
 
     if (result.success) {
-      // Add to UI
-      setRoutineProducts((prev) => [...prev, result.data]);
+      // Replace temp product with real one
+      setRoutineProducts((prev) => [...prev.filter(p => !p.id.startsWith('temp-')), result.data]);
       toast.success("Product added successfully");
     } else {
       console.error("Failed to create routine product:", result.error);
@@ -376,34 +450,36 @@ export function ClientPageWrapper({
     id: string,
     data: RoutineProductFormData
   ) => {
-    // Optimistically update UI
-    const previousProducts = routineProducts;
-    setRoutineProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...data } : p))
-    );
+    // Optimistic update
+    const newProducts = routineProducts.map((p) => (p.id === id ? { ...p, ...data } : p));
+    startTransition(() => {
+      setOptimisticRoutineProducts(newProducts);
+    });
 
     // Call server action
     const result = await updateRoutineProduct(id, data);
 
-    if (!result.success) {
-      // Revert on error
-      setRoutineProducts(previousProducts);
+    if (result.success) {
+      setRoutineProducts(newProducts);
+    } else {
       console.error("Failed to update routine product:", result.error);
       toast.error("Failed to update routine product");
     }
   };
 
   const handleDeleteRoutineProduct = async (id: string) => {
-    // Optimistically update UI
-    const previousProducts = routineProducts;
-    setRoutineProducts((prev) => prev.filter((p) => p.id !== id));
+    // Optimistic update
+    const newProducts = routineProducts.filter((p) => p.id !== id);
+    startTransition(() => {
+      setOptimisticRoutineProducts(newProducts);
+    });
 
     // Call server action
     const result = await deleteRoutineProduct(id);
 
-    if (!result.success) {
-      // Revert on error
-      setRoutineProducts(previousProducts);
+    if (result.success) {
+      setRoutineProducts(newProducts);
+    } else {
       console.error("Failed to delete routine product:", result.error);
       toast.error("Failed to delete routine product");
     }
@@ -413,17 +489,24 @@ export function ClientPageWrapper({
     timeOfDay: "morning" | "evening",
     reorderedProducts: RoutineProduct[]
   ) => {
-    // Optimistically update UI
-    const previousProducts = routineProducts;
+    console.log(`🔵 handleReorderRoutineProducts (${timeOfDay}) - BEFORE startTransition`);
+
     // Replace products for this timeOfDay with reordered ones
     const otherTimeProducts = routineProducts.filter(
       (p) => p.timeOfDay !== timeOfDay
     );
-    setRoutineProducts([...otherTimeProducts, ...reorderedProducts]);
+    const newProducts = [...otherTimeProducts, ...reorderedProducts];
 
     // Extract IDs in new order
     const reorderedIds = reorderedProducts.map((p) => p.id);
 
+    // Optimistic update must be inside startTransition
+    startTransition(() => {
+      setOptimisticRoutineProducts(newProducts);
+      console.log("🟢 setOptimisticRoutineProducts called - UI should update NOW");
+    });
+
+    console.log("⏳ Calling server action...");
     // Call server action
     const result = await reorderRoutineProductsAction(
       userId,
@@ -431,58 +514,84 @@ export function ClientPageWrapper({
       reorderedIds
     );
 
-    if (!result.success) {
-      // Revert on error
-      setRoutineProducts(previousProducts);
+    console.log("✅ Server action completed:", result);
+
+    if (result.success) {
+      // Update actual state on success
+      setRoutineProducts(newProducts);
+      console.log("✅ Actual state updated");
+    } else {
+      // useOptimistic automatically reverts on error
       console.error("Failed to reorder routine products:", result.error);
       toast.error("Failed to reorder routine products");
     }
   };
 
   const handleAddCoachNote = async (adminId: string, content: string) => {
-    // Call server action
+    // Create optimistic note with temporary ID
+    const optimisticNote: CoachNote = {
+      id: `temp-${Date.now()}`,
+      userProfileId: userId,
+      adminId,
+      content,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Optimistic update IMMEDIATELY (prepend to show newest first)
+    const newNotes = [optimisticNote, ...coachNotes];
+    startTransition(() => {
+      setOptimisticCoachNotes(newNotes);
+    });
+
+    // Call server action (in background)
     const result = await createCoachNote(userId, adminId, content);
 
     if (result.success) {
-      // Add to UI (prepend to show newest first)
+      // Replace temp note with real one
       setCoachNotes((prev) => [result.data, ...prev]);
     } else {
+      // Revert on error
       console.error("Failed to create coach note:", result.error);
       toast.error("Failed to create coach note");
     }
   };
 
   const handleUpdateCoachNote = async (noteId: string, content: string) => {
-    // Optimistically update UI
-    const previousNotes = coachNotes;
-    setCoachNotes((prev) =>
-      prev.map((n) =>
-        n.id === noteId ? { ...n, content, updatedAt: new Date() } : n
-      )
+    // Optimistic update IMMEDIATELY
+    const newNotes = coachNotes.map((n) =>
+      n.id === noteId ? { ...n, content, updatedAt: new Date() } : n
     );
+    startTransition(() => {
+      setOptimisticCoachNotes(newNotes);
+    });
 
-    // Call server action
+    // Call server action (in background)
     const result = await updateCoachNote(noteId, content);
 
-    if (!result.success) {
-      // Revert on error
-      setCoachNotes(previousNotes);
+    if (result.success) {
+      setCoachNotes(newNotes);
+    } else {
+      // Optimistic state will revert automatically
       console.error("Failed to update coach note:", result.error);
       toast.error("Failed to update coach note");
     }
   };
 
   const handleDeleteCoachNote = async (noteId: string) => {
-    // Optimistically update UI
-    const previousNotes = coachNotes;
-    setCoachNotes((prev) => prev.filter((n) => n.id !== noteId));
+    // Optimistic update IMMEDIATELY
+    const newNotes = coachNotes.filter((n) => n.id !== noteId);
+    startTransition(() => {
+      setOptimisticCoachNotes(newNotes);
+    });
 
-    // Call server action
+    // Call server action (in background)
     const result = await deleteCoachNote(noteId);
 
-    if (!result.success) {
-      // Revert on error
-      setCoachNotes(previousNotes);
+    if (result.success) {
+      setCoachNotes(newNotes);
+    } else {
+      // Optimistic state will revert automatically
       console.error("Failed to delete coach note:", result.error);
       toast.error("Failed to delete coach note");
     }
@@ -498,7 +607,7 @@ export function ClientPageWrapper({
           <ComplianceSection userId={userId} />
 
           <GoalsSection
-            goals={goals}
+            goals={optimisticGoals}
             onAddGoal={handleAddGoal}
             onUpdateGoal={handleUpdateGoal}
             onToggleGoal={handleToggleGoal}
@@ -508,7 +617,7 @@ export function ClientPageWrapper({
 
           <RoutineSection
             routine={routine}
-            products={routineProducts}
+            products={optimisticRoutineProducts}
             templates={initialTemplates}
             onCreateFromTemplate={handleCreateRoutineFromTemplate}
             onCreateBlank={handleCreateBlankRoutine}
@@ -522,7 +631,7 @@ export function ClientPageWrapper({
           />
 
           <ProgressPhotos
-            photos={photos}
+            photos={optimisticPhotos}
             onUpdateFeedback={handleUpdatePhotoFeedback}
             isCompareMode={isCompareMode}
             selectedPhotos={selectedPhotos}
@@ -534,7 +643,7 @@ export function ClientPageWrapper({
         {/* Right Sidebar - full width on mobile/tablet, sidebar on desktop */}
         <div className="w-full xl:w-80">
           <CoachNotes
-            notes={coachNotes}
+            notes={optimisticCoachNotes}
             adminId={adminId}
             onAddNote={handleAddCoachNote}
             onUpdateNote={handleUpdateCoachNote}

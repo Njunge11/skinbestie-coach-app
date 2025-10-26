@@ -79,7 +79,7 @@ export function VerificationCodeState({
           )}
         </Field>
         <Field>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full bg-black hover:bg-gray-800 text-white" disabled={isSubmitting}>
             {isSubmitting ? "Verifying..." : "Continue"}
           </Button>
         </Field>

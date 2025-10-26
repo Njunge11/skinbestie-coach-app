@@ -18,7 +18,7 @@ export type RoutineTemplateProduct = {
   productName: string;
   productUrl: string | null;
   instructions: string;
-  frequency: string;
+  frequency: "daily" | "2x per week" | "3x per week" | "specific_days";
   days: string[] | null;
   timeOfDay: 'morning' | 'evening';
   order: number;

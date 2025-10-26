@@ -17,51 +17,69 @@ interface SubscriberDetailPageProps {
 export default async function SubscriberDetailPage({
   params,
 }: SubscriberDetailPageProps) {
-  const { id } = await params;
+  try {
+    console.log("\x1b[36m=== SUBSCRIBER PAGE LOAD START ===\x1b[0m");
+
+    const { id } = await params;
+    console.log(`Loading subscriber: ${id}`);
 
   // Get the current admin session
+  console.log("🔐 Checking auth...");
   const session = await auth();
+  console.log("🔐 Auth result:", session?.user?.id ? "authenticated" : "not authenticated");
+
   if (!session?.user?.id) {
+    console.log("🔐 No session, redirecting to login");
     redirect("/login");
   }
   const adminId = session.user.id;
+  console.log("🔐 Admin ID:", adminId);
 
   // Fetch user profile from database
+  console.log("📋 Fetching user profile...");
   const profileResult = await getUserProfile(id);
+  console.log("📋 Profile result:", profileResult.success ? "success" : "failed");
 
   if (!profileResult.success) {
     // Handle error - redirect to subscribers list
+    console.error("❌ getUserProfile failed:", profileResult.error);
     redirect("/subscribers");
   }
 
+  console.log("✅ getUserProfile succeeded");
+
   const profileData = profileResult.data;
 
-  // Fetch goals for this user
-  const goalsResult = await getGoals(id);
+  // Fetch all data in parallel for better performance
+  console.log("🔄 Fetching all data in parallel...");
+
+  const [
+    goalsResult,
+    routineResult,
+    routineProductsResult,
+    coachNotesResult,
+    photosResult,
+    templatesResult,
+  ] = await Promise.all([
+    getGoals(id).then(r => { console.log("✅ getGoals done"); return r; }),
+    getRoutine(id).then(r => { console.log("✅ getRoutine done"); return r; }),
+    getRoutineProducts(id).then(r => { console.log("✅ getRoutineProducts done"); return r; }),
+    getCoachNotes(id).then(r => { console.log("✅ getCoachNotes done"); return r; }).catch(e => { console.error("❌ getCoachNotes error:", e); throw e; }),
+    getProgressPhotos(id).then(r => { console.log("✅ getProgressPhotos done"); return r; }).catch(e => { console.error("❌ getProgressPhotos error:", e); throw e; }),
+    getTemplates().then(r => { console.log("✅ getTemplates done"); return r; }),
+  ]);
+
+  console.log("✅ Parallel fetch completed");
+
   const initialGoals: Goal[] = goalsResult.success ? goalsResult.data : [];
-
-  // Fetch routine for this user
-  const routineResult = await getRoutine(id);
   const initialRoutine: Routine | null = routineResult.success ? routineResult.data : null;
-
-  // Fetch routine products for this user
-  const routineProductsResult = await getRoutineProducts(id);
   const initialRoutineProducts: RoutineProduct[] = routineProductsResult.success
     ? routineProductsResult.data
     : [];
-
-  // Fetch coach notes for this user
-  const coachNotesResult = await getCoachNotes(id);
   const initialCoachNotes: CoachNote[] = coachNotesResult.success
     ? coachNotesResult.data
     : [];
-
-  // Fetch progress photos for this user
-  const photosResult = await getProgressPhotos(id);
   const initialPhotos: Photo[] = photosResult.success ? photosResult.data : [];
-
-  // Fetch templates
-  const templatesResult = await getTemplates();
   const initialTemplates = templatesResult.success ? templatesResult.data : [];
 
   // Transform server data to Client type
@@ -94,4 +112,8 @@ export default async function SubscriberDetailPage({
       adminId={adminId}
     />
   );
+  } catch (error) {
+    console.error("❌❌❌ PAGE LOAD ERROR:", error);
+    throw error;
+  }
 }

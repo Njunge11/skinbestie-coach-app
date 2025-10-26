@@ -47,9 +47,23 @@ import { RoutineItem } from "./routine-item";
 import { AddRoutineModal } from "./add-routine-modal";
 import { EditRoutineDialog } from "./edit-routine-dialog";
 import { DeleteRoutineDialog } from "./delete-routine-dialog";
-import { getRoutineStatus, formatRoutineStatus, formatRoutineDateRange } from "../utils/routine-status";
-import type { Routine, RoutineProduct, RoutineProductFormData, RoutineFormData } from "../types";
-import { ROUTINE_STEPS, FREQUENCIES, DAYS_OF_WEEK } from "@/lib/routine-constants";
+import {
+  getRoutineStatus,
+  formatRoutineStatus,
+  formatRoutineDateRange,
+} from "../utils/routine-status";
+import type {
+  Routine,
+  RoutineProduct,
+  RoutineProductFormData,
+  RoutineFormData,
+  Frequency,
+} from "../types";
+import {
+  ROUTINE_STEPS,
+  FREQUENCIES,
+  DAYS_OF_WEEK,
+} from "@/lib/routine-constants";
 
 interface Template {
   id: string;
@@ -61,8 +75,17 @@ interface RoutineSectionProps {
   routine: Routine | null;
   products: RoutineProduct[];
   templates: Template[];
-  onCreateFromTemplate: (templateId: string, routineName: string, startDate: Date, endDate: Date | null) => Promise<void>;
-  onCreateBlank: (routineName: string, startDate: Date, endDate: Date | null) => Promise<void>;
+  onCreateFromTemplate: (
+    templateId: string,
+    routineName: string,
+    startDate: Date,
+    endDate: Date | null
+  ) => Promise<void>;
+  onCreateBlank: (
+    routineName: string,
+    startDate: Date,
+    endDate: Date | null
+  ) => Promise<void>;
   onUpdateRoutine: (data: RoutineFormData) => Promise<void>;
   onPublishRoutine: () => Promise<void>;
   onDeleteRoutine: () => Promise<void>;
@@ -107,7 +130,7 @@ export function RoutineSection({
     productName: "",
     productUrl: "",
     instructions: "",
-    frequency: "Daily",
+    frequency: "daily",
     days: undefined,
   });
 
@@ -134,7 +157,7 @@ export function RoutineSection({
         productName: "",
         productUrl: "",
         instructions: "",
-        frequency: "Daily",
+        frequency: "daily",
         days: undefined,
       });
       setAddingTo(null);
@@ -149,16 +172,26 @@ export function RoutineSection({
     onDeleteProduct(id);
   };
 
-  const handleDragEnd = (event: DragEndEvent, timeOfDay: "morning" | "evening") => {
+  const handleDragEnd = (
+    event: DragEndEvent,
+    timeOfDay: "morning" | "evening"
+  ) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const currentProducts = timeOfDay === "morning" ? morningProducts : eveningProducts;
-      const oldIndex = currentProducts.findIndex((item) => item.id === active.id);
+      console.log(`🎯 ROUTINE DRAG END (${timeOfDay}) - Calculating new order`);
+      const currentProducts =
+        timeOfDay === "morning" ? morningProducts : eveningProducts;
+      const oldIndex = currentProducts.findIndex(
+        (item) => item.id === active.id
+      );
       const newIndex = currentProducts.findIndex((item) => item.id === over.id);
       const reorderedProducts = arrayMove(currentProducts, oldIndex, newIndex);
 
+      console.log(`🎯 Calling parent handler (onReorderProducts for ${timeOfDay})`);
+      // Parent handler updates state optimistically (before server call)
       onReorderProducts(timeOfDay, reorderedProducts);
+      console.log("🎯 Parent handler called (not awaited)");
     }
   };
 
@@ -169,7 +202,7 @@ export function RoutineSection({
       productName: "",
       productUrl: "",
       instructions: "",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     });
   };
@@ -193,7 +226,7 @@ export function RoutineSection({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
           <Command>
             <CommandInput placeholder="Search routine step..." />
             <CommandList>
@@ -211,7 +244,9 @@ export function RoutineSection({
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        newProduct.routineStep === step ? "opacity-100" : "opacity-0"
+                        newProduct.routineStep === step
+                          ? "opacity-100"
+                          : "opacity-0"
                       )}
                     />
                     {step}
@@ -257,8 +292,8 @@ export function RoutineSection({
         onValueChange={(value) =>
           setNewProduct((prev) => ({
             ...prev,
-            frequency: value,
-            days: value === "Daily" ? undefined : prev.days || [],
+            frequency: value as Frequency,
+            days: value === "daily" ? undefined : prev.days || [],
           }))
         }
       >
@@ -267,14 +302,14 @@ export function RoutineSection({
         </SelectTrigger>
         <SelectContent>
           {FREQUENCIES.map((freq) => (
-            <SelectItem key={freq} value={freq}>
-              {freq}
+            <SelectItem key={freq.value} value={freq.value}>
+              {freq.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      {newProduct.frequency !== "Daily" && (
+      {newProduct.frequency !== "daily" && (
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
             Select Days
@@ -283,7 +318,8 @@ export function RoutineSection({
             {DAYS_OF_WEEK.map((day) => {
               const isSelected = newProduct.days?.includes(day.value);
               const maxDays = newProduct.frequency === "2x per week" ? 2 : 3;
-              const canSelect = isSelected || (newProduct.days?.length || 0) < maxDays;
+              const canSelect =
+                isSelected || (newProduct.days?.length || 0) < maxDays;
 
               return (
                 <button
@@ -353,7 +389,10 @@ export function RoutineSection({
               <p className="text-xs text-gray-400 mb-6">
                 Create a routine to track skincare products
               </p>
-              <Button variant="outline" onClick={() => setIsAddRoutineOpen(true)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddRoutineOpen(true)}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Routine
               </Button>
@@ -391,12 +430,18 @@ export function RoutineSection({
                   {statusLabel}
                 </Badge>
                 {routine.status === "draft" && (
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                  <Badge
+                    variant="outline"
+                    className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                  >
                     Draft
                   </Badge>
                 )}
                 {routine.status === "published" && (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <Badge
+                    variant="outline"
+                    className="bg-green-50 text-green-700 border-green-200"
+                  >
                     Published
                   </Badge>
                 )}
@@ -411,11 +456,7 @@ export function RoutineSection({
                 Edit
               </Button>
               {routine.status === "draft" && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={onPublishRoutine}
-                >
+                <Button variant="default" size="sm" onClick={onPublishRoutine}>
                   Publish
                 </Button>
               )}
@@ -477,7 +518,9 @@ export function RoutineSection({
                       onClick={() => setAddingTo("morning")}
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {morningProducts.length === 0 ? "Add Step" : "Add Another Step"}
+                      {morningProducts.length === 0
+                        ? "Add Step"
+                        : "Add Another Step"}
                     </Button>
                   )}
                 </div>
@@ -529,7 +572,9 @@ export function RoutineSection({
                       onClick={() => setAddingTo("evening")}
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {eveningProducts.length === 0 ? "Add Step" : "Add Another Step"}
+                      {eveningProducts.length === 0
+                        ? "Add Step"
+                        : "Add Another Step"}
                     </Button>
                   )}
                 </div>

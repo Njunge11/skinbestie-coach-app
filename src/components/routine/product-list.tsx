@@ -44,7 +44,7 @@ export function ProductList({
     productName: "",
     productUrl: "",
     instructions: "",
-    frequency: "Daily",
+    frequency: "daily",
     days: undefined,
   });
 
@@ -71,7 +71,7 @@ export function ProductList({
         productName: "",
         productUrl: "",
         instructions: "",
-        frequency: "Daily",
+        frequency: "daily",
         days: undefined,
       });
       setIsAdding(false);
@@ -85,7 +85,7 @@ export function ProductList({
       productName: "",
       productUrl: "",
       instructions: "",
-      frequency: "Daily",
+      frequency: "daily",
       days: undefined,
     });
   };

@@ -21,11 +21,15 @@ export default async function RoutineManagementPage() {
 
   const templates = templatesResult.data;
 
-  // Fetch products for each template
+  // Fetch products for all templates in parallel
   const templateDetails: Record<string, { morning: Product[]; evening: Product[] }> = {};
 
-  for (const template of templates) {
-    const productsResult = await getTemplateProducts(template.id);
+  const productsResults = await Promise.all(
+    templates.map((template) => getTemplateProducts(template.id))
+  );
+
+  templates.forEach((template, index) => {
+    const productsResult = productsResults[index];
 
     if (productsResult.success) {
       const products = productsResult.data;
@@ -36,7 +40,7 @@ export default async function RoutineManagementPage() {
     } else {
       templateDetails[template.id] = { morning: [], evening: [] };
     }
-  }
+  });
 
   // Calculate product counts for each template
   const templatesWithCounts = templates.map((template) => ({

@@ -9,7 +9,16 @@ export function makeRoutineRepo() {
   return {
     async findById(routineId: string): Promise<Routine | null> {
       const [routine] = await db
-        .select()
+        .select({
+          id: skincareRoutines.id,
+          userProfileId: skincareRoutines.userProfileId,
+          name: skincareRoutines.name,
+          startDate: skincareRoutines.startDate,
+          endDate: skincareRoutines.endDate,
+          status: skincareRoutines.status,
+          createdAt: skincareRoutines.createdAt,
+          updatedAt: skincareRoutines.updatedAt,
+        })
         .from(skincareRoutines)
         .where(eq(skincareRoutines.id, routineId))
         .limit(1)
@@ -20,7 +29,16 @@ export function makeRoutineRepo() {
 
     async findByUserId(userId: string): Promise<Routine | null> {
       const [routine] = await db
-        .select()
+        .select({
+          id: skincareRoutines.id,
+          userProfileId: skincareRoutines.userProfileId,
+          name: skincareRoutines.name,
+          startDate: skincareRoutines.startDate,
+          endDate: skincareRoutines.endDate,
+          status: skincareRoutines.status,
+          createdAt: skincareRoutines.createdAt,
+          updatedAt: skincareRoutines.updatedAt,
+        })
         .from(skincareRoutines)
         .where(eq(skincareRoutines.userProfileId, userId))
         .limit(1)

@@ -191,7 +191,7 @@ describe("Compliance Utils - Unit Tests", () => {
     describe("Daily frequency", () => {
       it("returns true for any day of the week", () => {
         const product = {
-          frequency: "Daily",
+          frequency: "daily",
           days: undefined,
         };
 

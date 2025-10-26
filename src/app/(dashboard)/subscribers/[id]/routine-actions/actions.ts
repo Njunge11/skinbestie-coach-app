@@ -4,7 +4,12 @@ import { z } from "zod";
 import { makeRoutineProductsRepo } from "./routine.repo";
 import type { RoutineProduct, NewRoutineProduct } from "./routine.repo.fake";
 import { makeRoutineRepo as makeRoutineInfoRepo } from "../routine-info-actions/routine.repo";
-import { generateScheduledStepsForProduct, deleteScheduledStepsForProduct } from "../compliance-actions/actions";
+import { deleteScheduledStepsForProduct } from "../compliance-actions/actions";
+import { db, skincareRoutineProducts, routineStepCompletions } from "@/lib/db";
+import { eq, and, asc, gte, inArray } from "drizzle-orm";
+import { makeUserProfileRepo } from "../compliance-actions/user-profile.repo";
+import { calculateDeadlines, shouldGenerateForDate } from "@/lib/compliance-utils";
+import { addMonths, addDays } from "date-fns";
 
 // Dependency injection for testing (follows TESTING.md)
 export type RoutineProductDeps = {
@@ -17,10 +22,12 @@ export type CreateRoutineProductWithRegenerationDeps = RoutineProductDeps & {
   routineRepo: {
     findById: (id: string) => Promise<{
       id: string;
+      userProfileId: string;
       status: "draft" | "published";
+      startDate: Date;
+      endDate: Date | null;
     } | null>;
   };
-  generateScheduledStepsForProduct: typeof generateScheduledStepsForProduct;
 };
 
 // Extended deps for updateRoutineProduct with regeneration
@@ -28,11 +35,12 @@ export type UpdateRoutineProductWithRegenerationDeps = RoutineProductDeps & {
   routineRepo: {
     findById: (id: string) => Promise<{
       id: string;
+      userProfileId: string;
       status: "draft" | "published";
+      startDate: Date;
+      endDate: Date | null;
     } | null>;
   };
-  deleteScheduledStepsForProduct: typeof deleteScheduledStepsForProduct;
-  generateScheduledStepsForProduct: typeof generateScheduledStepsForProduct;
 };
 
 // Extended deps for deleteRoutineProduct with cleanup
@@ -56,7 +64,6 @@ const defaultDeps: RoutineProductDeps = {
 const defaultDepsWithRegeneration: CreateRoutineProductWithRegenerationDeps = {
   repo: makeRoutineProductsRepo(),
   routineRepo: makeRoutineInfoRepo(),
-  generateScheduledStepsForProduct,
   now: () => new Date(),
 };
 
@@ -64,8 +71,6 @@ const defaultDepsWithRegeneration: CreateRoutineProductWithRegenerationDeps = {
 const defaultUpdateDepsWithRegeneration: UpdateRoutineProductWithRegenerationDeps = {
   repo: makeRoutineProductsRepo(),
   routineRepo: makeRoutineInfoRepo(),
-  deleteScheduledStepsForProduct,
-  generateScheduledStepsForProduct,
   now: () => new Date(),
 };
 
@@ -118,7 +123,7 @@ const createRoutineProductSchema = z.object({
     z.string().url().nullable().optional()
   ),
   instructions: requiredStringSchema,
-  frequency: requiredStringSchema,
+  frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]),
   days: z.array(z.string()).nullable().optional(),
   timeOfDay: timeOfDaySchema,
 });
@@ -132,7 +137,7 @@ const updateRoutineProductSchema = z.object({
     z.string().url().nullable().optional()
   ),
   instructions: z.string().trim().min(1).optional(),
-  frequency: z.string().trim().min(1).optional(),
+  frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]).optional(),
   days: z.array(z.string()).nullable().optional(),
 });
 
@@ -207,14 +212,19 @@ export async function getRoutineProductsByTimeOfDay(
 }
 
 /**
- * Create a new routine product for a user
+ * Create a new routine product
+ *
+ * TRANSACTION FIX: Previously product creation was in a transaction but
+ * step generation was outside, causing data integrity issues if step generation failed.
+ *
+ * FIX: Inline step generation SQL into the same transaction as product creation.
  */
 export async function createRoutineProduct(
   userId: string,
   input: CreateRoutineProductInput,
   deps: CreateRoutineProductWithRegenerationDeps = defaultDepsWithRegeneration
 ): Promise<Result<RoutineProduct>> {
-  const { repo, routineRepo, generateScheduledStepsForProduct, now } = deps;
+  const { routineRepo, now } = deps;
 
   // Validate input with Zod
   const validation = createRoutineProductSchema.safeParse({
@@ -227,75 +237,151 @@ export async function createRoutineProduct(
   }
 
   try {
-    // Check if routine exists and get its status
+    // Fetch routine BEFORE transaction (read-only)
     const routine = await routineRepo.findById(validation.data.routineId);
     if (!routine) {
       return { success: false, error: "Routine not found" };
     }
 
-    // Get existing products for this time of day to determine order
-    const existingProducts = await repo.findByUserIdAndTimeOfDay(
-      validation.data.userId,
-      validation.data.timeOfDay
-    );
+    // Prepare step generation data if routine is published
+    let completionsToCreate: Array<{
+      routineProductId: string;
+      userProfileId: string;
+      scheduledDate: Date;
+      scheduledTimeOfDay: "morning" | "evening";
+      onTimeDeadline: Date;
+      gracePeriodEnd: Date;
+      completedAt: null;
+      status: "pending";
+    }> = [];
 
-    // Calculate order (max order + 1, or 0 if no products)
-    const order =
-      existingProducts.length > 0
-        ? Math.max(...existingProducts.map((p) => p.order)) + 1
-        : 0;
-
-    const timestamp = now();
-
-    // Create product with validated data (already trimmed by Zod)
-    const newProduct: NewRoutineProduct = {
-      routineId: validation.data.routineId,
-      userProfileId: validation.data.userId,
-      routineStep: validation.data.routineStep,
-      productName: validation.data.productName,
-      productUrl: validation.data.productUrl ?? undefined,
-      instructions: validation.data.instructions,
-      frequency: validation.data.frequency,
-      days: validation.data.days ?? undefined,
-      timeOfDay: validation.data.timeOfDay,
-      order,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
-
-    const product = await repo.create(newProduct);
-
-    // If routine is published, generate scheduled steps for this product
     if (routine.status === "published") {
-      const generateResult = await generateScheduledStepsForProduct(
-        product.id,
-        validation.data.routineId,
-        validation.data.userId
-      );
-
-      if (!generateResult.success) {
-        // Rollback: delete the created product
-        await repo.deleteById(product.id);
-        return { success: false, error: generateResult.error };
+      // Fetch user for timezone
+      const userRepo = makeUserProfileRepo();
+      const user = await userRepo.findById(validation.data.userId);
+      if (!user) {
+        return { success: false, error: "User profile not found" };
       }
+
+      // We'll generate the product ID inside the transaction and set it later
     }
+
+    // CRITICAL: Product creation AND step generation in ONE transaction
+    const product = await db.transaction(async (tx) => {
+      // Get existing products for this time of day to determine order
+      const existingProducts = await tx
+        .select()
+        .from(skincareRoutineProducts)
+        .where(
+          and(
+            eq(skincareRoutineProducts.userProfileId, validation.data.userId),
+            eq(skincareRoutineProducts.timeOfDay, validation.data.timeOfDay)
+          )
+        )
+        .orderBy(asc(skincareRoutineProducts.order));
+
+      // Calculate order (max order + 1, or 0 if no products)
+      const order =
+        existingProducts.length > 0
+          ? Math.max(...existingProducts.map((p) => p.order)) + 1
+          : 0;
+
+      const timestamp = now();
+
+      // Create product with validated data (already trimmed by Zod)
+      const newProduct: NewRoutineProduct = {
+        routineId: validation.data.routineId,
+        userProfileId: validation.data.userId,
+        routineStep: validation.data.routineStep,
+        productName: validation.data.productName,
+        productUrl: validation.data.productUrl ?? undefined,
+        instructions: validation.data.instructions,
+        frequency: validation.data.frequency,
+        days: validation.data.days ?? undefined,
+        timeOfDay: validation.data.timeOfDay,
+        order,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+
+      // Create product using tx (transaction object)
+      const [createdProduct] = await tx
+        .insert(skincareRoutineProducts)
+        .values(newProduct)
+        .returning();
+
+      // If routine is published, generate scheduled steps in SAME transaction
+      if (routine.status === "published") {
+        const userRepo = makeUserProfileRepo();
+        const user = await userRepo.findById(validation.data.userId);
+        if (!user) {
+          throw new Error("User profile not found");
+        }
+
+        // Calculate scheduled steps from today onwards
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endDate = routine.endDate ?? addMonths(today, 6);
+
+        completionsToCreate = [];
+        let currentDate = new Date(today);
+
+        while (currentDate <= endDate) {
+          if (shouldGenerateForDate({
+            frequency: validation.data.frequency,
+            days: validation.data.days ?? undefined
+          }, currentDate)) {
+            const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
+              currentDate,
+              validation.data.timeOfDay,
+              user.timezone
+            );
+
+            completionsToCreate.push({
+              routineProductId: createdProduct.id,
+              userProfileId: validation.data.userId,
+              scheduledDate: new Date(currentDate),
+              scheduledTimeOfDay: validation.data.timeOfDay,
+              onTimeDeadline,
+              gracePeriodEnd,
+              completedAt: null,
+              status: "pending" as const,
+            });
+          }
+          currentDate = addDays(currentDate, 1);
+        }
+
+        // Insert all scheduled steps using tx
+        if (completionsToCreate.length > 0) {
+          await tx.insert(routineStepCompletions).values(completionsToCreate);
+        }
+      }
+
+      return createdProduct as RoutineProduct;
+    });
 
     return { success: true, data: product };
   } catch (error) {
     console.error("Error creating routine product:", error);
-    return { success: false, error: "Failed to create routine product" };
+    const errorMessage = error instanceof Error ? error.message : "Failed to create routine product";
+    return { success: false, error: errorMessage };
   }
 }
 
 /**
  * Update an existing routine product
+ *
+ * TRANSACTION FIX: Previously product update and step deletion were in a transaction
+ * but step regeneration was outside, causing data integrity issues if regeneration failed.
+ *
+ * FIX: Inline step regeneration SQL into the same transaction as update/delete.
  */
 export async function updateRoutineProduct(
   productId: string,
   updates: UpdateRoutineProductInput,
   deps: UpdateRoutineProductWithRegenerationDeps = defaultUpdateDepsWithRegeneration
 ): Promise<Result<void>> {
-  const { repo, routineRepo, deleteScheduledStepsForProduct, generateScheduledStepsForProduct, now } = deps;
+  const { routineRepo, now } = deps;
 
   // Validate input with Zod
   const validation = updateRoutineProductSchema.safeParse({
@@ -308,86 +394,135 @@ export async function updateRoutineProduct(
   }
 
   try {
-    // Get the product first to access routineId and userProfileId
-    const product = await repo.findById(validation.data.productId);
-    if (!product) {
-      return { success: false, error: "Routine product not found" };
-    }
+    // CRITICAL: Update, delete, AND regenerate in ONE transaction
+    await db.transaction(async (tx) => {
+      // Get the product first to access routineId and userProfileId
+      const [product] = await tx
+        .select()
+        .from(skincareRoutineProducts)
+        .where(eq(skincareRoutineProducts.id, validation.data.productId))
+        .limit(1);
 
-    // Check if routine exists and get its status
-    const routine = await routineRepo.findById(product.routineId);
-    if (!routine) {
-      return { success: false, error: "Routine not found" };
-    }
-
-    // Build update data with validated fields (already trimmed by Zod)
-    const updateData: Partial<RoutineProduct> = {
-      updatedAt: now(),
-    };
-
-    if (validation.data.routineStep !== undefined) {
-      updateData.routineStep = validation.data.routineStep;
-    }
-
-    if (validation.data.productName !== undefined) {
-      updateData.productName = validation.data.productName;
-    }
-
-    if (validation.data.productUrl !== undefined) {
-      updateData.productUrl = validation.data.productUrl ?? undefined;
-    }
-
-    if (validation.data.instructions !== undefined) {
-      updateData.instructions = validation.data.instructions;
-    }
-
-    if (validation.data.frequency !== undefined) {
-      updateData.frequency = validation.data.frequency;
-    }
-
-    if (validation.data.days !== undefined) {
-      updateData.days = validation.data.days ?? undefined;
-    }
-
-    // Update product
-    const updatedProduct = await repo.update(
-      validation.data.productId,
-      updateData
-    );
-
-    if (!updatedProduct) {
-      return { success: false, error: "Routine product not found" };
-    }
-
-    // If routine is published, regenerate scheduled steps
-    if (routine.status === "published") {
-      // Delete existing pending/missed steps from today onwards
-      const deleteResult = await deleteScheduledStepsForProduct(
-        product.id,
-        product.routineId,
-        product.userProfileId
-      );
-
-      if (!deleteResult.success) {
-        return { success: false, error: deleteResult.error };
+      if (!product) {
+        throw new Error("Routine product not found");
       }
 
-      // Generate new steps with updated product settings
-      const generateResult = await generateScheduledStepsForProduct(
-        product.id,
-        product.routineId,
-        product.userProfileId
-      );
-
-      if (!generateResult.success) {
-        return { success: false, error: generateResult.error };
+      // Check if routine exists and get its status
+      const routine = await routineRepo.findById(product.routineId);
+      if (!routine) {
+        throw new Error("Routine not found");
       }
-    }
+
+      // Build update data with validated fields (already trimmed by Zod)
+      const updateData: Partial<RoutineProduct> = {
+        updatedAt: now(),
+      };
+
+      if (validation.data.routineStep !== undefined) {
+        updateData.routineStep = validation.data.routineStep;
+      }
+
+      if (validation.data.productName !== undefined) {
+        updateData.productName = validation.data.productName;
+      }
+
+      if (validation.data.productUrl !== undefined) {
+        updateData.productUrl = validation.data.productUrl ?? undefined;
+      }
+
+      if (validation.data.instructions !== undefined) {
+        updateData.instructions = validation.data.instructions;
+      }
+
+      if (validation.data.frequency !== undefined) {
+        updateData.frequency = validation.data.frequency;
+      }
+
+      if (validation.data.days !== undefined) {
+        updateData.days = validation.data.days ?? undefined;
+      }
+
+      // Update product using tx (transaction object)
+      const [updatedProduct] = await tx
+        .update(skincareRoutineProducts)
+        .set(updateData)
+        .where(eq(skincareRoutineProducts.id, validation.data.productId))
+        .returning();
+
+      if (!updatedProduct) {
+        throw new Error("Routine product not found");
+      }
+
+      // If routine is published, delete old steps and regenerate in SAME transaction
+      if (routine.status === "published") {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Delete pending and missed steps from today onwards using tx
+        const deletedSteps = await tx
+          .delete(routineStepCompletions)
+          .where(
+            and(
+              eq(routineStepCompletions.routineProductId, product.id),
+              gte(routineStepCompletions.scheduledDate, today),
+              inArray(routineStepCompletions.status, ["pending", "missed"])
+            )
+          )
+          .returning({ id: routineStepCompletions.id });
+
+        console.log(`Deleted ${deletedSteps.length} scheduled steps for product ${product.id}`);
+
+        // Regenerate steps inline in SAME transaction
+        const userRepo = makeUserProfileRepo();
+        const user = await userRepo.findById(product.userProfileId);
+        if (!user) {
+          throw new Error("User profile not found");
+        }
+
+        // Calculate end date
+        const endDate = routine.endDate ?? addMonths(today, 6);
+
+        // Generate new completion records
+        const completionsToCreate = [];
+        let currentDate = new Date(today);
+
+        while (currentDate <= endDate) {
+          if (shouldGenerateForDate({
+            frequency: updatedProduct.frequency,
+            days: updatedProduct.days ?? undefined
+          }, currentDate)) {
+            const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
+              currentDate,
+              updatedProduct.timeOfDay as "morning" | "evening",
+              user.timezone
+            );
+
+            completionsToCreate.push({
+              routineProductId: updatedProduct.id,
+              userProfileId: product.userProfileId,
+              scheduledDate: new Date(currentDate),
+              scheduledTimeOfDay: updatedProduct.timeOfDay as "morning" | "evening",
+              onTimeDeadline,
+              gracePeriodEnd,
+              completedAt: null,
+              status: "pending" as const,
+            });
+          }
+          currentDate = addDays(currentDate, 1);
+        }
+
+        // Insert new scheduled steps using tx
+        if (completionsToCreate.length > 0) {
+          await tx.insert(routineStepCompletions).values(completionsToCreate);
+        }
+      }
+    });
 
     return { success: true, data: undefined };
   } catch (error) {
     console.error("Error updating routine product:", error);
-    return { success: false, error: "Failed to update routine product" };
+    const errorMessage = error instanceof Error ? error.message : "Failed to update routine product";
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -398,7 +533,7 @@ export async function deleteRoutineProduct(
   productId: string,
   deps: DeleteRoutineProductWithCleanupDeps = defaultDeleteDepsWithCleanup
 ): Promise<Result<void>> {
-  const { repo, routineRepo, deleteScheduledStepsForProduct } = deps;
+  const { routineRepo } = deps;
 
   // Validate input with Zod
   const validation = deleteRoutineProductSchema.safeParse({ productId });
@@ -408,42 +543,62 @@ export async function deleteRoutineProduct(
   }
 
   try {
-    // Get the product first to access routineId and userProfileId
-    const product = await repo.findById(validation.data.productId);
-    if (!product) {
-      return { success: false, error: "Routine product not found" };
-    }
+    // Wrap entire operation in transaction for atomicity
+    await db.transaction(async (tx) => {
+      // Get the product first to access routineId and userProfileId
+      const [product] = await tx
+        .select()
+        .from(skincareRoutineProducts)
+        .where(eq(skincareRoutineProducts.id, validation.data.productId))
+        .limit(1);
 
-    // Check if routine exists and get its status
-    const routine = await routineRepo.findById(product.routineId);
-    if (!routine) {
-      return { success: false, error: "Routine not found" };
-    }
-
-    // If routine is published, cleanup scheduled steps first
-    if (routine.status === "published") {
-      const deleteResult = await deleteScheduledStepsForProduct(
-        product.id,
-        product.routineId,
-        product.userProfileId
-      );
-
-      if (!deleteResult.success) {
-        return { success: false, error: deleteResult.error };
+      if (!product) {
+        throw new Error("Routine product not found");
       }
-    }
 
-    // Delete product
-    const deletedProduct = await repo.deleteById(validation.data.productId);
+      // Check if routine exists and get its status (read-only, not critical if outside tx)
+      const routine = await routineRepo.findById(product.routineId);
+      if (!routine) {
+        throw new Error("Routine not found");
+      }
 
-    if (!deletedProduct) {
-      return { success: false, error: "Routine product not found" };
-    }
+      // If routine is published, cleanup scheduled steps first
+      // CRITICAL: Use tx to delete steps, NOT the helper function which uses global db
+      if (routine.status === "published") {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Delete pending and missed steps from today onwards using tx
+        const deletedSteps = await tx
+          .delete(routineStepCompletions)
+          .where(
+            and(
+              eq(routineStepCompletions.routineProductId, product.id),
+              gte(routineStepCompletions.scheduledDate, today),
+              inArray(routineStepCompletions.status, ["pending", "missed"])
+            )
+          )
+          .returning({ id: routineStepCompletions.id });
+
+        console.log(`Deleted ${deletedSteps.length} scheduled steps for product ${product.id}`);
+      }
+
+      // Delete product using tx (transaction object)
+      const [deletedProduct] = await tx
+        .delete(skincareRoutineProducts)
+        .where(eq(skincareRoutineProducts.id, validation.data.productId))
+        .returning();
+
+      if (!deletedProduct) {
+        throw new Error("Routine product not found");
+      }
+    });
 
     return { success: true, data: undefined };
   } catch (error) {
     console.error("Error deleting routine product:", error);
-    return { success: false, error: "Failed to delete routine product" };
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete routine product";
+    return { success: false, error: errorMessage };
   }
 }
 
