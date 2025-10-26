@@ -1,8 +1,6 @@
 # Production Deployment Workflow
 # This workflow runs when code is pushed to the main branch (production)
-# It runs tests and checks for schema changes
-# IMPORTANT: Schema changes are NOT automatically applied to production for safety
-# You must manually run migrations before merging to main
+# It runs tests, applies migrations to PlanetScale, then Vercel deploys automatically
 
 name: Production - Deploy
 
@@ -19,8 +17,6 @@ jobs:
       # Step 1: Get the latest code from main branch
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2  # Fetch last 2 commits so we can compare for schema changes
 
       # Step 2: Setup Node.js with npm caching
       - name: Setup Node.js
@@ -34,53 +30,26 @@ jobs:
         run: npm ci
 
       # Step 4: Run tests against production database
-      # These should be read-only tests or tests against a production-like test database
-      # Do NOT modify production data in tests
+      # Validates that code works before applying any schema changes
       - name: Run tests
         run: npm run test:run
         env:
           DATABASE_URL: ${{ secrets.PLANETSCALE_POSTGRES_URL }}
 
-      # Step 5: Check if database schema file was modified
-      # Compares the current commit with the previous commit
-      # If schema.ts changed, we need to remind developers to run migrations manually
-      - name: Check for schema changes
-        id: schema-check
-        run: |
-          if git diff HEAD~1 HEAD --name-only | grep -q "src/lib/db/schema.ts"; then
-            echo "schema_changed=true" >> $GITHUB_OUTPUT
-            echo "⚠️ Schema changes detected in src/lib/db/schema.ts"
-          else
-            echo "schema_changed=false" >> $GITHUB_OUTPUT
-            echo "✅ No schema changes detected"
-          fi
+      # Step 5: Apply database migrations to PlanetScale production
+      # Runs migration SQL files that were generated locally with db:generate
+      # These migrations are version-controlled and reviewable before deployment
+      # Provides audit trail and rollback capability for production changes
+      - name: Apply database migrations to production
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.PLANETSCALE_POSTGRES_URL }}
 
-      # Step 6: Alert if schema changed
-      # Production schema changes must be applied manually before deployment
-      # This ensures you review SQL migrations and can roll back if needed
-      - name: Schema change alert
-        if: steps.schema-check.outputs.schema_changed == 'true'
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "⚠️  SCHEMA CHANGES DETECTED"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "Schema changes should have been applied manually BEFORE merging to main."
-          echo ""
-          echo "If you haven't applied migrations yet:"
-          echo "  1. Generate migration: DATABASE_URL=\$PLANETSCALE_POSTGRES_URL npm run db:generate"
-          echo "  2. Review the generated SQL file in src/lib/db/migrations/"
-          echo "  3. Apply migration: DATABASE_URL=\$PLANETSCALE_POSTGRES_URL npm run db:migrate"
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-      # Step 7: Log deployment success
+      # Step 6: Log deployment success
       # Vercel handles the actual deployment to admin.skinbestie.co automatically
-      # This workflow validates the code before deployment happens
+      # This workflow validates the code and updates the database before deployment
       - name: Notify deployment
         if: success()
         run: |
-          echo "✅ Production deployment successful: https://admin.skinbestie.co"
-          if [ "${{ steps.schema-check.outputs.schema_changed }}" == "true" ]; then
-            echo "⚠️  Remember: Verify that database migrations were applied successfully"
-          fi
+          echo "✅ Production checks passed and database schema applied"
+          echo "🚀 Vercel will deploy to: https://admin.skinbestie.co"
