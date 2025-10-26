@@ -46,7 +46,7 @@ jobs:
       # Re-seeds the database with fresh test data
       # This ensures staging always has consistent, known test data for QA
       - name: Seed staging database
-        run: node src/scripts/seed-profiles.ts
+        run: npx tsx src/scripts/seed-profiles.ts
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
 

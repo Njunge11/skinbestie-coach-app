@@ -68,7 +68,7 @@ jobs:
       # Runs your seed script to populate tables with test users, products, etc.
       # This ensures the preview has realistic data for testing
       - name: Seed database
-        run: node src/scripts/seed-profiles.ts
+        run: npx tsx src/scripts/seed-profiles.ts
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
