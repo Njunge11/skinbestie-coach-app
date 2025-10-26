@@ -281,6 +281,7 @@ describe("TemplateList", () => {
 
     vi.mocked(deleteTemplate).mockResolvedValueOnce({
       success: true,
+      data: undefined,
     });
 
     const templates = [
@@ -399,6 +400,9 @@ describe("TemplateList", () => {
         id: "template-1",
         name: "Updated Treatment",
         description: "Updated description",
+        createdBy: "admin-1",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
 
@@ -526,7 +530,20 @@ describe("TemplateList", () => {
 
     vi.mocked(updateTemplateProduct).mockResolvedValueOnce({
       success: true,
-      data: { id: "product-1", routineStep: "Cleanser", productName: "Updated Cleanser" },
+      data: {
+        id: "product-1",
+        templateId: "template-1",
+        routineStep: "Cleanser",
+        productName: "Updated Cleanser",
+        productUrl: null,
+        instructions: "Apply gently",
+        frequency: "daily",
+        days: null,
+        timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     });
 
     const templates = [
@@ -550,8 +567,10 @@ describe("TemplateList", () => {
             productName: "Gentle Cleanser",
             productUrl: null,
             instructions: "Apply to damp skin",
-            frequency: "Daily",
-            days: undefined,
+            frequency: "daily" as const,
+            days: null,
+            timeOfDay: "morning" as const,
+            order: 0,
           },
         ],
         evening: [],
@@ -625,8 +644,10 @@ describe("TemplateList", () => {
             productName: "Gentle Cleanser",
             productUrl: null,
             instructions: "Apply to damp skin",
-            frequency: "Daily",
-            days: undefined,
+            frequency: "daily" as const,
+            days: null,
+            timeOfDay: "morning" as const,
+            order: 0,
           },
         ],
         evening: [],
@@ -672,6 +693,7 @@ describe("TemplateList", () => {
 
     vi.mocked(deleteTemplateProduct).mockResolvedValueOnce({
       success: true,
+      data: undefined,
     });
 
     const templates = [
@@ -695,8 +717,10 @@ describe("TemplateList", () => {
             productName: "Gentle Cleanser",
             productUrl: null,
             instructions: "Apply to damp skin",
-            frequency: "Daily",
-            days: undefined,
+            frequency: "daily" as const,
+            days: null,
+            timeOfDay: "morning" as const,
+            order: 0,
           },
         ],
         evening: [],
@@ -757,8 +781,10 @@ describe("TemplateList", () => {
             productName: "Gentle Cleanser",
             productUrl: null,
             instructions: "Apply to damp skin",
-            frequency: "Daily",
-            days: undefined,
+            frequency: "daily" as const,
+            days: null,
+            timeOfDay: "morning" as const,
+            order: 0,
           },
         ],
         evening: [],
@@ -798,7 +824,20 @@ describe("TemplateList", () => {
 
     vi.mocked(updateTemplateProduct).mockResolvedValueOnce({
       success: true,
-      data: { id: "product-2", routineStep: "Moisturizer / Cream", productName: "Updated Moisturizer" },
+      data: {
+        id: "product-2",
+        templateId: "template-1",
+        routineStep: "Moisturizer / Cream",
+        productName: "Updated Moisturizer",
+        productUrl: null,
+        instructions: "Apply before bed",
+        frequency: "daily",
+        days: null,
+        timeOfDay: "evening",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     });
 
     const templates = [
@@ -823,8 +862,10 @@ describe("TemplateList", () => {
             productName: "Night Cream",
             productUrl: null,
             instructions: "Apply before bed",
-            frequency: "Daily",
-            days: undefined,
+            frequency: "daily" as const,
+            days: null,
+            timeOfDay: "evening" as const,
+            order: 0,
           },
         ],
       },
@@ -894,8 +935,10 @@ describe("TemplateList", () => {
             productName: "Night Cream",
             productUrl: null,
             instructions: "Apply before bed",
-            frequency: "Daily",
-            days: undefined,
+            frequency: "daily" as const,
+            days: null,
+            timeOfDay: "evening" as const,
+            order: 0,
           },
         ],
       },
@@ -937,6 +980,7 @@ describe("TemplateList", () => {
 
     vi.mocked(deleteTemplateProduct).mockResolvedValueOnce({
       success: true,
+      data: undefined,
     });
 
     const templates = [
@@ -961,8 +1005,10 @@ describe("TemplateList", () => {
             productName: "Night Cream",
             productUrl: null,
             instructions: "Apply before bed",
-            frequency: "Daily",
-            days: undefined,
+            frequency: "daily" as const,
+            days: null,
+            timeOfDay: "evening" as const,
+            order: 0,
           },
         ],
       },
@@ -1022,8 +1068,10 @@ describe("TemplateList", () => {
             productName: "Night Cream",
             productUrl: null,
             instructions: "Apply before bed",
-            frequency: "Daily",
-            days: undefined,
+            frequency: "daily" as const,
+            days: null,
+            timeOfDay: "evening" as const,
+            order: 0,
           },
         ],
       },

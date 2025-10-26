@@ -432,6 +432,7 @@ export function ClientPageWrapper({
     // Call server action with routineId
     const result = await createRoutineProduct(userId, {
       ...data,
+      days: data.days ?? null,
       routineId: routine.id,
       timeOfDay,
     });

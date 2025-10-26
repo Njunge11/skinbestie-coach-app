@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { POST } from "./route";
 
 // Mock the server actions module
@@ -27,7 +27,7 @@ describe("POST /api/user-profiles", () => {
   describe("Authentication", () => {
     it("returns 401 when API key is missing", async () => {
       // Given: request without API key
-      const mockAuthError = Response.json(
+      const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
         { status: 401 }
       );
@@ -59,7 +59,7 @@ describe("POST /api/user-profiles", () => {
 
     it("returns 401 when API key is invalid", async () => {
       // Given: request with invalid API key
-      const mockAuthError = Response.json(
+      const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
         { status: 401 }
       );

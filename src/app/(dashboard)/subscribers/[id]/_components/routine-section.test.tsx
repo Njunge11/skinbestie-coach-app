@@ -9,6 +9,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   const mockOnCreateFromTemplate = vi.fn();
   const mockOnCreateBlank = vi.fn();
   const mockOnUpdateRoutine = vi.fn();
+  const mockOnPublishRoutine = vi.fn();
   const mockOnDeleteRoutine = vi.fn();
   const mockOnAddProduct = vi.fn();
   const mockOnUpdateProduct = vi.fn();
@@ -36,6 +37,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -82,9 +84,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Winter Routine",
       startDate: new Date("2025-01-15"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     rerender(
@@ -95,6 +95,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -149,6 +150,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -207,9 +209,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "Old Routine Name",
       startDate: new Date("2025-01-01"),
       endDate: new Date("2025-03-01"),
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -220,6 +220,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -264,9 +265,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "Routine to Delete",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const { rerender } = render(
@@ -277,6 +276,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -310,6 +310,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -330,9 +331,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -343,6 +342,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -387,9 +387,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -403,6 +401,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -414,6 +415,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -443,10 +445,10 @@ describe("RoutineSection - Complete User Workflows", () => {
     expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
       routineStep: "Cleanser",
       productName: "CeraVe Cleanser",
-      productUrl: null,
+      productUrl: "",
       instructions: "Updated instructions",
       frequency: "daily",
-      days: null,
+      days: undefined,
     });
   });
 
@@ -458,9 +460,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -474,6 +474,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -485,6 +488,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -511,9 +515,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -524,6 +526,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -586,6 +589,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -638,6 +642,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -675,6 +680,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -705,6 +711,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -746,9 +753,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -759,6 +764,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -814,6 +820,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -878,6 +885,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -923,9 +931,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -939,6 +945,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -950,6 +959,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -992,9 +1002,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -1008,6 +1016,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "2x per week",
         days: ["Mon", "Thu"],
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -1019,6 +1030,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -1050,7 +1062,7 @@ describe("RoutineSection - Complete User Workflows", () => {
     expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
       routineStep: "Exfoliant / Peel",
       productName: "AHA Toner",
-      productUrl: null,
+      productUrl: "",
       instructions: "Apply with cotton pad",
       frequency: "daily",
       days: undefined,
@@ -1065,9 +1077,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -1078,6 +1088,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -1143,9 +1154,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -1159,6 +1168,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -1170,6 +1182,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -1191,9 +1204,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -1207,6 +1218,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "2x per week",
         days: ["Mon", "Thu"],
         timeOfDay: "evening",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -1218,6 +1232,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}

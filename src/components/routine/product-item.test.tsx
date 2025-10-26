@@ -17,6 +17,8 @@ describe("ProductItem", () => {
       instructions: "Apply to damp skin, massage gently",
       frequency: "2x per week",
       days: ["Mon", "Fri"],
+      timeOfDay: "morning",
+      order: 0,
     };
 
     render(
@@ -55,8 +57,10 @@ describe("ProductItem", () => {
       productName: "Vitamin C Serum",
       productUrl: "https://example.com/serum",
       instructions: "Apply in the morning",
-      frequency: "Daily",
+      frequency: "daily",
       days: null,
+      timeOfDay: "morning",
+      order: 0,
     };
 
     render(
@@ -86,8 +90,10 @@ describe("ProductItem", () => {
       productName: "Simple Face Cream",
       productUrl: null,
       instructions: "Apply after serum",
-      frequency: "Daily",
+      frequency: "daily",
       days: null,
+      timeOfDay: "morning",
+      order: 0,
     };
 
     render(
@@ -115,8 +121,10 @@ describe("ProductItem", () => {
       productName: "Hydrating Toner",
       productUrl: "https://example.com/toner",
       instructions: "Apply with cotton pad",
-      frequency: "Daily",
+      frequency: "daily",
       days: null,
+      timeOfDay: "morning",
+      order: 0,
     };
 
     render(
@@ -153,8 +161,10 @@ describe("ProductItem", () => {
       productName: "Simple Moisturizer",
       productUrl: null,
       instructions: "Apply to face",
-      frequency: "Daily",
+      frequency: "daily",
       days: null,
+      timeOfDay: "morning",
+      order: 0,
     };
 
     render(

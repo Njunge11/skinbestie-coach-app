@@ -95,7 +95,7 @@ export async function createRoutine(
   input: CreateRoutineInput,
   deps: RoutineDeps = defaultDeps
 ): Promise<Result<Routine>> {
-  const { repo, now } = deps;
+  const { repo } = deps;
 
   // Validate input with Zod
   const validation = createRoutineSchema.safeParse({

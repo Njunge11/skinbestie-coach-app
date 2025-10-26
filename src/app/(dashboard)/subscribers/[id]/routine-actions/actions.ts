@@ -224,7 +224,7 @@ export async function createRoutineProduct(
   input: CreateRoutineProductInput,
   deps: CreateRoutineProductWithRegenerationDeps = defaultDepsWithRegeneration
 ): Promise<Result<RoutineProduct>> {
-  const { routineRepo, now } = deps;
+  const { routineRepo } = deps;
 
   // Validate input with Zod
   const validation = createRoutineProductSchema.safeParse({

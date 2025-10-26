@@ -97,7 +97,7 @@ export async function createGoal(
   input: CreateGoalInput,
   deps: GoalDeps = defaultDeps
 ): Promise<Result<Goal>> {
-  const { repo, now } = deps;
+  const { repo } = deps;
 
   // Validate input with Zod
   const validation = createGoalSchema.safeParse({
