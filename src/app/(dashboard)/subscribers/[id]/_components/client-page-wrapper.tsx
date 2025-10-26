@@ -338,8 +338,6 @@ export function ClientPageWrapper({
       setRoutineProducts(
         result.data.products.map((p) => ({
           ...p,
-          productUrl: p.productUrl ?? undefined,
-          days: p.days ?? undefined,
           timeOfDay: p.timeOfDay as "morning" | "evening",
           frequency: p.frequency as Frequency,
         }))
@@ -417,6 +415,8 @@ export function ClientPageWrapper({
       id: `temp-${Date.now()}`,
       routineId: routine.id,
       ...data,
+      productUrl: data.productUrl ?? null,
+      days: data.days ?? null,
       timeOfDay,
       order: sameTimeProducts.length,
       createdAt: new Date(),

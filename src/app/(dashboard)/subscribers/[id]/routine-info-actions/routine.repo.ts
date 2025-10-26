@@ -3,7 +3,20 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { skincareRoutines } from "@/lib/db/schema";
-import type { Routine, NewRoutine } from "./routine.repo.fake";
+
+// Type definitions
+export type Routine = {
+  id: string;
+  userProfileId: string;
+  name: string;
+  startDate: Date;
+  endDate: Date | null;
+  status: "draft" | "published";
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type NewRoutine = Omit<Routine, "id" | "createdAt" | "updatedAt">;
 
 export function makeRoutineRepo() {
   return {

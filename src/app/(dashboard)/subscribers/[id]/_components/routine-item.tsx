@@ -180,7 +180,7 @@ export function RoutineItem({
             setEditData((prev) => ({
               ...prev,
               frequency: value as Frequency,
-              days: value === "daily" ? undefined : prev.days || [],
+              days: value === "daily" ? null : prev.days || [],
             }))
           }
         >

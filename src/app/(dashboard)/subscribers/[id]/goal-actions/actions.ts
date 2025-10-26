@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { makeGoalsRepo } from "./goals.repo";
-import type { Goal, NewGoal } from "./goals.repo.fake";
+import type { Goal, NewGoal } from "./goals.repo";
 
 // Dependency injection for testing (follows TESTING.md)
 export type GoalDeps = {
@@ -120,8 +120,6 @@ export async function createGoal(
       ? Math.max(...existingGoals.map((g) => g.order)) + 1
       : 0;
 
-    const timestamp = now();
-
     // Create goal with validated data (already trimmed by Zod)
     const newGoal: NewGoal = {
       userProfileId: validation.data.userId,
@@ -130,8 +128,6 @@ export async function createGoal(
       timeframe: validation.data.timeframe,
       complete: false,
       order,
-      createdAt: timestamp,
-      updatedAt: timestamp,
     };
 
     const goal = await repo.create(newGoal);

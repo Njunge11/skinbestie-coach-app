@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { makeUserProfileRepo } from "./user-profile.repo";
-import type { UserProfile } from "./user-profile.repo.fake";
+import type { UserProfile } from "./user-profile.repo";
 
 // Dependency injection for testing (follows TESTING.md)
 export type SubscriberDeps = {

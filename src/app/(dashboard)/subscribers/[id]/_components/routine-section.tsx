@@ -128,10 +128,10 @@ export function RoutineSection({
   const [newProduct, setNewProduct] = useState<RoutineProductFormData>({
     routineStep: "",
     productName: "",
-    productUrl: "",
+    productUrl: null,
     instructions: "",
     frequency: "daily",
-    days: undefined,
+    days: null,
   });
 
   const sensors = useSensors(
@@ -155,10 +155,10 @@ export function RoutineSection({
       setNewProduct({
         routineStep: "",
         productName: "",
-        productUrl: "",
+        productUrl: null,
         instructions: "",
         frequency: "daily",
-        days: undefined,
+        days: null,
       });
       setAddingTo(null);
     }
@@ -200,10 +200,10 @@ export function RoutineSection({
     setNewProduct({
       routineStep: "",
       productName: "",
-      productUrl: "",
+      productUrl: null,
       instructions: "",
       frequency: "daily",
-      days: undefined,
+      days: null,
     });
   };
 
@@ -269,9 +269,9 @@ export function RoutineSection({
 
       <Input
         placeholder="Product URL (optional)"
-        value={newProduct.productUrl}
+        value={newProduct.productUrl || ""}
         onChange={(e) =>
-          setNewProduct((prev) => ({ ...prev, productUrl: e.target.value }))
+          setNewProduct((prev) => ({ ...prev, productUrl: e.target.value || null }))
         }
         type="url"
         className="text-sm"
@@ -293,7 +293,7 @@ export function RoutineSection({
           setNewProduct((prev) => ({
             ...prev,
             frequency: value as Frequency,
-            days: value === "daily" ? undefined : prev.days || [],
+            days: value === "daily" ? null : prev.days || [],
           }))
         }
       >

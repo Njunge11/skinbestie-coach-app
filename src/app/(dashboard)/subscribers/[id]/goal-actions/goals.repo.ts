@@ -3,7 +3,21 @@
 import { eq, asc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { skincareGoals } from "@/lib/db/schema";
-import type { Goal, NewGoal } from "./goals.repo.fake";
+
+// Type definitions
+export type Goal = {
+  id: string;
+  userProfileId: string;
+  name: string;
+  description: string;
+  timeframe: string;
+  complete: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type NewGoal = Omit<Goal, "id" | "createdAt" | "updatedAt">;
 
 export function makeGoalsRepo() {
   return {

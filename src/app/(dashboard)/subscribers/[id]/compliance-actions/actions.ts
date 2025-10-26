@@ -2,7 +2,6 @@
 
 import { z } from "zod";
 import { makeRoutineStepCompletionsRepo } from "./routine-step-completions.repo";
-import { makeRoutineStepCompletionsRepoFake } from "./routine-step-completions.repo.fake";
 import { makeRoutineRepo } from "./routine.repo";
 import { makeRoutineProductsRepo } from "./routine-products.repo";
 import { makeUserProfileRepo } from "./user-profile.repo";
@@ -15,9 +14,9 @@ type SuccessResult<T> = { success: true; data: T };
 type ErrorResult = { success: false; error: string };
 type Result<T> = SuccessResult<T> | ErrorResult;
 
-// Dependency injection type (accepts either real or fake repo)
+// Dependency injection type
 export type ComplianceDeps = {
-  repo: ReturnType<typeof makeRoutineStepCompletionsRepo> | ReturnType<typeof makeRoutineStepCompletionsRepoFake>;
+  repo: ReturnType<typeof makeRoutineStepCompletionsRepo>;
 };
 
 // Default dependencies (uses REAL repo for production)
@@ -176,7 +175,7 @@ export type GenerateStepsDeps = {
       timezone: string;
     } | null>;
   };
-  completionsRepo: ReturnType<typeof makeRoutineStepCompletionsRepo> | ReturnType<typeof makeRoutineStepCompletionsRepoFake>;
+  completionsRepo: ReturnType<typeof makeRoutineStepCompletionsRepo>;
 };
 
 // Default dependencies for generateScheduledSteps (uses REAL repos for production)
@@ -435,7 +434,7 @@ export async function generateScheduledSteps(
 
 // Dependency injection type for getComplianceStats
 export type ComplianceStatsDeps = {
-  completionsRepo: ReturnType<typeof makeRoutineStepCompletionsRepo> | ReturnType<typeof makeRoutineStepCompletionsRepoFake>;
+  completionsRepo: ReturnType<typeof makeRoutineStepCompletionsRepo>;
   productsRepo: ReturnType<typeof makeRoutineProductsRepoForStats>;
 };
 
