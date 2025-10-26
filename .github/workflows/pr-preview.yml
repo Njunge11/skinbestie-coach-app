@@ -24,6 +24,12 @@ on:
           - 'true'
           - 'false'
 
+# Permissions needed for the workflow
+permissions:
+  contents: read          # Read repository contents
+  issues: write           # Post comments on issues
+  pull-requests: write    # Post comments on pull requests
+
 jobs:
   setup-and-test:
     runs-on: ubuntu-latest
