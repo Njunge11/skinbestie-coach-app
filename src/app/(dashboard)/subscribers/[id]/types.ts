@@ -83,10 +83,10 @@ export interface RoutineProduct {
 export interface RoutineProductFormData {
   routineStep: string;
   productName: string;
-  productUrl: string | null;
+  productUrl: string;
   instructions: string;
   frequency: Frequency;
-  days: string[] | null;
+  days?: string[];
 }
 
 export interface CoachNote {
