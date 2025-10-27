@@ -26,6 +26,7 @@ export function makeCoachNotesRepo() {
     },
 
     async findByUserProfileId(userProfileId: string): Promise<CoachNote[]> {
+      console.time('[REPO-COACH-NOTES] query');
       const notes = await db
         .select({
           id: coachNotes.id,
@@ -37,7 +38,9 @@ export function makeCoachNotesRepo() {
         })
         .from(coachNotes)
         .where(eq(coachNotes.userProfileId, userProfileId))
-        .orderBy(desc(coachNotes.createdAt));
+        .orderBy(desc(coachNotes.createdAt))
+        .limit(100);
+      console.timeEnd('[REPO-COACH-NOTES] query');
       return notes;
     },
 
