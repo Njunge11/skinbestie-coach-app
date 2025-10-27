@@ -1,0 +1,59 @@
+# Staging Deployment Workflow
+# This workflow runs when code is pushed to the staging branch
+# It runs tests, applies migrations to Supabase, then Vercel deploys automatically
+
+name: Staging - Deploy
+
+on:
+  push:
+    branches:
+      - staging  # Only triggers on pushes to staging branch
+
+# Permissions needed for the workflow
+permissions:
+  contents: read          # Read repository contents
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # Step 1: Get the latest code from staging branch
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js with npm caching
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run tests against staging database
+      # Validates that code works before applying any schema changes
+      - name: Run tests
+        run: npm run test:run
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+
+      # Step 5: Apply database migrations to Supabase staging
+      # Runs migration SQL files that were generated locally with db:generate
+      # These migrations are version-controlled and reviewable before deployment
+      - name: Apply database migrations to staging
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+
+      # Step 6: Log deployment success
+      # Vercel handles the actual deployment to staging.admin.skinbestie.co automatically
+      # This workflow validates the code and updates the database before deployment
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Staging checks passed and database schema applied"
+          echo "🚀 Vercel will deploy to: https://staging.admin.skinbestie.co"
