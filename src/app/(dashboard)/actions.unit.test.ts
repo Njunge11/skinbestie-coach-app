@@ -49,7 +49,7 @@ describe("Bookings Server Actions - Unit Tests", () => {
       const result = await fetchBookings(undefined, deps);
 
       expect(result.success).toBe(true);
-      if (result.success) {
+      if (result.success && result.data) {
         expect(result.data).toHaveLength(1);
         expect(result.data[0]).toMatchObject({
           id: 12345,
@@ -81,7 +81,7 @@ describe("Bookings Server Actions - Unit Tests", () => {
         now: () => mockNow,
       };
 
-      await fetchBookings({ dateFilter: "upcoming" }, deps);
+      await fetchBookings({ dateFilter: "upcoming", statusFilter: "all" }, deps);
 
       const callArgs = mockCalendlyFetch.mock.calls[0][0] as string;
       // Decode URL since query params are URL encoded
@@ -103,7 +103,7 @@ describe("Bookings Server Actions - Unit Tests", () => {
         now: () => mockNow,
       };
 
-      await fetchBookings({ dateFilter: "today" }, deps);
+      await fetchBookings({ dateFilter: "today", statusFilter: "all" }, deps);
 
       const callArgs = mockCalendlyFetch.mock.calls[0][0] as string;
       const decodedArgs = decodeURIComponent(callArgs);
@@ -128,7 +128,7 @@ describe("Bookings Server Actions - Unit Tests", () => {
         now: () => mockNow,
       };
 
-      await fetchBookings({ dateFilter: "next7days" }, deps);
+      await fetchBookings({ dateFilter: "next7days", statusFilter: "all" }, deps);
 
       const callArgs = mockCalendlyFetch.mock.calls[0][0] as string;
       const decodedArgs = decodeURIComponent(callArgs);
@@ -153,7 +153,7 @@ describe("Bookings Server Actions - Unit Tests", () => {
         now: () => new Date(),
       };
 
-      await fetchBookings({ statusFilter: "active" }, deps);
+      await fetchBookings({ dateFilter: "all", statusFilter: "active" }, deps);
 
       const callArgs = mockCalendlyFetch.mock.calls[0][0] as string;
       expect(callArgs).toContain("status=active");
@@ -172,7 +172,7 @@ describe("Bookings Server Actions - Unit Tests", () => {
         now: () => new Date(),
       };
 
-      await fetchBookings({ statusFilter: "all" }, deps);
+      await fetchBookings({ dateFilter: "all", statusFilter: "all" }, deps);
 
       const callArgs = mockCalendlyFetch.mock.calls[0][0] as string;
       expect(callArgs).not.toContain("status=");
@@ -225,7 +225,7 @@ describe("Bookings Server Actions - Unit Tests", () => {
       const result = await fetchBookings(undefined, deps);
 
       expect(result.success).toBe(true);
-      if (result.success) {
+      if (result.success && result.data) {
         expect(result.data[0].invitee).toMatchObject({
           name: "Unknown",
           email: "unknown@example.com",
@@ -305,7 +305,7 @@ describe("Bookings Server Actions - Unit Tests", () => {
       const result = await generateBookingLink("Initial Consultation", deps);
 
       expect(result.success).toBe(true);
-      if (result.success) {
+      if (result.success && result.data) {
         expect(result.data.link).toBe("https://calendly.com/booking/abc123");
       }
 

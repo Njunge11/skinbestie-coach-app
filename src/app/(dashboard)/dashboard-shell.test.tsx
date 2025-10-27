@@ -34,7 +34,6 @@ describe("DashboardShell - UI Integration Tests", () => {
     name: "Jane Smith",
     email: "jane@example.com",
     role: "Admin",
-    avatar: null,
   };
 
   beforeEach(() => {

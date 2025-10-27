@@ -10,14 +10,18 @@ describe("CoachNotes - User Workflows", () => {
   const mockNotes: CoachNote[] = [
     {
       id: "note-1",
+      userProfileId: "user-1",
       content: "Client is responding well to tretinoin",
       createdAt: new Date("2025-10-15T10:30:00Z"),
+      updatedAt: new Date("2025-10-15T10:30:00Z"),
       adminId: mockAdminId,
     },
     {
       id: "note-2",
+      userProfileId: "user-1",
       content: "Reduced frequency due to irritation",
       createdAt: new Date("2025-10-14T14:20:00Z"),
+      updatedAt: new Date("2025-10-14T14:20:00Z"),
       adminId: mockAdminId,
     },
   ];
@@ -292,8 +296,10 @@ describe("CoachNotes - User Workflows", () => {
       ...initialNotes,
       {
         id: "note-3",
+        userProfileId: "user-1",
         content: "New observation",
         createdAt: new Date("2025-10-16T09:00:00Z"),
+        updatedAt: new Date("2025-10-16T09:00:00Z"),
         adminId: mockAdminId,
       },
     ];
@@ -325,8 +331,10 @@ describe("CoachNotes - User Workflows", () => {
       initialNotes[0],
       {
         id: "note-3",
+        userProfileId: "user-1",
         content: "Updated observation",
         createdAt: new Date("2025-10-16T09:00:00Z"),
+        updatedAt: new Date("2025-10-16T09:00:00Z"),
         adminId: mockAdminId,
       },
     ];

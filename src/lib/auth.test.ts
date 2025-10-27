@@ -163,7 +163,7 @@ describe('NextAuth authorize function', () => {
   describe('Error cases', () => {
     it('returns null when admin does not exist', async () => {
       // Arrange
-      vi.mocked(getAdminByEmail).mockResolvedValue(null);
+      vi.mocked(getAdminByEmail).mockResolvedValue(undefined);
 
       const credentials = {
         email: 'nonexistent@example.com',

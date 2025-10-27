@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterEach, afterAll, beforeAll, vi } from 'vitest';
+import { afterEach, afterAll, beforeAll, beforeEach, vi } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { sql } from 'drizzle-orm';
@@ -79,10 +79,19 @@ beforeAll(async () => {
   await applyMigrations(client as unknown as PGlite);
 });
 
+// Suppress console.error in tests to keep output clean
+// Tests that specifically need to verify error logging can override this
+beforeEach(() => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+
 // Cleanup after each test
 afterEach(async () => {
   // React Testing Library cleanup (for all tests)
   cleanup();
+
+  // Restore all mocks including console.error
+  vi.restoreAllMocks();
 
   // Database cleanup: clear data, keep schema (much faster than dropping/recreating)
   // Truncate in reverse dependency order to avoid FK constraint issues

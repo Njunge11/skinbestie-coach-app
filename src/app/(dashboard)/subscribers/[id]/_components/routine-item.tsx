@@ -50,10 +50,10 @@ export function RoutineItem({
   const [editData, setEditData] = useState<RoutineProductFormData>({
     routineStep: product.routineStep,
     productName: product.productName,
-    productUrl: product.productUrl,
+    productUrl: product.productUrl || "",
     instructions: product.instructions,
     frequency: product.frequency,
-    days: product.days,
+    days: product.days ?? undefined,
   });
 
   const {
@@ -74,10 +74,10 @@ export function RoutineItem({
     setEditData({
       routineStep: product.routineStep,
       productName: product.productName,
-      productUrl: product.productUrl,
+      productUrl: product.productUrl || "",
       instructions: product.instructions,
       frequency: product.frequency,
-      days: product.days,
+      days: product.days ?? undefined,
     });
     setIsEditing(true);
   };

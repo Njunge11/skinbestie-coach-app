@@ -303,7 +303,7 @@ describe("createUserProfile", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as UserProfileDeps["repo"],
+      repo: failingRepo as unknown as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -375,7 +375,7 @@ describe("getUserProfileById", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as UserProfileDeps["repo"],
+      repo: failingRepo as unknown as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -456,7 +456,7 @@ describe("getUserProfileByEmail", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as UserProfileDeps["repo"],
+      repo: failingRepo as unknown as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -574,7 +574,7 @@ describe("checkUserProfileExists", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as UserProfileDeps["repo"],
+      repo: failingRepo as unknown as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -780,7 +780,7 @@ describe("updateUserProfile", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as UserProfileDeps["repo"],
+      repo: failingRepo as unknown as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 
@@ -1587,7 +1587,7 @@ describe("getUserProfiles", () => {
     };
 
     const failingDeps: UserProfileDeps = {
-      repo: failingRepo as UserProfileDeps["repo"],
+      repo: failingRepo as unknown as UserProfileDeps["repo"],
       now: () => new Date("2025-01-15T12:00:00Z"),
     };
 

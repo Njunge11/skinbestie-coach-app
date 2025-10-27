@@ -5,10 +5,23 @@
 import { db } from "@/lib/db";
 import { routineStepCompletions } from "@/lib/db/schema";
 import { eq, and, gte, lte, lt, inArray, asc } from "drizzle-orm";
-import type {
-  RoutineStepCompletion,
-  NewRoutineStepCompletion,
-} from "./routine-step-completions.repo.fake";
+
+// Type definitions
+export type RoutineStepCompletion = {
+  id: string;
+  routineProductId: string;
+  userProfileId: string;
+  scheduledDate: Date;
+  scheduledTimeOfDay: "morning" | "evening";
+  onTimeDeadline: Date;
+  gracePeriodEnd: Date;
+  completedAt: Date | null;
+  status: "pending" | "on-time" | "late" | "missed";
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type NewRoutineStepCompletion = Omit<RoutineStepCompletion, "id" | "createdAt" | "updatedAt">;
 
 export function makeRoutineStepCompletionsRepo() {
   return {

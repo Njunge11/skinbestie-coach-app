@@ -1,9 +1,12 @@
 # PR Preview Workflow
 # This workflow runs when a Pull Request is opened, updated, or reopened
-# It creates an isolated database schema for testing and runs all tests
-# When the PR is closed, it cleans up the database schema automatically
+# It applies schema changes to the shared staging database, runs tests, and deploys a preview
 
 name: PR Preview - Setup and Test
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 on:
   pull_request:
@@ -11,6 +14,24 @@ on:
     branches:
       - main      # PRs targeting main branch
       - staging   # PRs targeting staging branch
+
+# Allow manual trigger with seeding option
+  workflow_dispatch:
+    inputs:
+      run_seeders:
+        description: 'Run database seeders (creates test data)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+# Permissions needed for the workflow
+permissions:
+  contents: read          # Read repository contents
+  issues: write           # Post comments on issues
+  pull-requests: write    # Post comments on pull requests
 
 jobs:
   setup-and-test:
@@ -34,95 +55,106 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Step 4: Create an isolated PostgreSQL schema for this PR
-      # Each PR gets its own namespace (pr_123, pr_124, etc.) in the same Supabase database
-      # This keeps test data isolated between different PRs
-      # Note: Uses Supabase Session Pooler (port 5432) which supports prepared statements
-      - name: Setup PR database schema
-        run: |
-          PR_NUM=${{ github.event.pull_request.number }}
-          SCHEMA_NAME="pr_${PR_NUM}"
-
-          # Install PostgreSQL client tools for running SQL commands
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-          # Drop existing schema if exists (useful when re-running after force push)
-          psql ${{ secrets.SUPABASE_DATABASE_URL }} -c "DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;"
-
-          # Create fresh schema for this PR
-          psql ${{ secrets.SUPABASE_DATABASE_URL }} -c "CREATE SCHEMA ${SCHEMA_NAME};"
-
-          # Set DATABASE_URL with schema parameter so all subsequent steps use this PR's schema
-          echo "DATABASE_URL=${{ secrets.SUPABASE_DATABASE_URL }}?options=-c%20search_path=${SCHEMA_NAME}" >> $GITHUB_ENV
-
-      # Step 5: Apply database schema (create tables, columns, indexes)
-      # Uses Drizzle's push command which directly syncs schema to database
-      # This reads from src/lib/db/schema.ts and creates all tables in the PR schema
-      - name: Apply database schema
-        run: npm run db:push
+      # Step 4: Apply database migrations to staging
+      # Runs migration SQL files that were generated locally with db:generate
+      # These migrations are version-controlled and reviewable before deployment
+      # Note: Uses Session Pooler (port 5432) which supports prepared statements
+      - name: Apply database migrations to staging
+        run: npm run db:migrate
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
 
-      # Step 6: Insert test data into the database
-      # Runs your seed script to populate tables with test users, products, etc.
-      # This ensures the preview has realistic data for testing
+      # Step 5: Insert test data into the database (CONFIGURABLE)
+      # Only runs if RUN_SEEDERS is set to 'true'
+      # By default, seeders do NOT run to save time
+      # To run seeders: Set RUN_SEEDERS=true in GitHub Actions secrets
+      # Or manually trigger workflow with run_seeders=true
       - name: Seed database
-        run: node src/scripts/seed-profiles.ts
+        if: ${{ vars.RUN_SEEDERS == 'true' || inputs.run_seeders == 'true' }}
+        run: |
+          echo "🌱 Running database seeders..."
+          echo "Creating user profiles..."
+          npx tsx src/scripts/seed-sample-users.ts
+          echo "Seeding detailed profile data..."
+          npx tsx src/scripts/seed-profiles.ts
+          echo "✅ Seeding complete!"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
 
-      # Step 7: Run all tests against the seeded database
+      # Step 5b: Skip seeding message (when seeders are disabled)
+      - name: Seeders skipped
+        if: ${{ vars.RUN_SEEDERS != 'true' && inputs.run_seeders != 'true' }}
+        run: |
+          echo "⏭️  Database seeders skipped (RUN_SEEDERS not enabled)"
+          echo "To enable seeders:"
+          echo "  1. Go to Settings → Secrets and variables → Actions → Variables"
+          echo "  2. Add variable: RUN_SEEDERS = true"
+          echo "  3. Or manually trigger workflow with run_seeders=true"
+
+      # Step 6: Run all tests against staging database
       # Tests validate that your changes work correctly
       # If tests fail, the PR will be blocked from merging
       - name: Run tests
         run: npm run test:run
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
 
-      # Step 8: Post success message on the PR
-      # This provides visibility to the team that the preview is ready
-      - name: Comment PR
+      # Step 7: Post success message on the PR
+      # This provides visibility that tests passed
+      - name: Comment PR - Tests Passed
         if: success()
         uses: actions/github-script@v7
         with:
           script: |
+            const seeded = '${{ vars.RUN_SEEDERS }}' === 'true' || '${{ inputs.run_seeders }}' === 'true';
+            const seedingNote = seeded ? '\n🌱 Test data seeded' : '\n⏭️  Seeders skipped (enable RUN_SEEDERS variable to seed data)';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ Preview database schema created: `pr_${{ github.event.pull_request.number }}`\n\nTests passed! Preview deployment will be available shortly.'
+              body: '✅ Schema applied to staging database\n\n✅ Tests passed!' + seedingNote
             })
 
-  # Cleanup Job: Runs when PR is closed (merged or closed without merging)
-  # This deletes the PR's database schema to free up space
-  cleanup:
+  deploy-preview:
+    name: Deploy Preview to Vercel
+    needs: setup-and-test
     runs-on: ubuntu-latest
-    if: github.event.action == 'closed'
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request' && github.head_ref != 'staging'
+    environment:
+      name: preview
 
     steps:
-      # Delete the PR's database schema
-      # This prevents accumulation of unused schemas in Supabase
-      - name: Delete PR schema from Supabase
-        run: |
-          PR_NUM=${{ github.event.pull_request.number }}
-          SCHEMA_NAME="pr_${PR_NUM}"
+      # Step 1: Get the code from the feature branch
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-          # Install PostgreSQL client
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+      # Step 2: Install Vercel CLI
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
 
-          # Drop the schema and all its tables
-          psql ${{ secrets.SUPABASE_DATABASE_URL }} -c "DROP SCHEMA IF EXISTS ${SCHEMA_NAME} CASCADE;"
+      # Step 3: Pull Vercel environment information for preview
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
-      # Post cleanup confirmation on the PR
-      - name: Comment PR
+      # Step 4: Build the project with Vercel
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Step 5: Deploy to Vercel and capture the preview URL
+      - name: Deploy Preview to Vercel
+        id: deploy
+        run: echo "url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+
+      # Step 6: Post the preview URL as a comment on the PR
+      - name: Comment Preview URL on PR
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🧹 Cleaned up preview database schema: `pr_${{ github.event.pull_request.number }}`'
+              body: '🚀 Preview deployment ready!\n\n🔗 Preview URL: ${{ steps.deploy.outputs.url }}'
             })

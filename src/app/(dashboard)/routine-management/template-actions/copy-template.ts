@@ -2,9 +2,8 @@
 
 import { z } from "zod";
 import { makeTemplateRepo } from "./template.repo";
-import { makeRoutineRepo } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/routine.repo";
+import { makeRoutineRepo, type Routine } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/routine.repo";
 import { db, skincareRoutineProducts, skincareRoutines } from "@/lib/db";
-import type { Routine } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/routine.repo.fake";
 
 // Type for routine product
 type RoutineProduct = {

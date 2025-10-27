@@ -269,7 +269,7 @@ export function RoutineSection({
 
       <Input
         placeholder="Product URL (optional)"
-        value={newProduct.productUrl}
+        value={newProduct.productUrl || ""}
         onChange={(e) =>
           setNewProduct((prev) => ({ ...prev, productUrl: e.target.value }))
         }

@@ -75,6 +75,37 @@ Our CI/CD pipeline has three environments:
 
 ---
 
+## Step 3b: Configure Seeding (Optional)
+
+By default, database seeders **do NOT run automatically** to save time and resources.
+
+### To Enable Seeding:
+
+1. Go to **Settings** → **Secrets and variables** → **Actions**
+2. Click on **Variables** tab (not Secrets)
+3. Click **New repository variable**
+4. Add this variable:
+
+#### For PR Previews:
+- **Name:** `RUN_SEEDERS`
+- **Value:** `true`
+- **When to enable:** If you want test data in every PR preview
+
+### Manual Seeding (Recommended)
+
+Instead of automatic seeding, you can manually trigger seeding when needed:
+
+1. Go to **Actions** tab in GitHub
+2. Select the **PR Preview** workflow
+3. Click **Run workflow**
+4. Choose branch
+5. Select **run_seeders: true**
+6. Click **Run workflow**
+
+This gives you full control over when seeding happens.
+
+---
+
 ## Step 4: Configure Vercel Environment Variables
 
 ### Backend (Admin App) Environment Variables
@@ -134,7 +165,7 @@ This enables variables like `VERCEL_ENV`, `VERCEL_GIT_COMMIT_REF`, etc.
 3. Push: `git push origin feature/test`
 4. Open a Pull Request to `staging`
 5. Check:
-   - ✅ GitHub Actions runs and creates `pr_X` schema
+   - ✅ GitHub Actions runs and applies migrations to Supabase staging
    - ✅ Tests pass
    - ✅ Comment appears on PR with success message
    - ✅ Vercel deploys preview
@@ -143,18 +174,15 @@ This enables variables like `VERCEL_ENV`, `VERCEL_GIT_COMMIT_REF`, etc.
 
 1. Merge PR to `staging`
 2. Check:
-   - ✅ GitHub Actions runs
-   - ✅ Schema applied to Supabase
-   - ✅ Tests pass
-   - ✅ Vercel deploys to `staging-admin.skinbestie.co`
+   - ✅ Vercel automatically deploys to `staging-admin.skinbestie.co`
+   - ✅ Test your changes on staging
 
 ### Test Production
 
 1. Create PR: `staging` → `main`
-2. **If schema changed:** Run migrations manually first
-3. Merge to `main`
-4. Check:
-   - ✅ GitHub Actions runs
+2. Merge to `main`
+3. Check:
+   - ✅ GitHub Actions runs and applies migrations to PlanetScale
    - ✅ Tests pass
    - ✅ Vercel deploys to `admin.skinbestie.co`
 
@@ -180,7 +208,8 @@ Your connection string should end with `:5432/postgres`, not `:6543/postgres`
 
 **Solution:**
 - Make sure `DATABASE_URL` is set correctly in GitHub secrets
-- Check that `npm run db:push` ran successfully in the workflow logs
+- Check that `npm run db:migrate` ran successfully in the workflow logs
+- Verify migration files were generated locally with `npm run db:generate` and committed
 
 ### Vercel deployment uses wrong database
 
@@ -193,8 +222,7 @@ Your connection string should end with `:5432/postgres`, not `:6543/postgres`
 
 ## Workflow Files
 
-- `.github/workflows/pr-preview.yml` - PR preview setup and cleanup
-- `.github/workflows/staging-deploy.yml` - Staging deployment
+- `.github/workflows/pr-preview.yml` - PR preview setup and testing
 - `.github/workflows/production-deploy.yml` - Production deployment
 
 ---
@@ -203,15 +231,15 @@ Your connection string should end with `:5432/postgres`, not `:6543/postgres`
 
 ### Supabase (Staging & PR Previews)
 
-- **Staging:** Uses `public` schema (default)
-- **PR Previews:** Each PR gets isolated schema (e.g., `pr_123`, `pr_124`)
-- **Cleanup:** PR schemas deleted automatically when PR closes
+- **Staging & PR Previews:** All use the shared `public` schema (default)
+- **Workflow:** PR previews apply migrations to staging database, then tests run
+- **Benefit:** Simple, cost-effective for solo/small teams
 
 ### PlanetScale (Production)
 
 - **Production:** Uses `main` branch
-- **Migrations:** Applied manually using `db:generate` + `db:migrate`
-- **Schema changes:** Require manual review before production deploy
+- **Migrations:** Applied automatically via `db:migrate` in GitHub Actions
+- **Schema changes:** Generated locally with `db:generate`, committed to git, and reviewed in PRs
 
 ---
 
@@ -219,7 +247,7 @@ Your connection string should end with `:5432/postgres`, not `:6543/postgres`
 
 | Service | Usage | Cost |
 |---------|-------|------|
-| Supabase | Staging + PR schemas | $0 (free tier) |
+| Supabase | Staging & PR previews (shared database) | $0 (free tier) |
 | PlanetScale Postgres | Production only | ~$39/month |
 | Vercel | Unlimited deployments | $0 (included) |
 | GitHub Actions | Standard usage | $0 (free tier) |

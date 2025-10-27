@@ -27,10 +27,10 @@ describe('LoginForm - UI Tests', () => {
     vi.clearAllMocks();
 
     // Setup default mock implementations
-    vi.mocked(forgotPasswordAction).mockResolvedValue({ success: true });
-    vi.mocked(verifyCodeAction).mockResolvedValue({ success: true });
-    vi.mocked(resetPasswordAction).mockResolvedValue({ success: true });
-    vi.mocked(signIn).mockResolvedValue({ ok: false, error: null } as Awaited<ReturnType<typeof signIn>>);
+    vi.mocked(forgotPasswordAction).mockResolvedValue({ success: true, message: "Code sent" });
+    vi.mocked(verifyCodeAction).mockResolvedValue({ success: true, message: "Code verified" });
+    vi.mocked(resetPasswordAction).mockResolvedValue({ success: true, message: "Password reset" });
+    vi.mocked(signIn).mockResolvedValue({ ok: false, error: null } as unknown as Awaited<ReturnType<typeof signIn>>);
   });
 
   it('allows user to complete full password reset flow and return to login', async () => {
