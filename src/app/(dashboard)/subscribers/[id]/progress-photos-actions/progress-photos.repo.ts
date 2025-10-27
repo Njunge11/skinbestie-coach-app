@@ -5,6 +5,7 @@ import { eq, and, desc } from "drizzle-orm";
 export function makeProgressPhotosRepo() {
   return {
     async findByUserId(userId: string): Promise<ProgressPhoto[]> {
+      console.time('[REPO-PROGRESS-PHOTOS] query');
       const photos = await db
         .select({
           id: progressPhotos.id,
@@ -18,8 +19,9 @@ export function makeProgressPhotosRepo() {
         })
         .from(progressPhotos)
         .where(eq(progressPhotos.userProfileId, userId))
-        .orderBy(desc(progressPhotos.uploadedAt));
-
+        .orderBy(desc(progressPhotos.uploadedAt))
+        .limit(100);
+      console.timeEnd('[REPO-PROGRESS-PHOTOS] query');
       return photos;
     },
 
