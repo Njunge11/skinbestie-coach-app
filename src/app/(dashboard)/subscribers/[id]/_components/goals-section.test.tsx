@@ -95,10 +95,14 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Old description",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -151,10 +155,14 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Original description",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -193,10 +201,14 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -226,10 +238,14 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -260,10 +276,14 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "First goal",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -307,24 +327,36 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "First goal",
         description: "Priority 1",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         id: "goal_2",
+        userProfileId: "user-1",
         name: "Second goal",
         description: "Priority 2",
         timeframe: "10 weeks",
         complete: false,
+        order: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         id: "goal_3",
+        userProfileId: "user-1",
         name: "Third goal",
         description: "Priority 3",
         timeframe: "12 weeks",
         complete: false,
+        order: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -475,10 +507,14 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Original description",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -513,10 +549,14 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Description",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -551,10 +591,14 @@ describe("GoalsSection - UI Tests", () => {
     const existingGoals: Goal[] = [
       {
         id: "goal_1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Description",
         timeframe: "8 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -615,10 +659,14 @@ describe("GoalsSection - UI Tests", () => {
         goals={[
           {
             id: "goal_1",
+            userProfileId: "user-1",
             name: "Clear skin",
             description: "Reduce breakouts",
             timeframe: "12 weeks",
             complete: false,
+            order: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         ]}
         onAddGoal={mockOnAddGoal}
@@ -647,17 +695,25 @@ describe("GoalsSection - UI Tests", () => {
         goals={[
           {
             id: "goal_1",
+            userProfileId: "user-1",
             name: "Clear skin",
             description: "Reduce breakouts",
             timeframe: "12 weeks",
             complete: false,
+            order: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
           {
             id: "goal_2",
+            userProfileId: "user-1",
             name: "Even tone",
             description: "Fade dark spots",
             timeframe: "8 weeks",
             complete: false,
+            order: 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         ]}
         onAddGoal={mockOnAddGoal}

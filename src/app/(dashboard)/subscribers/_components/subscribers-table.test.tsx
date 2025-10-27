@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, useSearchParams, usePathname, type ReadonlyURLSearchParams } from "next/navigation";
 import { SubscribersTable } from "./subscribers-table";
 
 // Mock Next.js navigation
@@ -35,6 +35,9 @@ describe("SubscribersTable - UI Tests", () => {
       concerns: ["acne"],
       hasAllergies: false,
       allergyDetails: null,
+      occupation: null,
+      bio: null,
+      timezone: "UTC",
       isSubscribed: true,
       hasCompletedBooking: true,
       completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS", "ALLERGIES", "SUBSCRIBE", "BOOKING"],
@@ -54,6 +57,9 @@ describe("SubscribersTable - UI Tests", () => {
       concerns: ["wrinkles"],
       hasAllergies: true,
       allergyDetails: "Fragrance allergies",
+      occupation: null,
+      bio: null,
+      timezone: "UTC",
       isSubscribed: false,
       hasCompletedBooking: false,
       completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS", "ALLERGIES"],
@@ -73,6 +79,9 @@ describe("SubscribersTable - UI Tests", () => {
       concerns: null,
       hasAllergies: null,
       allergyDetails: null,
+      occupation: null,
+      bio: null,
+      timezone: "UTC",
       isSubscribed: null,
       hasCompletedBooking: null,
       completedSteps: ["PERSONAL"],
@@ -106,7 +115,7 @@ describe("SubscribersTable - UI Tests", () => {
       prefetch: vi.fn(),
     });
 
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams);
+    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as unknown as ReadonlyURLSearchParams);
     vi.mocked(usePathname).mockReturnValue("/subscribers");
 
     // Setup default mock implementation
@@ -351,7 +360,7 @@ describe("SubscribersTable - UI Tests", () => {
 
     // Start with search already in URL
     mockSearchParams = new URLSearchParams("search=test");
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams);
+    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as unknown as ReadonlyURLSearchParams);
 
     renderWithProviders(<SubscribersTable />);
 
@@ -411,7 +420,7 @@ describe("SubscribersTable - UI Tests", () => {
 
     // Mock URL with query params
     mockSearchParams = new URLSearchParams("search=John&status=completed&page=1");
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams);
+    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as unknown as ReadonlyURLSearchParams);
 
     renderWithProviders(<SubscribersTable />);
 
@@ -437,7 +446,7 @@ describe("SubscribersTable - UI Tests", () => {
 
     // Start with some filters in URL
     mockSearchParams = new URLSearchParams("search=test&status=completed");
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams);
+    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as unknown as ReadonlyURLSearchParams);
 
     renderWithProviders(<SubscribersTable />);
 

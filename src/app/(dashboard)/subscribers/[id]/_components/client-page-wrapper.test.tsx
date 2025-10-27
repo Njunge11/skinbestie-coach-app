@@ -107,16 +107,20 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const user = userEvent.setup();
       const goal: Goal = {
         id: "goal-1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "12 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful server response
       vi.mocked(updateGoal).mockResolvedValueOnce({
         success: true,
-        data: { ...goal, complete: true },
+        data: undefined,
       });
 
       renderWithQueryClient(
@@ -152,22 +156,20 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const user = userEvent.setup();
       const goal: Goal = {
         id: "goal-1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "12 weeks",
         complete: false,
-      };
-
-      const updatedGoal: Goal = {
-        ...goal,
-        name: "Ultra clear skin",
-        description: "Completely remove acne",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful update
       vi.mocked(updateGoal).mockResolvedValueOnce({
         success: true,
-        data: updatedGoal,
+        data: undefined,
       });
 
       renderWithQueryClient(
@@ -230,15 +232,20 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const user = userEvent.setup();
       const goal: Goal = {
         id: "goal-1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "12 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful delete
       vi.mocked(deleteGoal).mockResolvedValueOnce({
         success: true,
+        data: undefined,
       });
 
       renderWithQueryClient(
@@ -283,6 +290,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         name: "Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
+        status: "draft",
       };
 
       const product: RoutineProduct = {
@@ -290,14 +298,20 @@ describe("ClientPageWrapper - Integration Tests", () => {
         routineId: "routine-1",
         routineStep: "cleanse",
         productName: "Morning Cleanser",
+        productUrl: null,
         instructions: "Apply gently",
-        frequency: "Daily",
+        frequency: "daily",
+        days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful delete
       vi.mocked(deleteRoutineProduct).mockResolvedValueOnce({
         success: true,
+        data: undefined,
       });
 
       renderWithQueryClient(
@@ -466,6 +480,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
       // Mock successful delete
       vi.mocked(deleteCoachNote).mockResolvedValueOnce({
         success: true,
+        data: note,
       });
 
       renderWithQueryClient(
@@ -508,7 +523,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
       // Mock successful update
       vi.mocked(updateUserProfile).mockResolvedValueOnce({
         success: true,
-        data: { ...mockClient, occupation: "Senior Engineer", bio: "Lead developer" },
+        data: undefined,
       });
 
       renderWithQueryClient(
@@ -627,10 +642,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const user = userEvent.setup();
       const newGoal: Goal = {
         id: "goal-1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "12 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful create
@@ -746,15 +765,11 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
     it("Photo Feedback Update Success - feedback shows immediately, server called", async () => {
       const user = userEvent.setup();
-      const updatedPhoto: Photo = {
-        ...mockPhoto,
-        feedback: "Great progress!",
-      };
 
       // Mock successful update
       vi.mocked(updatePhotoFeedback).mockResolvedValueOnce({
         success: true,
-        data: updatedPhoto,
+        data: undefined,
       });
 
       renderWithQueryClient(
@@ -844,11 +859,15 @@ describe("ClientPageWrapper - Integration Tests", () => {
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
+        status: "draft",
       };
 
-      const updatedRoutine: Routine = {
+      const updatedRoutine = {
         ...routine,
         name: "Updated Morning Routine",
+        userProfileId: "user-1",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful update
@@ -908,10 +927,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const user = userEvent.setup();
       const goal: Goal = {
         id: "goal-1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "12 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock server failure
@@ -959,10 +982,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const user = userEvent.setup();
       const goal: Goal = {
         id: "goal-1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "12 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock server failure
@@ -1027,10 +1054,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const user = userEvent.setup();
       const goal: Goal = {
         id: "goal-1",
+        userProfileId: "user-1",
         name: "Clear skin",
         description: "Reduce acne",
         timeframe: "12 weeks",
         complete: false,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock server failure
@@ -1081,6 +1112,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         name: "Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
+        status: "draft",
       };
 
       const product: RoutineProduct = {
@@ -1088,9 +1120,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
         routineId: "routine-1",
         routineStep: "cleanse",
         productName: "Morning Cleanser",
+        productUrl: null,
         instructions: "Apply gently",
-        frequency: "Daily",
+        frequency: "daily",
+        days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock server failure
@@ -1255,6 +1292,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
+        status: "draft",
       };
 
       const product: RoutineProduct = {
@@ -1262,14 +1300,20 @@ describe("ClientPageWrapper - Integration Tests", () => {
         routineId: "routine-1",
         routineStep: "cleanse",
         productName: "Morning Cleanser Product",
+        productUrl: null,
         instructions: "Apply gently",
-        frequency: "Daily",
+        frequency: "daily",
+        days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful deletion
       vi.mocked(deleteRoutine).mockResolvedValueOnce({
         success: true,
+        data: undefined,
       });
 
       renderWithQueryClient(
@@ -1317,6 +1361,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
+        status: "draft",
       };
 
       const product: RoutineProduct = {
@@ -1324,9 +1369,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
         routineId: "routine-1",
         routineStep: "cleanse",
         productName: "Morning Cleanser Product",
+        productUrl: null,
         instructions: "Apply gently",
-        frequency: "Daily",
+        frequency: "daily",
+        days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock deletion failure
@@ -1455,11 +1505,15 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
     it("Create Blank Routine - Success - routine created, appears in UI, hasRoutine becomes true, toast shown", async () => {
       const user = userEvent.setup();
-      const newRoutine: Routine = {
+      const newRoutine = {
         id: "routine-1",
         name: "My Blank Routine",
         startDate: new Date("2025-01-15"),
         endDate: null,
+        status: "draft" as const,
+        userProfileId: "user-1",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful creation
@@ -1633,6 +1687,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
+        status: "draft",
       };
 
       const product: RoutineProduct = {
@@ -1640,21 +1695,20 @@ describe("ClientPageWrapper - Integration Tests", () => {
         routineId: "routine-1",
         routineStep: "Cleanser",
         productName: "Original Cleanser",
+        productUrl: null,
         instructions: "Apply to wet face",
-        frequency: "Daily",
+        frequency: "daily",
+        days: null,
         timeOfDay: "morning",
-      };
-
-      const updatedProduct: RoutineProduct = {
-        ...product,
-        productName: "Updated Cleanser",
-        instructions: "Massage gently for 60 seconds",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock successful update
       vi.mocked(updateRoutineProduct).mockResolvedValueOnce({
         success: true,
-        data: updatedProduct,
+        data: undefined,
       });
 
       renderWithQueryClient(
@@ -1721,6 +1775,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
+        status: "draft",
       };
 
       const product: RoutineProduct = {
@@ -1728,9 +1783,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
         routineId: "routine-1",
         routineStep: "Cleanser",
         productName: "Original Cleanser",
+        productUrl: null,
         instructions: "Apply to wet face",
-        frequency: "Daily",
+        frequency: "daily",
+        days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       // Mock server failure

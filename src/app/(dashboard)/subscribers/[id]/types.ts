@@ -70,10 +70,10 @@ export interface RoutineProduct {
   routineId: string;
   routineStep: string;
   productName: string;
-  productUrl?: string;
+  productUrl: string | null;
   instructions: string;
   frequency: Frequency;
-  days?: string[]; // For 2x or 3x per week
+  days: string[] | null; // For 2x or 3x per week
   timeOfDay: TimeOfDay;
   order: number;
   createdAt: Date;
@@ -83,7 +83,7 @@ export interface RoutineProduct {
 export interface RoutineProductFormData {
   routineStep: string;
   productName: string;
-  productUrl?: string;
+  productUrl: string;
   instructions: string;
   frequency: Frequency;
   days?: string[];

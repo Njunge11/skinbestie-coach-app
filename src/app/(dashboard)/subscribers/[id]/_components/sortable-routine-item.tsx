@@ -52,10 +52,10 @@ export function SortableRoutineItem({
                 onEdit(product.id, {
                   routineStep: product.routineStep,
                   productName: product.productName,
-                  productUrl: product.productUrl,
+                  productUrl: product.productUrl || "",
                   instructions: product.instructions,
                   frequency: product.frequency,
-                  days: product.days,
+                  days: product.days ?? undefined,
                 })
               }
             >

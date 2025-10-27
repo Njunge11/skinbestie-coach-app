@@ -3,7 +3,25 @@
 import { eq, asc, and, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { skincareRoutineProducts } from "@/lib/db/schema";
-import type { RoutineProduct, NewRoutineProduct } from "./routine.repo.fake";
+
+// Type definitions
+export type RoutineProduct = {
+  id: string;
+  routineId: string;
+  userProfileId: string;
+  routineStep: string;
+  productName: string;
+  productUrl: string | null;
+  instructions: string;
+  frequency: "daily" | "2x per week" | "3x per week" | "specific_days";
+  days: string[] | null;
+  timeOfDay: "morning" | "evening";
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type NewRoutineProduct = Omit<RoutineProduct, "id" | "createdAt" | "updatedAt">;
 
 export function makeRoutineProductsRepo() {
   return {

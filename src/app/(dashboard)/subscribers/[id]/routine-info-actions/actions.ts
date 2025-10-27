@@ -1,8 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { makeRoutineRepo } from "./routine.repo";
-import type { Routine, NewRoutine } from "./routine.repo.fake";
+import { makeRoutineRepo, type Routine, type NewRoutine } from "./routine.repo";
 import { makeRoutineProductsRepo } from "../compliance-actions/routine-products.repo";
 import { db, skincareRoutines, routineStepCompletions } from "@/lib/db";
 import { makeUserProfileRepo } from "../compliance-actions/user-profile.repo";
@@ -96,7 +95,7 @@ export async function createRoutine(
   input: CreateRoutineInput,
   deps: RoutineDeps = defaultDeps
 ): Promise<Result<Routine>> {
-  const { repo, now } = deps;
+  const { repo } = deps;
 
   // Validate input with Zod
   const validation = createRoutineSchema.safeParse({
@@ -117,8 +116,6 @@ export async function createRoutine(
       return { success: false, error: "User already has a routine" };
     }
 
-    const timestamp = now();
-
     // Create routine with validated data (already trimmed by Zod)
     const newRoutine: NewRoutine = {
       userProfileId: validation.data.userId,
@@ -126,8 +123,6 @@ export async function createRoutine(
       startDate: validation.data.startDate,
       endDate: validation.data.endDate || null,
       status: "draft",
-      createdAt: timestamp,
-      updatedAt: timestamp,
     };
 
     const routine = await repo.create(newRoutine);

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { GET, PATCH } from "./route";
 
 // Mock the server actions module
@@ -32,7 +32,7 @@ describe("GET /api/user-profiles/[id]", () => {
   describe("Authentication", () => {
     it("returns 401 when API key is missing", async () => {
       // Given: request without API key
-      const mockAuthError = Response.json(
+      const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
         { status: 401 }
       );
@@ -46,7 +46,7 @@ describe("GET /api/user-profiles/[id]", () => {
       );
 
       // When: calling GET handler
-      const response = await GET(request, { params: { id: userId } });
+      const response = await GET(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 401
       expect(response.status).toBe(401);
@@ -72,6 +72,9 @@ describe("GET /api/user-profiles/[id]", () => {
         concerns: ["acne"],
         hasAllergies: false,
         allergyDetails: null,
+        occupation: null,
+        bio: null,
+        timezone: "UTC",
         isSubscribed: true,
         hasCompletedBooking: true,
         completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS"],
@@ -97,7 +100,7 @@ describe("GET /api/user-profiles/[id]", () => {
       );
 
       // When: calling GET handler
-      const response = await GET(request, { params: { id: userId } });
+      const response = await GET(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 200 with user data
       expect(response.status).toBe(200);
@@ -129,7 +132,7 @@ describe("GET /api/user-profiles/[id]", () => {
       );
 
       // When: calling GET handler
-      const response = await GET(request, { params: { id: userId } });
+      const response = await GET(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 404
       expect(response.status).toBe(404);
@@ -155,7 +158,7 @@ describe("GET /api/user-profiles/[id]", () => {
       );
 
       // When: calling GET handler
-      const response = await GET(request, { params: { id: userId } });
+      const response = await GET(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 500
       expect(response.status).toBe(500);
@@ -178,7 +181,7 @@ describe("PATCH /api/user-profiles/[id]", () => {
   describe("Authentication", () => {
     it("returns 401 when API key is missing", async () => {
       // Given: request without API key
-      const mockAuthError = Response.json(
+      const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
         { status: 401 }
       );
@@ -198,7 +201,7 @@ describe("PATCH /api/user-profiles/[id]", () => {
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: { id: userId } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 401
       expect(response.status).toBe(401);
@@ -224,6 +227,9 @@ describe("PATCH /api/user-profiles/[id]", () => {
         concerns: ["wrinkles"],
         hasAllergies: true,
         allergyDetails: "Fragrance allergies",
+        occupation: null,
+        bio: null,
+        timezone: "UTC",
         isSubscribed: true,
         hasCompletedBooking: true,
         completedSteps: [
@@ -261,7 +267,7 @@ describe("PATCH /api/user-profiles/[id]", () => {
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: { id: userId } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 200 with updated user
       expect(response.status).toBe(200);
@@ -302,7 +308,7 @@ describe("PATCH /api/user-profiles/[id]", () => {
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: { id: userId } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 404
       expect(response.status).toBe(404);
@@ -333,7 +339,7 @@ describe("PATCH /api/user-profiles/[id]", () => {
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: { id: userId } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 400
       expect(response.status).toBe(400);
@@ -363,7 +369,7 @@ describe("PATCH /api/user-profiles/[id]", () => {
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: { id: userId } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
 
       // Then: returns 500
       expect(response.status).toBe(500);

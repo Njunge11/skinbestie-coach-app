@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { makeRoutineProductsRepo } from "./routine.repo";
-import type { RoutineProduct, NewRoutineProduct } from "./routine.repo.fake";
+import type { RoutineProduct, NewRoutineProduct } from "./routine.repo";
 import { makeRoutineRepo as makeRoutineInfoRepo } from "../routine-info-actions/routine.repo";
 import { deleteScheduledStepsForProduct } from "../compliance-actions/actions";
 import { db, skincareRoutineProducts, routineStepCompletions } from "@/lib/db";
@@ -92,20 +92,20 @@ export type CreateRoutineProductInput = {
   routineId: string;
   routineStep: string;
   productName: string;
-  productUrl?: string;
+  productUrl: string | null;
   instructions: string;
   frequency: string;
-  days?: string[];
+  days: string[] | null;
   timeOfDay: "morning" | "evening";
 };
 
 export type UpdateRoutineProductInput = {
   routineStep?: string;
   productName?: string;
-  productUrl?: string;
+  productUrl?: string | null;
   instructions?: string;
   frequency?: string;
-  days?: string[];
+  days?: string[] | null;
 };
 
 // Zod schemas for validation
@@ -119,12 +119,12 @@ const createRoutineProductSchema = z.object({
   routineStep: requiredStringSchema,
   productName: requiredStringSchema,
   productUrl: z.preprocess(
-    (val) => (val === "" ? undefined : val),
-    z.string().url().nullable().optional()
+    (val) => (val === "" ? null : val),
+    z.string().url().nullable()
   ),
   instructions: requiredStringSchema,
   frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]),
-  days: z.array(z.string()).nullable().optional(),
+  days: z.array(z.string()).nullable(),
   timeOfDay: timeOfDaySchema,
 });
 
@@ -224,7 +224,7 @@ export async function createRoutineProduct(
   input: CreateRoutineProductInput,
   deps: CreateRoutineProductWithRegenerationDeps = defaultDepsWithRegeneration
 ): Promise<Result<RoutineProduct>> {
-  const { routineRepo, now } = deps;
+  const { routineRepo } = deps;
 
   // Validate input with Zod
   const validation = createRoutineProductSchema.safeParse({
@@ -286,22 +286,18 @@ export async function createRoutineProduct(
           ? Math.max(...existingProducts.map((p) => p.order)) + 1
           : 0;
 
-      const timestamp = now();
-
       // Create product with validated data (already trimmed by Zod)
       const newProduct: NewRoutineProduct = {
         routineId: validation.data.routineId,
         userProfileId: validation.data.userId,
         routineStep: validation.data.routineStep,
         productName: validation.data.productName,
-        productUrl: validation.data.productUrl ?? undefined,
+        productUrl: validation.data.productUrl ?? null,
         instructions: validation.data.instructions,
         frequency: validation.data.frequency,
-        days: validation.data.days ?? undefined,
+        days: validation.data.days ?? null,
         timeOfDay: validation.data.timeOfDay,
         order,
-        createdAt: timestamp,
-        updatedAt: timestamp,
       };
 
       // Create product using tx (transaction object)

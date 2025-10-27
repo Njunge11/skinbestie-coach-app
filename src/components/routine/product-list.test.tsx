@@ -78,6 +78,8 @@ describe("ProductList", () => {
         instructions: "Apply to damp skin",
         frequency: "daily",
         days: null,
+        timeOfDay: "morning",
+        order: 0,
       },
     ];
 

@@ -336,6 +336,9 @@ export const coachNotes = pgTable(
     userProfileIdx: index('coach_notes_user_profile_idx').on(table.userProfileId),
     // Index for efficient queries by admin
     adminIdx: index('coach_notes_admin_idx').on(table.adminId),
+    // Composite index for user profile + created_at DESC (optimized for ORDER BY query)
+    byUserCreatedAt: index('coach_notes_user_profile_id_created_at_idx')
+      .on(table.userProfileId, table.createdAt.desc()),
   })
 );
 
@@ -382,6 +385,10 @@ export const progressPhotos = pgTable(
       table.userProfileId,
       table.weekNumber
     ),
+
+    // Composite index for user profile + uploaded_at DESC (optimized for ORDER BY query)
+    byUserUploadedAt: index('progress_photos_user_profile_id_uploaded_at_idx')
+      .on(table.userProfileId, table.uploadedAt.desc()),
   })
 );
 

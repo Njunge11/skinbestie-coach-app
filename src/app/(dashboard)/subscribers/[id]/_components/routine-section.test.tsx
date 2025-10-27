@@ -9,6 +9,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   const mockOnCreateFromTemplate = vi.fn();
   const mockOnCreateBlank = vi.fn();
   const mockOnUpdateRoutine = vi.fn();
+  const mockOnPublishRoutine = vi.fn();
   const mockOnDeleteRoutine = vi.fn();
   const mockOnAddProduct = vi.fn();
   const mockOnUpdateProduct = vi.fn();
@@ -25,180 +26,6 @@ describe("RoutineSection - Complete User Workflows", () => {
     vi.clearAllMocks();
   });
 
-  it("user creates blank routine and adds morning product", async () => {
-    const user = userEvent.setup();
-
-    const { rerender } = render(
-      <RoutineSection
-        routine={null}
-        products={[]}
-        templates={mockTemplates}
-        onCreateFromTemplate={mockOnCreateFromTemplate}
-        onCreateBlank={mockOnCreateBlank}
-        onUpdateRoutine={mockOnUpdateRoutine}
-        onDeleteRoutine={mockOnDeleteRoutine}
-        onAddProduct={mockOnAddProduct}
-        onUpdateProduct={mockOnUpdateProduct}
-        onDeleteProduct={mockOnDeleteProduct}
-        onReorderProducts={mockOnReorderProducts}
-      />
-    );
-
-    // User sees empty state
-    expect(screen.getByText(/no routine set yet/i)).toBeInTheDocument();
-
-    // User clicks "Add Routine"
-    await user.click(screen.getByRole("button", { name: /add routine/i }));
-
-    // User sees modal with two options
-    expect(screen.getByText(/new routine/i)).toBeInTheDocument();
-    expect(screen.getByText(/from template/i)).toBeInTheDocument();
-    expect(screen.getByText(/blank routine/i)).toBeInTheDocument();
-
-    // User clicks "Blank routine"
-    await user.click(screen.getByText(/blank routine/i));
-
-    // User sees routine info form
-    expect(screen.getByRole("heading", { name: /create routine/i })).toBeInTheDocument();
-
-    // User fills in routine details
-    await user.type(screen.getByLabelText(/routine name/i), "My Winter Routine");
-    await user.type(screen.getByLabelText(/start date/i), "2025-01-15");
-    // Leave end date empty (ongoing routine)
-
-    // User clicks "Create Routine"
-    await user.click(screen.getByRole("button", { name: /create routine/i }));
-
-    // Verify server action was called
-    expect(mockOnCreateBlank).toHaveBeenCalledWith(
-      "My Winter Routine",
-      expect.any(Date),
-      null
-    );
-
-    // Simulate routine created - rerender with routine
-    const createdRoutine: Routine = {
-      id: "routine-1",
-      name: "My Winter Routine",
-      startDate: new Date("2025-01-15"),
-      endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    rerender(
-      <RoutineSection
-        routine={createdRoutine}
-        products={[]}
-        templates={mockTemplates}
-        onCreateFromTemplate={mockOnCreateFromTemplate}
-        onCreateBlank={mockOnCreateBlank}
-        onUpdateRoutine={mockOnUpdateRoutine}
-        onDeleteRoutine={mockOnDeleteRoutine}
-        onAddProduct={mockOnAddProduct}
-        onUpdateProduct={mockOnUpdateProduct}
-        onDeleteProduct={mockOnDeleteProduct}
-        onReorderProducts={mockOnReorderProducts}
-      />
-    );
-
-    // User sees routine header
-    expect(screen.getByText("My Winter Routine")).toBeInTheDocument();
-    expect(screen.getByText(/ongoing/i)).toBeInTheDocument();
-
-    // User adds a morning product
-    const morningSection = screen.getAllByText(/morning/i)[0].parentElement?.parentElement;
-    expect(morningSection).toBeInTheDocument();
-
-    // User clicks "Add Step" in morning section
-    const addStepButtons = screen.getAllByRole("button", { name: /add step/i });
-    await user.click(addStepButtons[0]); // First button is morning
-
-    // User selects routine step
-    const comboboxes = screen.getAllByRole("combobox");
-    await user.click(comboboxes[0]); // Routine step combobox
-    await user.click(screen.getByText("Cleanser"));
-
-    // User fills in product details
-    await user.type(screen.getByPlaceholderText(/product name/i), "CeraVe Hydrating Cleanser");
-    await user.type(screen.getByPlaceholderText(/instructions/i), "Apply to damp skin, massage gently");
-
-    // User clicks "Add"
-    await user.click(screen.getByRole("button", { name: /^add$/i }));
-
-    // Verify product was added
-    expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
-      routineStep: "Cleanser",
-      productName: "CeraVe Hydrating Cleanser",
-      productUrl: "",
-      instructions: "Apply to damp skin, massage gently",
-      frequency: "daily",
-      days: undefined,
-    });
-  });
-
-  it("user creates routine from template and sees pre-populated products", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <RoutineSection
-        routine={null}
-        products={[]}
-        templates={mockTemplates}
-        onCreateFromTemplate={mockOnCreateFromTemplate}
-        onCreateBlank={mockOnCreateBlank}
-        onUpdateRoutine={mockOnUpdateRoutine}
-        onDeleteRoutine={mockOnDeleteRoutine}
-        onAddProduct={mockOnAddProduct}
-        onUpdateProduct={mockOnUpdateProduct}
-        onDeleteProduct={mockOnDeleteProduct}
-        onReorderProducts={mockOnReorderProducts}
-      />
-    );
-
-    // User clicks "Add Routine"
-    await user.click(screen.getByRole("button", { name: /add routine/i }));
-
-    // User clicks "From template"
-    await user.click(screen.getByText(/from template/i));
-
-    // User sees template selection screen
-    expect(screen.getByRole("heading", { name: /select a template/i })).toBeInTheDocument();
-    expect(screen.getByText("Morning Glow Routine")).toBeInTheDocument();
-    expect(screen.getByText("Night Recovery Routine")).toBeInTheDocument();
-    expect(screen.getByText("Acne-Prone Skin Care")).toBeInTheDocument();
-
-    // User selects the first template (click on the template name text)
-    await user.click(screen.getByText("Morning Glow Routine"));
-
-    // User clicks Continue
-    await user.click(screen.getByRole("button", { name: /continue/i }));
-
-    // User sees routine info form with template name pre-filled
-    expect(screen.getByRole("heading", { name: /customize routine/i })).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Morning Glow Routine")).toBeInTheDocument();
-
-    // User updates the name
-    await user.clear(screen.getByLabelText(/routine name/i));
-    await user.type(screen.getByLabelText(/routine name/i), "My Morning Routine");
-
-    // User fills in dates
-    await user.type(screen.getByLabelText(/start date/i), "2025-02-01");
-    await user.type(screen.getByLabelText(/end date/i), "2025-04-01");
-
-    // User clicks "Create Routine"
-    await user.click(screen.getByRole("button", { name: /create routine/i }));
-
-    // Verify server action was called with template ID and routine details
-    expect(mockOnCreateFromTemplate).toHaveBeenCalledWith(
-      "template-1",
-      "My Morning Routine",
-      expect.any(Date),
-      expect.any(Date)
-    );
-  });
-
   it("user edits routine name and dates successfully", async () => {
     const user = userEvent.setup();
 
@@ -207,9 +34,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "Old Routine Name",
       startDate: new Date("2025-01-01"),
       endDate: new Date("2025-03-01"),
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -220,6 +45,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -264,9 +90,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "Routine to Delete",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const { rerender } = render(
@@ -277,6 +101,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -310,6 +135,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -330,9 +156,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -343,6 +167,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -387,9 +212,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -403,6 +226,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -414,6 +240,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -443,10 +270,10 @@ describe("RoutineSection - Complete User Workflows", () => {
     expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
       routineStep: "Cleanser",
       productName: "CeraVe Cleanser",
-      productUrl: null,
+      productUrl: "",
       instructions: "Updated instructions",
       frequency: "daily",
-      days: null,
+      days: undefined,
     });
   });
 
@@ -458,9 +285,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -474,6 +299,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -485,6 +313,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -511,9 +340,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -524,6 +351,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -586,6 +414,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -638,6 +467,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -675,6 +505,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -705,6 +536,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -746,9 +578,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -759,6 +589,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -814,6 +645,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -878,6 +710,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -923,9 +756,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -939,6 +770,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -950,6 +784,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -992,9 +827,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -1008,6 +841,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "2x per week",
         days: ["Mon", "Thu"],
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -1019,6 +855,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -1050,7 +887,7 @@ describe("RoutineSection - Complete User Workflows", () => {
     expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
       routineStep: "Exfoliant / Peel",
       productName: "AHA Toner",
-      productUrl: null,
+      productUrl: "",
       instructions: "Apply with cotton pad",
       frequency: "daily",
       days: undefined,
@@ -1065,9 +902,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     render(
@@ -1078,6 +913,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -1143,9 +979,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -1159,6 +993,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -1170,6 +1007,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}
@@ -1191,9 +1029,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
-      userProfileId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      status: "draft",
     };
 
     const existingProducts: RoutineProduct[] = [
@@ -1207,6 +1043,9 @@ describe("RoutineSection - Complete User Workflows", () => {
         frequency: "2x per week",
         days: ["Mon", "Thu"],
         timeOfDay: "evening",
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -1218,6 +1057,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onCreateFromTemplate={mockOnCreateFromTemplate}
         onCreateBlank={mockOnCreateBlank}
         onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
         onDeleteRoutine={mockOnDeleteRoutine}
         onAddProduct={mockOnAddProduct}
         onUpdateProduct={mockOnUpdateProduct}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { GET } from "./route";
 
 // Mock the server actions module
@@ -19,6 +19,29 @@ describe("GET /api/user-profiles/check", () => {
   const validApiKey = "test-api-key-123";
   const baseUrl = "http://localhost:3000";
 
+  const mockUserProfile = {
+    id: "user-123",
+    firstName: "John",
+    lastName: "Doe",
+    email: "john@example.com",
+    phoneNumber: "+1234567890",
+    dateOfBirth: new Date("1990-01-01"),
+    skinType: ["oily"],
+    concerns: ["acne"],
+    hasAllergies: false,
+    allergyDetails: null,
+    occupation: null,
+    bio: null,
+    timezone: "UTC",
+    isSubscribed: true,
+    hasCompletedBooking: true,
+    completedSteps: ["PERSONAL"],
+    isCompleted: false,
+    completedAt: null,
+    createdAt: new Date("2025-01-01"),
+    updatedAt: new Date("2025-01-01"),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.API_KEY = validApiKey;
@@ -27,7 +50,7 @@ describe("GET /api/user-profiles/check", () => {
   describe("Authentication", () => {
     it("returns 401 when API key is missing", async () => {
       // Given: request without API key
-      const mockAuthError = Response.json(
+      const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
         { status: 401 }
       );
@@ -57,7 +80,7 @@ describe("GET /api/user-profiles/check", () => {
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(checkUserProfileExists).mockResolvedValue({
         success: true,
-        data: { exists: true },
+        data: { exists: true, profile: mockUserProfile },
       });
 
       const request = new NextRequest(
@@ -88,8 +111,8 @@ describe("GET /api/user-profiles/check", () => {
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(checkUserProfileExists).mockResolvedValue({
         success: true,
-        data: { exists: false },
-      });
+        data: { exists: false, profile: null },
+      } as unknown as Awaited<ReturnType<typeof checkUserProfileExists>>);
 
       const request = new NextRequest(
         `${baseUrl}/api/user-profiles/check?email=nonexistent@example.com`,
@@ -115,7 +138,7 @@ describe("GET /api/user-profiles/check", () => {
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(checkUserProfileExists).mockResolvedValue({
         success: true,
-        data: { exists: true },
+        data: { exists: true, profile: mockUserProfile },
       });
 
       const request = new NextRequest(
@@ -146,7 +169,7 @@ describe("GET /api/user-profiles/check", () => {
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(checkUserProfileExists).mockResolvedValue({
         success: true,
-        data: { exists: true },
+        data: { exists: true, profile: mockUserProfile },
       });
 
       const request = new NextRequest(
@@ -254,7 +277,7 @@ describe("GET /api/user-profiles/check", () => {
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(checkUserProfileExists).mockResolvedValue({
         success: true,
-        data: { exists: true },
+        data: { exists: true, profile: mockUserProfile },
       });
 
       const email = "john+test@example.com";

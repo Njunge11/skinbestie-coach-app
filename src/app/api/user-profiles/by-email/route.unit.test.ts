@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { GET } from "./route";
 
 // Mock the server actions module
@@ -28,7 +28,7 @@ describe("GET /api/user-profiles/by-email", () => {
   describe("Authentication", () => {
     it("returns 401 when API key is missing", async () => {
       // Given: request without API key
-      const mockAuthError = Response.json(
+      const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
         { status: 401 }
       );
@@ -64,12 +64,15 @@ describe("GET /api/user-profiles/by-email", () => {
         email: "john@example.com",
         phoneNumber: "+1234567890",
         dateOfBirth: new Date("1990-01-01"),
-        skinType: ["oily"],
-        concerns: ["acne"],
-        hasAllergies: false,
+        skinType: ["oily"] as string[] | null,
+        concerns: ["acne"] as string[] | null,
+        hasAllergies: false as boolean | null,
         allergyDetails: null,
-        isSubscribed: true,
-        hasCompletedBooking: true,
+        occupation: null,
+        bio: null,
+        timezone: "UTC",
+        isSubscribed: true as boolean | null,
+        hasCompletedBooking: true as boolean | null,
         completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS"],
         isCompleted: false,
         completedAt: null,
@@ -115,12 +118,15 @@ describe("GET /api/user-profiles/by-email", () => {
         email: "john+test@example.com",
         phoneNumber: "+1234567890",
         dateOfBirth: new Date("1990-01-01"),
-        skinType: null,
-        concerns: null,
-        hasAllergies: null,
+        skinType: null as string[] | null,
+        concerns: null as string[] | null,
+        hasAllergies: null as boolean | null,
         allergyDetails: null,
-        isSubscribed: null,
-        hasCompletedBooking: null,
+        occupation: null,
+        bio: null,
+        timezone: "UTC",
+        isSubscribed: null as boolean | null,
+        hasCompletedBooking: null as boolean | null,
         completedSteps: ["PERSONAL"],
         isCompleted: false,
         completedAt: null,

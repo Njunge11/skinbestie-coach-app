@@ -1,9 +1,12 @@
 # PR Preview Workflow
 # This workflow runs when a Pull Request is opened, updated, or reopened
-# It applies schema changes to the shared staging database and runs tests
-# Vercel automatically deploys preview URLs for each PR
+# It applies schema changes to the shared staging database, runs tests, and deploys a preview
 
 name: PR Preview - Setup and Test
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 on:
   pull_request:
@@ -23,6 +26,12 @@ on:
         options:
           - 'true'
           - 'false'
+
+# Permissions needed for the workflow
+permissions:
+  contents: read          # Read repository contents
+  issues: write           # Post comments on issues
+  pull-requests: write    # Post comments on pull requests
 
 jobs:
   setup-and-test:
@@ -61,20 +70,20 @@ jobs:
       # To run seeders: Set RUN_SEEDERS=true in GitHub Actions secrets
       # Or manually trigger workflow with run_seeders=true
       - name: Seed database
-        if: vars.RUN_SEEDERS == 'true' || github.event.inputs.run_seeders == 'true'
+        if: ${{ vars.RUN_SEEDERS == 'true' || inputs.run_seeders == 'true' }}
         run: |
           echo "🌱 Running database seeders..."
           echo "Creating user profiles..."
-          node src/scripts/seed-sample-users.ts
+          npx tsx src/scripts/seed-sample-users.ts
           echo "Seeding detailed profile data..."
-          node src/scripts/seed-profiles.ts
+          npx tsx src/scripts/seed-profiles.ts
           echo "✅ Seeding complete!"
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
 
       # Step 5b: Skip seeding message (when seeders are disabled)
       - name: Seeders skipped
-        if: vars.RUN_SEEDERS != 'true' && github.event.inputs.run_seeders != 'true'
+        if: ${{ vars.RUN_SEEDERS != 'true' && inputs.run_seeders != 'true' }}
         run: |
           echo "⏭️  Database seeders skipped (RUN_SEEDERS not enabled)"
           echo "To enable seeders:"
@@ -91,17 +100,61 @@ jobs:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
 
       # Step 7: Post success message on the PR
-      # This provides visibility that tests passed and preview is ready
-      - name: Comment PR
+      # This provides visibility that tests passed
+      - name: Comment PR - Tests Passed
         if: success()
         uses: actions/github-script@v7
         with:
           script: |
-            const seeded = '${{ vars.RUN_SEEDERS }}' === 'true' || '${{ github.event.inputs.run_seeders }}' === 'true';
+            const seeded = '${{ vars.RUN_SEEDERS }}' === 'true' || '${{ inputs.run_seeders }}' === 'true';
             const seedingNote = seeded ? '\n🌱 Test data seeded' : '\n⏭️  Seeders skipped (enable RUN_SEEDERS variable to seed data)';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ Schema applied to staging database\n\nTests passed! Preview deployment will be available shortly.' + seedingNote
+              body: '✅ Schema applied to staging database\n\n✅ Tests passed!' + seedingNote
+            })
+
+  deploy-preview:
+    name: Deploy Preview to Vercel
+    needs: setup-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request' && github.head_ref != 'staging'
+    environment:
+      name: preview
+
+    steps:
+      # Step 1: Get the code from the feature branch
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Vercel CLI
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      # Step 3: Pull Vercel environment information for preview
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Step 4: Build the project with Vercel
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Step 5: Deploy to Vercel and capture the preview URL
+      - name: Deploy Preview to Vercel
+        id: deploy
+        run: echo "url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+
+      # Step 6: Post the preview URL as a comment on the PR
+      - name: Comment Preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Preview deployment ready!\n\n🔗 Preview URL: ${{ steps.deploy.outputs.url }}'
             })
