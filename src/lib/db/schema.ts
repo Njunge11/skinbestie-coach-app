@@ -1,5 +1,6 @@
-import { pgTable, text, timestamp, boolean, uuid, varchar, date, uniqueIndex, index, integer, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, uuid, varchar, date, uniqueIndex, index, integer, pgEnum, primaryKey } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import type { AdapterAccountType } from 'next-auth/adapters';
 
 // PostgreSQL Enums for type safety
 export const adminRoleEnum = pgEnum('admin_role', ['admin', 'superadmin']);
@@ -7,6 +8,62 @@ export const routineStatusEnum = pgEnum('routine_status', ['draft', 'published']
 export const frequencyEnum = pgEnum('frequency', ['daily', '2x per week', '3x per week', 'specific_days']);
 export const timeOfDayEnum = pgEnum('time_of_day', ['morning', 'evening']);
 export const completionStatusEnum = pgEnum('completion_status', ['pending', 'on-time', 'late', 'missed']);
+
+// ============================================
+// NextAuth.js Tables (for email magic link authentication)
+// ============================================
+
+export const users = pgTable('user', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text('name'),
+  email: text('email').notNull().unique(),
+  emailVerified: timestamp('emailVerified', { mode: 'date' }),
+  image: text('image'),
+});
+
+export const accounts = pgTable(
+  'account',
+  {
+    userId: text('userId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').$type<AdapterAccountType>().notNull(),
+    provider: text('provider').notNull(),
+    providerAccountId: text('providerAccountId').notNull(),
+    refresh_token: text('refresh_token'),
+    access_token: text('access_token'),
+    expires_at: integer('expires_at'),
+    token_type: text('token_type'),
+    scope: text('scope'),
+    id_token: text('id_token'),
+    session_state: text('session_state'),
+  },
+  (account) => ({
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
+  })
+);
+
+export const verificationTokens = pgTable(
+  'verificationToken',
+  {
+    identifier: text('identifier').notNull(),
+    token: text('token').notNull(),
+    expires: timestamp('expires', { mode: 'date' }).notNull(),
+  },
+  (verificationToken) => ({
+    compositePk: primaryKey({
+      columns: [verificationToken.identifier, verificationToken.token],
+    }),
+  })
+);
+
+// ============================================
+// Admin Tables
+// ============================================
 
 export const admins = pgTable('admins', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -43,6 +100,12 @@ export const userProfiles = pgTable(
   {
     // Primary Key
     id: uuid('id').primaryKey().defaultRandom(),
+
+    // Foreign Key to auth user (1:1 mapping)
+    userId: text('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
 
     // Step 1 - Always required
     firstName: varchar('first_name', { length: 120 }).notNull(),
@@ -465,6 +528,16 @@ export const routineStepCompletions = pgTable(
 );
 
 // Type exports for TypeScript
+
+// NextAuth types
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
+export type VerificationToken = typeof verificationTokens.$inferSelect;
+export type NewVerificationToken = typeof verificationTokens.$inferInsert;
+
+// Admin types
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
 export type VerificationCode = typeof verificationCodes.$inferSelect;
