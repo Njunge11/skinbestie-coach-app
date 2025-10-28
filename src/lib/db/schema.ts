@@ -103,7 +103,6 @@ export const userProfiles = pgTable(
 
     // Foreign Key to auth user (1:1 mapping)
     userId: text('user_id')
-      .notNull()
       .unique()
       .references(() => users.id, { onDelete: 'cascade' }),
 
@@ -197,12 +196,6 @@ export const skincareGoals = pgTable(
     userProfileIdx: index('skincare_goals_user_profile_idx').on(table.userProfileId),
     // Index for ordering/drag-drop operations
     orderIdx: index('skincare_goals_order_idx').on(table.order),
-
-    // Unique constraint to prevent duplicate order values per user
-    uniqueOrderPerUser: uniqueIndex('skincare_goals_user_order_idx').on(
-      table.userProfileId,
-      table.order
-    ),
   })
 );
 
