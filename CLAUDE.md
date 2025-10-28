@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Project Overview :-)
 
 This is a Next.js 15 application named "skinbestie-coach-app" built with React 19, TypeScript, and Tailwind CSS v4. The project uses the App Router architecture and is configured to use Turbopack for faster builds.
 
@@ -92,30 +92,39 @@ vitest.config.ts      # Vitest configuration
 This project uses **Drizzle ORM** with PostgreSQL for database operations.
 
 ### Schema Location
+
 - Database schema: `src/lib/db/schema.ts`
 - Database connection: `src/lib/db/index.ts`
 - Configuration: `drizzle.config.ts`
 
 ### Current Schema
+
 - **admins**: Admin accounts (email, password, roles)
 - **password_tokens**: Password reset/setup tokens
 
 ### Workflow
+
 1. **Modify schema** in `src/lib/db/schema.ts`
 2. **Generate migration**: `npm run db:generate`
 3. **Apply to database**: `npm run db:migrate`
 4. For quick prototyping without migrations: `npm run db:push`
 
 ### Database Access
+
 ```typescript
-import { db, admins } from '@/lib/db';
+import { db, admins } from "@/lib/db";
 
 // Use Drizzle queries
-const admin = await db.select().from(admins).where(eq(admins.email, 'test@example.com'));
+const admin = await db
+  .select()
+  .from(admins)
+  .where(eq(admins.email, "test@example.com"));
 ```
 
 ### Environment Variables
+
 Required in `.env.local`:
+
 - `DATABASE_URL`: PostgreSQL connection string
 
 ## Testing (Vitest)
@@ -123,36 +132,42 @@ Required in `.env.local`:
 This project uses **Vitest** with React Testing Library for unit and integration testing.
 
 ### Test Configuration
+
 - Configuration: `vitest.config.ts`
 - Setup file: `src/test/setup.ts`
 - Test utilities: `src/test/utils.tsx`
 
 ### Writing Tests
+
 Place test files next to the code they test with `.test.ts` or `.spec.ts` extension:
+
 ```
 src/lib/utils.ts
 src/lib/utils.test.ts  ← test file
 ```
 
 ### Test Structure
-```typescript
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@/test/utils';
 
-describe('ComponentName', () => {
-  it('should render correctly', () => {
+```typescript
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@/test/utils";
+
+describe("ComponentName", () => {
+  it("should render correctly", () => {
     // Your test here
   });
 });
 ```
 
 ### Running Tests
+
 - **Watch mode**: `npm run test` (reruns on file changes)
 - **UI mode**: `npm run test:ui` (visual test runner)
 - **Single run**: `npm run test:run` (for CI/CD)
 - **Coverage**: `npm run test:coverage` (generates coverage report)
 
 ### Testing Best Practices
+
 - Test user behavior, not implementation details
 - Use Testing Library queries in order of priority: `getByRole` > `getByLabelText` > `getByTestId`
 - Mock external dependencies (APIs, database)
@@ -161,6 +176,7 @@ describe('ComponentName', () => {
 ## Architecture Notes
 
 This is an admin portal application built with:
+
 - Next.js App Router (not Pages Router)
 - Server Components as the default rendering strategy
 - Turbopack bundler for both development and production builds
@@ -168,6 +184,7 @@ This is an admin portal application built with:
 - Drizzle ORM for type-safe database operations
 
 When adding new features, follow Next.js 15 conventions:
+
 - Place routes in `src/app/` following file-system routing
 - Use Server Components by default, add `"use client"` directive only when needed
 - Leverage Next.js built-in optimizations (Image, Font, etc.)

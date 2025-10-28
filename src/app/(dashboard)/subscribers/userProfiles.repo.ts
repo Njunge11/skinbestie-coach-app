@@ -9,6 +9,7 @@ export function makeUserProfilesRepo(database: typeof db) {
       const result = await database
         .select({
           id: userProfiles.id,
+          userId: userProfiles.userId,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           email: userProfiles.email,
@@ -39,6 +40,7 @@ export function makeUserProfilesRepo(database: typeof db) {
       const result = await database
         .select({
           id: userProfiles.id,
+          userId: userProfiles.userId,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           email: userProfiles.email,
@@ -69,6 +71,7 @@ export function makeUserProfilesRepo(database: typeof db) {
       const result = await database
         .select({
           id: userProfiles.id,
+          userId: userProfiles.userId,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           email: userProfiles.email,
@@ -99,6 +102,7 @@ export function makeUserProfilesRepo(database: typeof db) {
       const result = await database
         .select({
           id: userProfiles.id,
+          userId: userProfiles.userId,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           email: userProfiles.email,
@@ -208,6 +212,7 @@ export function makeUserProfilesRepo(database: typeof db) {
       const results = await database
         .select({
           id: userProfiles.id,
+          userId: userProfiles.userId,
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           email: userProfiles.email,

@@ -1,12 +1,8 @@
 # PR Preview Workflow
 # This workflow runs when a Pull Request is opened, updated, or reopened
-# It applies schema changes to the shared staging database, runs tests, and deploys a preview
+# It applies schema changes to the shared staging database and runs tests
 
 name: PR Preview - Setup and Test
-
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 on:
   pull_request:
@@ -113,48 +109,4 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: '✅ Schema applied to staging database\n\n✅ Tests passed!' + seedingNote
-            })
-
-  deploy-preview:
-    name: Deploy Preview to Vercel
-    needs: setup-and-test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: github.event_name == 'pull_request' && github.head_ref != 'staging'
-    environment:
-      name: preview
-
-    steps:
-      # Step 1: Get the code from the feature branch
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Step 2: Install Vercel CLI
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      # Step 3: Pull Vercel environment information for preview
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-
-      # Step 4: Build the project with Vercel
-      - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-
-      # Step 5: Deploy to Vercel and capture the preview URL
-      - name: Deploy Preview to Vercel
-        id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
-
-      # Step 6: Post the preview URL as a comment on the PR
-      - name: Comment Preview URL on PR
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🚀 Preview deployment ready!\n\n🔗 Preview URL: ${{ steps.deploy.outputs.url }}'
             })
