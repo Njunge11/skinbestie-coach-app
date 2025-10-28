@@ -1,5 +1,5 @@
 import { db } from "../lib/db/index";
-import { userProfiles } from "../lib/db/schema";
+import { users, userProfiles } from "../lib/db/schema";
 
 // Sample data arrays
 const firstNames = [
@@ -75,6 +75,12 @@ function generatePhone(): string {
 
 async function seed() {
   console.log("🌱 Seeding user profiles...");
+
+  // Clear existing data first
+  console.log("🗑️  Clearing existing user profiles and auth users...");
+  await db.delete(userProfiles); // Cascades to all related data
+  await db.delete(users); // Clear auth users
+  console.log("✅ Cleared existing data");
 
   const profiles = [];
 
@@ -159,12 +165,30 @@ async function seed() {
     });
   }
 
-  // Insert in batches of 20 for better performance
-  const batchSize = 20;
-  for (let i = 0; i < profiles.length; i += batchSize) {
-    const batch = profiles.slice(i, i + batchSize);
-    await db.insert(userProfiles).values(batch);
-    console.log(`✅ Inserted profiles ${i + 1}-${Math.min(i + batchSize, profiles.length)}`);
+  // Insert profiles one by one with auth users in transactions
+  // Note: Can't batch across transactions, so we process individually
+  for (let i = 0; i < profiles.length; i++) {
+    const profile = profiles[i];
+
+    await db.transaction(async (tx) => {
+      // Create auth user first
+      const [authUser] = await tx.insert(users).values({
+        email: profile.email,
+        name: `${profile.firstName} ${profile.lastName}`,
+        emailVerified: null,
+        image: null,
+      }).returning();
+
+      // Create user profile linked to auth user
+      await tx.insert(userProfiles).values({
+        ...profile,
+        userId: authUser.id,
+      });
+    });
+
+    if ((i + 1) % 20 === 0 || i === profiles.length - 1) {
+      console.log(`✅ Inserted profiles 1-${i + 1}`);
+    }
   }
 
   console.log("🎉 Seeding complete! 100 user profiles created.");

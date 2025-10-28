@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import {
+  users,
   userProfiles,
   skincareRoutines,
   skincareRoutineProducts,
@@ -9,6 +10,7 @@ import {
 
 /**
  * Seeds a user_profile record in the PGlite test database
+ * Also creates the corresponding auth user record
  */
 export async function seedUserProfile(
   id: string,
@@ -21,21 +23,40 @@ export async function seedUserProfile(
     dateOfBirth?: Date;
     createdAt?: Date;
     updatedAt?: Date;
+    userId?: string;
   } = {}
 ) {
   const now = new Date();
+  const email = overrides.email || `user-${id}@example.com`;
+  const firstName = overrides.firstName || "Test";
+  const lastName = overrides.lastName || "User";
 
-  return await db.insert(userProfiles).values({
-    id,
-    email: overrides.email || `user-${id}@example.com`,
-    firstName: overrides.firstName || "Test",
-    lastName: overrides.lastName || "User",
-    phoneNumber: overrides.phoneNumber || "+1234567890",
-    dateOfBirth: overrides.dateOfBirth || new Date("1990-01-01"),
-    timezone: overrides.timezone || "America/New_York",
-    createdAt: overrides.createdAt || now,
-    updatedAt: overrides.updatedAt || now,
-  }).returning();
+  return await db.transaction(async (tx) => {
+    // Create auth user first
+    const [authUser] = await tx.insert(users).values({
+      id: overrides.userId || `auth-${id}`,
+      email,
+      name: `${firstName} ${lastName}`,
+      emailVerified: null,
+      image: null,
+    }).returning();
+
+    // Create user profile linked to auth user
+    const [profile] = await tx.insert(userProfiles).values({
+      id,
+      userId: authUser.id,
+      email,
+      firstName,
+      lastName,
+      phoneNumber: overrides.phoneNumber || "+1234567890",
+      dateOfBirth: overrides.dateOfBirth || new Date("1990-01-01"),
+      timezone: overrides.timezone || "America/New_York",
+      createdAt: overrides.createdAt || now,
+      updatedAt: overrides.updatedAt || now,
+    }).returning();
+
+    return profile;
+  });
 }
 
 /**

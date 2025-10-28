@@ -1,5 +1,6 @@
 "use server";
 
+import { db, users, userProfiles as userProfilesTable } from "@/lib/db";
 import { userProfilesRepo } from "./userProfiles.repo";
 import {
   UserProfileCreateSchema,
@@ -94,17 +95,43 @@ export async function createUserProfile(
       };
     }
 
-    // Insert Step 1 data only
-    const values = {
-      firstName: validated.firstName,
-      lastName: validated.lastName,
-      phoneNumber: phone,
-      email,
-      dateOfBirth: parseDateOnlyToDate(validated.dateOfBirth),
-      completedSteps: ["PERSONAL"],
-    };
+    // Create user and profile in a transaction
+    const row = await db.transaction(async (tx) => {
+      // 1. Create user in auth table
+      const [newUser] = await tx
+        .insert(users)
+        .values({
+          email,
+          name: `${validated.firstName} ${validated.lastName}`,
+          emailVerified: null,
+          image: null,
+        })
+        .returning();
 
-    const row = await deps.repo.create(values);
+      if (!newUser) {
+        throw new Error("Failed to create user");
+      }
+
+      // 2. Create user profile linked to auth user
+      const [newProfile] = await tx
+        .insert(userProfilesTable)
+        .values({
+          userId: newUser.id,
+          firstName: validated.firstName,
+          lastName: validated.lastName,
+          phoneNumber: phone,
+          email,
+          dateOfBirth: parseDateOnlyToDate(validated.dateOfBirth),
+          completedSteps: ["PERSONAL"],
+        })
+        .returning();
+
+      if (!newProfile) {
+        throw new Error("Failed to create profile");
+      }
+
+      return newProfile;
+    });
 
     if (!row) {
       return {
@@ -285,7 +312,8 @@ export async function getUserProfiles(
   deps: UserProfileDeps = defaultDeps
 ) {
   try {
-    const { searchQuery, completionStatus, subscriptionStatus, dateRange } = filters;
+    const { searchQuery, completionStatus, subscriptionStatus, dateRange } =
+      filters;
     const { page, pageSize } = pagination;
     const { sortBy, sortOrder } = sort;
 
