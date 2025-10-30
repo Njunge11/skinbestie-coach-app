@@ -1,10 +1,10 @@
 // API key authentication for consumer app
 import { headers } from "next/headers";
 
-const CONSUMER_APP_API_KEY = process.env.CONSUMER_APP_API_KEY;
+const API_KEY = process.env.API_KEY;
 
-if (!CONSUMER_APP_API_KEY) {
-  console.warn("CONSUMER_APP_API_KEY environment variable is not set");
+if (!API_KEY) {
+  console.warn("API_KEY environment variable is not set");
 }
 
 /**
@@ -12,7 +12,7 @@ if (!CONSUMER_APP_API_KEY) {
  * @returns true if API key is valid, false otherwise
  */
 export async function validateApiKey(): Promise<boolean> {
-  if (!CONSUMER_APP_API_KEY) {
+  if (!API_KEY) {
     // In development, you might want to allow requests without API key
     if (process.env.NODE_ENV === "development") {
       console.warn("API key validation skipped in development mode");
@@ -29,7 +29,7 @@ export async function validateApiKey(): Promise<boolean> {
   }
 
   // Constant-time comparison to prevent timing attacks
-  return timingSafeEqual(apiKey, CONSUMER_APP_API_KEY);
+  return timingSafeEqual(apiKey, API_KEY);
 }
 
 /**

@@ -23,7 +23,7 @@ describe("POST /api/admins", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.CONSUMER_APP_API_KEY = validApiKey;
+    process.env.API_KEY = validApiKey;
   });
 
   describe("Authentication", () => {

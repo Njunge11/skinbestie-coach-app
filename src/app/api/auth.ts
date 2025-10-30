@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export function validateApiKey(request: NextRequest): NextResponse | null {
   const apiKey = request.headers.get("x-api-key");
-  const validApiKey = process.env.CONSUMER_APP_API_KEY;
+  const validApiKey = process.env.API_KEY;
 
   if (!apiKey || !validApiKey || apiKey !== validApiKey) {
     return NextResponse.json(
