@@ -30,7 +30,7 @@ const defaultDeps: UserProfileDeps = {
 // Create profile (Step 1 only)
 export async function createUserProfile(
   input: UserProfileCreate,
-  deps: UserProfileDeps = defaultDeps
+  deps: UserProfileDeps = defaultDeps,
 ) {
   try {
     // Validate input
@@ -42,7 +42,7 @@ export async function createUserProfile(
     // Check if profile exists with BOTH email AND phone
     const exactMatch = await deps.repo.findByEmailAndPhone(email, phone);
 
-    // If exact match found, allow resume
+    // If exact match found, return existing profile without personal info
     if (exactMatch) {
       const completedSteps = exactMatch.completedSteps || [];
 
@@ -84,14 +84,23 @@ export async function createUserProfile(
       };
     }
 
-    // Check if email OR phone is already taken (partial match)
-    const partialMatch = await deps.repo.findByEmailOrPhone(email, phone);
+    // Check if email exists with different phone
+    const emailMatch = await deps.repo.findByEmail(email);
 
-    if (partialMatch) {
-      const field = partialMatch.email === email ? "Email" : "Phone number";
+    if (emailMatch && emailMatch.phoneNumber !== phone) {
       return {
         success: false,
-        error: `${field} is already registered with different details`,
+        error: "Email is already registered with a different phone number",
+      };
+    }
+
+    // Check if phone is already taken with different email
+    const phoneMatch = await deps.repo.findByEmailOrPhone("", phone);
+
+    if (phoneMatch && phoneMatch.email !== email) {
+      return {
+        success: false,
+        error: "Phone number is already registered with a different email",
       };
     }
 
@@ -164,7 +173,7 @@ export async function createUserProfile(
 // Get profile by ID
 export async function getUserProfileById(
   id: string,
-  deps: UserProfileDeps = defaultDeps
+  deps: UserProfileDeps = defaultDeps,
 ) {
   try {
     const profile = await deps.repo.findById(id);
@@ -193,7 +202,7 @@ export async function getUserProfileById(
 // Get profile by email
 export async function getUserProfileByEmail(
   email: string,
-  deps: UserProfileDeps = defaultDeps
+  deps: UserProfileDeps = defaultDeps,
 ) {
   try {
     const normalizedEmail = normalizeEmail(email);
@@ -223,7 +232,7 @@ export async function getUserProfileByEmail(
 // Check if email or phone exists
 export async function checkUserProfileExists(
   input: { email?: string; phoneNumber?: string },
-  deps: UserProfileDeps = defaultDeps
+  deps: UserProfileDeps = defaultDeps,
 ) {
   try {
     if (!input.email && !input.phoneNumber) {
@@ -259,7 +268,7 @@ export async function checkUserProfileExists(
 export async function updateUserProfile(
   id: string,
   input: UserProfileUpdate,
-  deps: UserProfileDeps = defaultDeps
+  deps: UserProfileDeps = defaultDeps,
 ) {
   try {
     // Validate input
@@ -309,7 +318,7 @@ export async function getUserProfiles(
   filters: UserProfileFilters = {},
   pagination: UserProfilePagination = { page: 0, pageSize: 20 },
   sort: UserProfileSort = { sortBy: "createdAt", sortOrder: "desc" },
-  deps: UserProfileDeps = defaultDeps
+  deps: UserProfileDeps = defaultDeps,
 ) {
   try {
     const { searchQuery, completionStatus, subscriptionStatus, dateRange } =
