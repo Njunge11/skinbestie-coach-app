@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Run lint-staged for code formatting
+npx lint-staged
+
+# Run tests
+npm run test:run
+
+# Run type check
+npx tsc --noEmit

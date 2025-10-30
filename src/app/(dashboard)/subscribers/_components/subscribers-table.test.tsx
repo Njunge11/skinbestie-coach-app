@@ -2,8 +2,14 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useRouter, useSearchParams, usePathname, type ReadonlyURLSearchParams } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+  usePathname,
+  type ReadonlyURLSearchParams,
+} from "next/navigation";
 import { SubscribersTable } from "./subscribers-table";
+import { makeUserProfile } from "@/test/factories";
 
 // Mock Next.js navigation
 vi.mock("next/navigation", () => ({
@@ -22,32 +28,36 @@ describe("SubscribersTable - UI Tests", () => {
   let mockPush: ReturnType<typeof vi.fn>;
   let mockSearchParams: URLSearchParams;
 
-  // Mock subscriber data
+  // Mock subscriber data using factory
   const mockProfiles = [
-    {
+    makeUserProfile({
       id: "profile-1",
+      userId: "user-1",
       firstName: "John",
       lastName: "Doe",
       email: "john@example.com",
-      phoneNumber: "+1234567890",
-      dateOfBirth: new Date("1990-01-01"),
       skinType: ["oily"],
       concerns: ["acne"],
       hasAllergies: false,
-      allergyDetails: null,
-      occupation: null,
-      bio: null,
-      timezone: "UTC",
       isSubscribed: true,
       hasCompletedBooking: true,
-      completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS", "ALLERGIES", "SUBSCRIBE", "BOOKING"],
+      hasCompletedSkinTest: true,
+      completedSteps: [
+        "PERSONAL",
+        "SKIN_TYPE",
+        "SKIN_CONCERNS",
+        "ALLERGIES",
+        "SUBSCRIBE",
+        "BOOKING",
+      ],
       isCompleted: true,
       completedAt: new Date("2025-01-15"),
       createdAt: new Date("2025-01-01"),
       updatedAt: new Date("2025-01-15"),
-    },
-    {
+    }),
+    makeUserProfile({
       id: "profile-2",
+      userId: "user-2",
       firstName: "Jane",
       lastName: "Smith",
       email: "jane@example.com",
@@ -57,39 +67,27 @@ describe("SubscribersTable - UI Tests", () => {
       concerns: ["wrinkles"],
       hasAllergies: true,
       allergyDetails: "Fragrance allergies",
-      occupation: null,
-      bio: null,
-      timezone: "UTC",
       isSubscribed: false,
       hasCompletedBooking: false,
+      hasCompletedSkinTest: true,
       completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS", "ALLERGIES"],
       isCompleted: false,
-      completedAt: null,
       createdAt: new Date("2025-01-10"),
       updatedAt: new Date("2025-01-12"),
-    },
-    {
+    }),
+    makeUserProfile({
       id: "profile-3",
+      userId: "user-3",
       firstName: "Bob",
       lastName: "Johnson",
       email: "bob@example.com",
       phoneNumber: "+1122334455",
       dateOfBirth: new Date("1995-08-20"),
-      skinType: null,
-      concerns: null,
-      hasAllergies: null,
-      allergyDetails: null,
-      occupation: null,
-      bio: null,
-      timezone: "UTC",
-      isSubscribed: null,
-      hasCompletedBooking: null,
+      hasCompletedSkinTest: false,
       completedSteps: ["PERSONAL"],
-      isCompleted: false,
-      completedAt: null,
       createdAt: new Date("2025-01-14"),
       updatedAt: new Date("2025-01-14"),
-    },
+    }),
   ];
 
   beforeEach(async () => {
@@ -115,7 +113,9 @@ describe("SubscribersTable - UI Tests", () => {
       prefetch: vi.fn(),
     });
 
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as unknown as ReadonlyURLSearchParams);
+    vi.mocked(useSearchParams).mockReturnValue(
+      mockSearchParams as unknown as ReadonlyURLSearchParams,
+    );
     vi.mocked(usePathname).mockReturnValue("/subscribers");
 
     // Setup default mock implementation
@@ -141,7 +141,7 @@ describe("SubscribersTable - UI Tests", () => {
     return render(
       <QueryClientProvider client={queryClient}>
         {component}
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
   };
 
@@ -154,7 +154,9 @@ describe("SubscribersTable - UI Tests", () => {
     expect(screen.getByText("Bob Johnson")).toBeInTheDocument();
 
     // User sees pagination info
-    expect(screen.getByText(/showing 1 to 3 of 3 results/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/showing 1 to 3 of 3 results/i),
+    ).toBeInTheDocument();
   });
 
   it("user searches for subscribers by name", async () => {
@@ -169,12 +171,15 @@ describe("SubscribersTable - UI Tests", () => {
     await user.type(searchInput, "Jane");
 
     // Wait for the 500ms debounce to trigger URL update
-    await vi.waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith(
-        expect.stringContaining("search=Jane"),
-        expect.objectContaining({ scroll: false })
-      );
-    }, { timeout: 1000 });
+    await vi.waitFor(
+      () => {
+        expect(mockPush).toHaveBeenCalledWith(
+          expect.stringContaining("search=Jane"),
+          expect.objectContaining({ scroll: false }),
+        );
+      },
+      { timeout: 1000 },
+    );
   });
 
   it("user searches for subscribers by email", async () => {
@@ -189,12 +194,15 @@ describe("SubscribersTable - UI Tests", () => {
     await user.type(searchInput, "bob");
 
     // Wait for the 500ms debounce to trigger URL update
-    await vi.waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith(
-        expect.stringContaining("search=bob"),
-        expect.objectContaining({ scroll: false })
-      );
-    }, { timeout: 1000 });
+    await vi.waitFor(
+      () => {
+        expect(mockPush).toHaveBeenCalledWith(
+          expect.stringContaining("search=bob"),
+          expect.objectContaining({ scroll: false }),
+        );
+      },
+      { timeout: 1000 },
+    );
   });
 
   it("user filters by completion status triggering API call", async () => {
@@ -206,18 +214,24 @@ describe("SubscribersTable - UI Tests", () => {
     expect(await screen.findByText("John Doe")).toBeInTheDocument();
 
     // User changes completion status filter
-    const completionStatusSection = screen.getByText("Completion Status").closest("div");
-    const statusFilterButton = within(completionStatusSection!).getByRole("combobox");
+    const completionStatusSection = screen
+      .getByText("Completion Status")
+      .closest("div");
+    const statusFilterButton = within(completionStatusSection!).getByRole(
+      "combobox",
+    );
     await user.click(statusFilterButton);
 
     // Wait for dropdown and select option
-    const completedOption = await screen.findByRole("option", { name: /^completed$/i });
+    const completedOption = await screen.findByRole("option", {
+      name: /^completed$/i,
+    });
     await user.click(completedOption);
 
     // This should update URL with status param
     expect(mockPush).toHaveBeenCalledWith(
       expect.stringContaining("status=completed"),
-      expect.objectContaining({ scroll: false })
+      expect.objectContaining({ scroll: false }),
     );
   });
 
@@ -230,17 +244,21 @@ describe("SubscribersTable - UI Tests", () => {
 
     // User changes subscription filter
     const subscriptionSection = screen.getByText("Subscription").closest("div");
-    const subscriptionFilterButton = within(subscriptionSection!).getByRole("combobox");
+    const subscriptionFilterButton = within(subscriptionSection!).getByRole(
+      "combobox",
+    );
     await user.click(subscriptionFilterButton);
 
     // Wait for dropdown and select option - exact match
-    const subscribedOption = await screen.findByRole("option", { name: /^subscribed$/i });
+    const subscribedOption = await screen.findByRole("option", {
+      name: /^subscribed$/i,
+    });
     await user.click(subscribedOption);
 
     // URL should update with subscription param
     expect(mockPush).toHaveBeenCalledWith(
       expect.stringContaining("subscription=subscribed"),
-      expect.objectContaining({ scroll: false })
+      expect.objectContaining({ scroll: false }),
     );
   });
 
@@ -257,13 +275,15 @@ describe("SubscribersTable - UI Tests", () => {
     await user.click(dateFilterButton);
 
     // Wait for dropdown and select option
-    const recentOption = await screen.findByRole("option", { name: /last 7 days/i });
+    const recentOption = await screen.findByRole("option", {
+      name: /last 7 days/i,
+    });
     await user.click(recentOption);
 
     // URL should update with dateRange param
     expect(mockPush).toHaveBeenCalledWith(
       expect.stringContaining("dateRange=recent"),
-      expect.objectContaining({ scroll: false })
+      expect.objectContaining({ scroll: false }),
     );
   });
 
@@ -342,7 +362,9 @@ describe("SubscribersTable - UI Tests", () => {
     renderWithProviders(<SubscribersTable />);
 
     // Wait for initial load
-    expect(await screen.findByText(/showing 1 to 20 of 25 results/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/showing 1 to 20 of 25 results/i),
+    ).toBeInTheDocument();
 
     // User clicks Next button
     const nextButton = screen.getByRole("button", { name: /next/i });
@@ -351,7 +373,7 @@ describe("SubscribersTable - UI Tests", () => {
     // URL should update with page=1
     expect(mockPush).toHaveBeenCalledWith(
       expect.stringContaining("page=1"),
-      expect.objectContaining({ scroll: false })
+      expect.objectContaining({ scroll: false }),
     );
   });
 
@@ -360,7 +382,9 @@ describe("SubscribersTable - UI Tests", () => {
 
     // Start with search already in URL
     mockSearchParams = new URLSearchParams("search=test");
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as unknown as ReadonlyURLSearchParams);
+    vi.mocked(useSearchParams).mockReturnValue(
+      mockSearchParams as unknown as ReadonlyURLSearchParams,
+    );
 
     renderWithProviders(<SubscribersTable />);
 
@@ -368,10 +392,16 @@ describe("SubscribersTable - UI Tests", () => {
     expect(await screen.findByText("John Doe")).toBeInTheDocument();
 
     // User applies completion status filter
-    const completionStatusSection = screen.getByText("Completion Status").closest("div");
-    const statusFilterButton = within(completionStatusSection!).getByRole("combobox");
+    const completionStatusSection = screen
+      .getByText("Completion Status")
+      .closest("div");
+    const statusFilterButton = within(completionStatusSection!).getByRole(
+      "combobox",
+    );
     await user.click(statusFilterButton);
-    const completedOption = await screen.findByRole("option", { name: /^completed$/i });
+    const completedOption = await screen.findByRole("option", {
+      name: /^completed$/i,
+    });
     await user.click(completedOption);
 
     // URL should have both params (page=0 is omitted since it's the default)
@@ -398,7 +428,9 @@ describe("SubscribersTable - UI Tests", () => {
     renderWithProviders(<SubscribersTable />);
 
     // User sees empty state
-    expect(await screen.findByText(/no subscribers found/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/no subscribers found/i),
+    ).toBeInTheDocument();
   });
 
   it("handles API errors gracefully when fetching subscribers", async () => {
@@ -412,15 +444,21 @@ describe("SubscribersTable - UI Tests", () => {
     renderWithProviders(<SubscribersTable />);
 
     // User should see empty state with no subscribers
-    expect(await screen.findByText(/no subscribers found/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/no subscribers found/i),
+    ).toBeInTheDocument();
   });
 
   it("reads filters from URL query params on load", async () => {
     const { getUserProfiles } = await import("../actions");
 
     // Mock URL with query params
-    mockSearchParams = new URLSearchParams("search=John&status=completed&page=1");
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as unknown as ReadonlyURLSearchParams);
+    mockSearchParams = new URLSearchParams(
+      "search=John&status=completed&page=1",
+    );
+    vi.mocked(useSearchParams).mockReturnValue(
+      mockSearchParams as unknown as ReadonlyURLSearchParams,
+    );
 
     renderWithProviders(<SubscribersTable />);
 
@@ -437,7 +475,7 @@ describe("SubscribersTable - UI Tests", () => {
         page: 1,
         pageSize: 20,
       }),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -446,7 +484,9 @@ describe("SubscribersTable - UI Tests", () => {
 
     // Start with some filters in URL
     mockSearchParams = new URLSearchParams("search=test&status=completed");
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as unknown as ReadonlyURLSearchParams);
+    vi.mocked(useSearchParams).mockReturnValue(
+      mockSearchParams as unknown as ReadonlyURLSearchParams,
+    );
 
     renderWithProviders(<SubscribersTable />);
 
@@ -454,8 +494,12 @@ describe("SubscribersTable - UI Tests", () => {
     expect(await screen.findByText("John Doe")).toBeInTheDocument();
 
     // User resets status filter to "All"
-    const completionStatusSection = screen.getByText("Completion Status").closest("div");
-    const statusFilterButton = within(completionStatusSection!).getByRole("combobox");
+    const completionStatusSection = screen
+      .getByText("Completion Status")
+      .closest("div");
+    const statusFilterButton = within(completionStatusSection!).getByRole(
+      "combobox",
+    );
     await user.click(statusFilterButton);
     const allOption = await screen.findByRole("option", { name: /^all$/i });
     await user.click(allOption);

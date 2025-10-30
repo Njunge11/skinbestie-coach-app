@@ -11,7 +11,10 @@ vi.mock("@/app/(dashboard)/actions", () => ({
   generateBookingLink: vi.fn(),
 }));
 
-import { fetchEventTypes, generateBookingLink } from "@/app/(dashboard)/actions";
+import {
+  fetchEventTypes,
+  generateBookingLink,
+} from "@/app/(dashboard)/actions";
 
 // Helper to render with QueryClient
 function renderWithQueryClient(ui: React.ReactElement) {
@@ -22,7 +25,7 @@ function renderWithQueryClient(ui: React.ReactElement) {
     },
   });
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
   );
 }
 
@@ -40,13 +43,13 @@ describe("ProfileHeader - UI Tests", () => {
     planWeeks: 12,
     currentWeek: 1,
     startDate: "2025-10-15",
-    hasRoutine: false,
+    hasRoutine: true,
+    createdAt: new Date("2025-01-01"),
   };
 
-  const mockClientEmpty: Client = {
+  const mockClientWithoutRoutine: Client = {
     ...mockClient,
-    occupation: "",
-    bio: "",
+    hasRoutine: false,
   };
 
   beforeEach(() => {
@@ -60,251 +63,64 @@ describe("ProfileHeader - UI Tests", () => {
   });
 
   it("user views profile information", () => {
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={vi.fn()} />);
+    renderWithQueryClient(<ProfileHeader client={mockClient} />);
 
     // User sees client name
-    expect(screen.getByRole("heading", { name: /sarah chen/i })).toBeInTheDocument();
-
-    // User sees occupation
-    expect(screen.getByText("Software Engineer")).toBeInTheDocument();
-
-    // User sees bio
-    expect(screen.getByText("Passionate about skincare and wellness")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /sarah chen/i }),
+    ).toBeInTheDocument();
 
     // User sees contact info
     expect(screen.getByText("sarah@example.com")).toBeInTheDocument();
     expect(screen.getByText("+254712345678")).toBeInTheDocument();
 
-    // User sees age badge
-    expect(screen.getByText("28 years old")).toBeInTheDocument();
-
-    // User sees skin type badge
-    expect(screen.getByText("Combination")).toBeInTheDocument();
-
-    // User sees concern badges
-    expect(screen.getByText("Acne")).toBeInTheDocument();
-    expect(screen.getByText("Dark Spots")).toBeInTheDocument();
-    expect(screen.getByText("Texture")).toBeInTheDocument();
+    // User sees week progress
+    expect(screen.getByText(/week 1 of 12/i)).toBeInTheDocument();
   });
 
-  it("user sees placeholder text when occupation and bio are empty", () => {
-    renderWithQueryClient(<ProfileHeader client={mockClientEmpty} onUpdate={vi.fn()} />);
+  it("user does not see week progress when client has no routine", () => {
+    renderWithQueryClient(<ProfileHeader client={mockClientWithoutRoutine} />);
 
-    expect(screen.getByText(/no occupation set/i)).toBeInTheDocument();
-    expect(screen.getByText(/no bio added/i)).toBeInTheDocument();
+    // User sees client name and contact info
+    expect(
+      screen.getByRole("heading", { name: /sarah chen/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("sarah@example.com")).toBeInTheDocument();
+
+    // User does not see week progress
+    expect(screen.queryByText(/week/i)).not.toBeInTheDocument();
   });
 
-  it("user edits occupation and bio successfully", async () => {
-    const user = userEvent.setup();
-    const mockOnUpdate = vi.fn();
+  it("user sees Booking Link and Message buttons", () => {
+    renderWithQueryClient(<ProfileHeader client={mockClient} />);
 
-    const { rerender } = renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={mockOnUpdate} />);
-
-    // User clicks Edit button (desktop version - using getAllByRole and selecting first)
-    const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    await user.click(editButtons[0]);
-
-    // User sees input fields
-    const occupationInput = screen.getByPlaceholderText(/occupation/i);
-    const bioTextarea = screen.getByPlaceholderText(/bio/i);
-
-    expect(occupationInput).toHaveValue("Software Engineer");
-    expect(bioTextarea).toHaveValue("Passionate about skincare and wellness");
-
-    // User updates occupation
-    await user.clear(occupationInput);
-    await user.type(occupationInput, "Product Designer");
-
-    // User updates bio
-    await user.clear(bioTextarea);
-    await user.type(bioTextarea, "Love clean beauty products");
-
-    // User clicks Save button
-    const saveButtons = screen.getAllByRole("button", { name: /save/i });
-    await user.click(saveButtons[0]);
-
-    // onUpdate callback is called with new data
-    expect(mockOnUpdate).toHaveBeenCalledWith({
-      occupation: "Product Designer",
-      bio: "Love clean beauty products",
+    // User sees Booking Link button (both desktop and mobile versions)
+    const bookingButtons = screen.getAllByRole("button", {
+      name: /booking link/i,
     });
+    expect(bookingButtons.length).toBeGreaterThan(0);
 
-    // Simulate parent component updating props (like it would in real usage)
-    const updatedClient = {
-      ...mockClient,
-      occupation: "Product Designer",
-      bio: "Love clean beauty products",
-    };
-    const queryClient = new QueryClient();
-    rerender(
-      <QueryClientProvider client={queryClient}>
-        <ProfileHeader client={updatedClient} onUpdate={mockOnUpdate} />
-      </QueryClientProvider>
-    );
-
-    // User sees updated occupation and bio (no longer in edit mode)
-    expect(screen.getByText("Product Designer")).toBeInTheDocument();
-    expect(screen.getByText("Love clean beauty products")).toBeInTheDocument();
-
-    // Edit button is visible again
-    expect(screen.getAllByRole("button", { name: /edit/i })[0]).toBeInTheDocument();
-  });
-
-  it("user cancels editing without saving changes", async () => {
-    const user = userEvent.setup();
-    const mockOnUpdate = vi.fn();
-
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={mockOnUpdate} />);
-
-    // User clicks Edit button
-    const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    await user.click(editButtons[0]);
-
-    // User types new values
-    const occupationInput = screen.getByPlaceholderText(/occupation/i);
-    const bioTextarea = screen.getByPlaceholderText(/bio/i);
-
-    await user.clear(occupationInput);
-    await user.type(occupationInput, "New Occupation");
-
-    await user.clear(bioTextarea);
-    await user.type(bioTextarea, "New Bio");
-
-    // User clicks Cancel button
-    const cancelButtons = screen.getAllByRole("button", { name: /cancel/i });
-    await user.click(cancelButtons[0]);
-
-    // onUpdate is NOT called
-    expect(mockOnUpdate).not.toHaveBeenCalled();
-
-    // User sees original values (changes were discarded)
-    expect(screen.getByText("Software Engineer")).toBeInTheDocument();
-    expect(screen.getByText("Passionate about skincare and wellness")).toBeInTheDocument();
-
-    // Edit button is visible again
-    expect(screen.getAllByRole("button", { name: /edit/i })[0]).toBeInTheDocument();
-  });
-
-  it("user edits only occupation", async () => {
-    const user = userEvent.setup();
-    const mockOnUpdate = vi.fn();
-
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={mockOnUpdate} />);
-
-    // User clicks Edit
-    const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    await user.click(editButtons[0]);
-
-    // User updates occupation only
-    const occupationInput = screen.getByPlaceholderText(/occupation/i);
-    await user.clear(occupationInput);
-    await user.type(occupationInput, "UX Designer");
-
-    // User clicks Save
-    const saveButtons = screen.getAllByRole("button", { name: /save/i });
-    await user.click(saveButtons[0]);
-
-    // onUpdate is called with updated occupation + existing bio
-    expect(mockOnUpdate).toHaveBeenCalledWith({
-      occupation: "UX Designer",
-      bio: "Passionate about skincare and wellness",
-    });
-  });
-
-  it("user edits only bio", async () => {
-    const user = userEvent.setup();
-    const mockOnUpdate = vi.fn();
-
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={mockOnUpdate} />);
-
-    // User clicks Edit
-    const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    await user.click(editButtons[0]);
-
-    // User updates bio only
-    const bioTextarea = screen.getByPlaceholderText(/bio/i);
-    await user.clear(bioTextarea);
-    await user.type(bioTextarea, "Exploring Korean skincare");
-
-    // User clicks Save
-    const saveButtons = screen.getAllByRole("button", { name: /save/i });
-    await user.click(saveButtons[0]);
-
-    // onUpdate is called with existing occupation + updated bio
-    expect(mockOnUpdate).toHaveBeenCalledWith({
-      occupation: "Software Engineer",
-      bio: "Exploring Korean skincare",
-    });
-  });
-
-  it("user edits from empty occupation and bio", async () => {
-    const user = userEvent.setup();
-    const mockOnUpdate = vi.fn();
-
-    renderWithQueryClient(<ProfileHeader client={mockClientEmpty} onUpdate={mockOnUpdate} />);
-
-    // User sees placeholders
-    expect(screen.getByText(/no occupation set/i)).toBeInTheDocument();
-    expect(screen.getByText(/no bio added/i)).toBeInTheDocument();
-
-    // User clicks Edit
-    const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    await user.click(editButtons[0]);
-
-    // User fills in occupation and bio
-    await user.type(screen.getByPlaceholderText(/occupation/i), "Nurse");
-    await user.type(screen.getByPlaceholderText(/bio/i), "Healthcare professional");
-
-    // User clicks Save
-    const saveButtons = screen.getAllByRole("button", { name: /save/i });
-    await user.click(saveButtons[0]);
-
-    // onUpdate is called with new data
-    expect(mockOnUpdate).toHaveBeenCalledWith({
-      occupation: "Nurse",
-      bio: "Healthcare professional",
-    });
-  });
-
-  it("user sees Booking Link and Message buttons in view mode", () => {
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={vi.fn()} />);
-
-    // User sees Booking Link button
-    expect(screen.getAllByRole("button", { name: /booking link/i })[0]).toBeInTheDocument();
-
-    // User sees Message link
+    // User sees Message link (both desktop and mobile versions)
     const messageLinks = screen.getAllByRole("link", { name: /message/i });
-    expect(messageLinks[0]).toBeInTheDocument();
-    expect(messageLinks[0]).toHaveAttribute("href", "https://wa.me/254712345678");
-  });
-
-  it("user does not see Booking Link and Message buttons in edit mode", async () => {
-    const user = userEvent.setup();
-
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={vi.fn()} />);
-
-    // User clicks Edit
-    const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    await user.click(editButtons[0]);
-
-    // Booking Link and Message buttons should not be visible
-    expect(screen.queryByRole("button", { name: /booking link/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /message/i })).not.toBeInTheDocument();
-
-    // Save and Cancel buttons should be visible instead
-    expect(screen.getAllByRole("button", { name: /save/i }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: /cancel/i }).length).toBeGreaterThan(0);
+    expect(messageLinks.length).toBeGreaterThan(0);
+    expect(messageLinks[0]).toHaveAttribute(
+      "href",
+      "https://wa.me/254712345678",
+    );
   });
 
   it("user opens WhatsApp to message client", async () => {
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={vi.fn()} />);
+    renderWithQueryClient(<ProfileHeader client={mockClient} />);
 
     // User sees Message button
     const messageLinks = screen.getAllByRole("link", { name: /message/i });
     expect(messageLinks[0]).toBeInTheDocument();
 
     // User sees correct WhatsApp link (with + removed from phone number)
-    expect(messageLinks[0]).toHaveAttribute("href", "https://wa.me/254712345678");
+    expect(messageLinks[0]).toHaveAttribute(
+      "href",
+      "https://wa.me/254712345678",
+    );
     expect(messageLinks[0]).toHaveAttribute("target", "_blank");
     expect(messageLinks[0]).toHaveAttribute("rel", "noopener noreferrer");
   });
@@ -318,15 +134,19 @@ describe("ProfileHeader - UI Tests", () => {
       data: { link: "https://calendly.com/example/meeting-abc123" },
     });
 
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={vi.fn()} />);
+    renderWithQueryClient(<ProfileHeader client={mockClient} />);
 
-    // User clicks Booking Link button
-    const bookingLinkButtons = screen.getAllByRole("button", { name: /booking link/i });
+    // User clicks Booking Link button (using first one - desktop)
+    const bookingLinkButtons = screen.getAllByRole("button", {
+      name: /booking link/i,
+    });
     await user.click(bookingLinkButtons[0]);
 
     // User sees modal
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /invite to book/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: /invite to book/i }),
+      ).toBeInTheDocument();
     });
 
     // User sees event type dropdown with options
@@ -336,7 +156,9 @@ describe("ProfileHeader - UI Tests", () => {
     await user.click(screen.getByRole("button", { name: /generate link/i }));
 
     // User sees generated link
-    expect(await screen.findByText("https://calendly.com/example/meeting-abc123")).toBeInTheDocument();
+    expect(
+      await screen.findByText("https://calendly.com/example/meeting-abc123"),
+    ).toBeInTheDocument();
 
     // User sees Copy and Open buttons
     expect(screen.getByRole("button", { name: /copy/i })).toBeInTheDocument();
@@ -361,29 +183,73 @@ describe("ProfileHeader - UI Tests", () => {
       data: { link: "https://calendly.com/example/meeting-xyz789" },
     });
 
-    renderWithQueryClient(<ProfileHeader client={mockClient} onUpdate={vi.fn()} />);
+    renderWithQueryClient(<ProfileHeader client={mockClient} />);
 
     // User opens booking link modal
-    const bookingLinkButtons = screen.getAllByRole("button", { name: /booking link/i });
+    const bookingLinkButtons = screen.getAllByRole("button", {
+      name: /booking link/i,
+    });
     await user.click(bookingLinkButtons[0]);
 
     // User generates link
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /generate link/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /generate link/i }),
+      ).toBeInTheDocument();
     });
     await user.click(screen.getByRole("button", { name: /generate link/i }));
 
     // User sees generated link
     await waitFor(() => {
-      expect(screen.getByText("https://calendly.com/example/meeting-xyz789")).toBeInTheDocument();
+      expect(
+        screen.getByText("https://calendly.com/example/meeting-xyz789"),
+      ).toBeInTheDocument();
     });
 
     // User clicks Copy button
     await user.click(screen.getByRole("button", { name: /copy/i }));
 
     // Clipboard API was called with the link
-    expect(writeTextMock).toHaveBeenCalledWith("https://calendly.com/example/meeting-xyz789");
+    expect(writeTextMock).toHaveBeenCalledWith(
+      "https://calendly.com/example/meeting-xyz789",
+    );
+  });
 
-    // User sees success toast (we're just verifying the copy happened, toast is tested elsewhere)
+  it("user closes booking link modal", async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<ProfileHeader client={mockClient} />);
+
+    // User clicks Booking Link button
+    const bookingLinkButtons = screen.getAllByRole("button", {
+      name: /booking link/i,
+    });
+    await user.click(bookingLinkButtons[0]);
+
+    // User sees modal
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: /invite to book/i }),
+      ).toBeInTheDocument();
+    });
+
+    // User closes modal (by clicking close button or outside)
+    const closeButton = screen.getByRole("button", { name: /close/i });
+    await user.click(closeButton);
+
+    // Modal is no longer visible
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: /invite to book/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("user sees avatar with first letter of name", () => {
+    renderWithQueryClient(<ProfileHeader client={mockClient} />);
+
+    // User sees avatar with first letter 'S'
+    const avatar = screen.getByText("S");
+    expect(avatar).toBeInTheDocument();
   });
 });

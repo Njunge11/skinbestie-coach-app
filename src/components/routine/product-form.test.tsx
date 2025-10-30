@@ -27,7 +27,7 @@ describe("ProductForm", () => {
         onSave={onSave}
         onCancel={onCancel}
         saveLabel="Add"
-      />
+      />,
     );
 
     // User clicks routine step combobox (find by text content)
@@ -46,7 +46,7 @@ describe("ProductForm", () => {
     await user.type(productUrlInput, "https://example.com/product");
 
     // User fills instructions
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput = screen.getByLabelText(/^instructions$/i);
     await user.type(instructionsInput, "Apply to damp skin, massage gently");
 
     // Frequency is already "Daily" by default - no days selection shown
@@ -80,7 +80,7 @@ describe("ProductForm", () => {
         onSave={onSave}
         onCancel={onCancel}
         saveLabel="Add"
-      />
+      />,
     );
 
     // User selects routine step
@@ -95,7 +95,7 @@ describe("ProductForm", () => {
     // User skips product URL (optional field)
 
     // User fills instructions
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput = screen.getByLabelText(/^instructions$/i);
     await user.type(instructionsInput, "Apply after serum");
 
     // User clicks Add button
@@ -154,13 +154,15 @@ describe("ProductForm", () => {
     await user.type(productNameInput, "Vitamin C Serum");
 
     // User fills instructions
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput = screen.getByLabelText(/^instructions$/i);
     await user.type(instructionsInput, "Apply in the morning");
 
     // User selects "2x per week" frequency
     // Find the select trigger that contains "Daily" (display label)
     const selectTriggers = screen.getAllByRole("combobox");
-    const frequencySelect = selectTriggers.find(el => el.textContent?.includes("Daily"));
+    const frequencySelect = selectTriggers.find((el) =>
+      el.textContent?.includes("Daily"),
+    );
     await user.click(frequencySelect!);
     await user.click(screen.getByRole("option", { name: /2x per week/i }));
 
@@ -219,12 +221,14 @@ describe("ProductForm", () => {
     await user.type(productNameInput, "Hydrating Toner");
 
     // User fills instructions
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput = screen.getByLabelText(/^instructions$/i);
     await user.type(instructionsInput, "Apply with cotton pad");
 
     // User selects "3x per week" frequency
     const selectTriggers = screen.getAllByRole("combobox");
-    const frequencySelect = selectTriggers.find(el => el.textContent?.includes("Daily"));
+    const frequencySelect = selectTriggers.find((el) =>
+      el.textContent?.includes("Daily"),
+    );
     await user.click(frequencySelect!);
     await user.click(screen.getByRole("option", { name: /3x per week/i }));
 
@@ -282,12 +286,14 @@ describe("ProductForm", () => {
     await user.type(productNameInput, "Gentle Cleanser");
 
     // User fills instructions
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput = screen.getByLabelText(/^instructions$/i);
     await user.type(instructionsInput, "Use twice daily");
 
     // User selects "2x per week" frequency
     const selectTriggers = screen.getAllByRole("combobox");
-    let frequencySelect = selectTriggers.find(el => el.textContent?.includes("Daily"));
+    let frequencySelect = selectTriggers.find((el) =>
+      el.textContent?.includes("Daily"),
+    );
     await user.click(frequencySelect!);
     await user.click(screen.getByRole("option", { name: /2x per week/i }));
 
@@ -300,12 +306,16 @@ describe("ProductForm", () => {
 
     // User changes back to "Daily"
     const selectTriggersAgain = screen.getAllByRole("combobox");
-    frequencySelect = selectTriggersAgain.find(el => el.textContent?.includes("2x per week"));
+    frequencySelect = selectTriggersAgain.find((el) =>
+      el.textContent?.includes("2x per week"),
+    );
     await user.click(frequencySelect!);
     await user.click(screen.getByRole("option", { name: /^Daily$/i }));
 
     // Days selection should disappear
     expect(screen.queryByText(/select 2 days/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /mon/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /mon/i }),
+    ).not.toBeInTheDocument();
   });
 });

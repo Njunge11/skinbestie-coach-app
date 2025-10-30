@@ -8,7 +8,10 @@ import { deleteScheduledStepsForProduct } from "../compliance-actions/actions";
 import { db, skincareRoutineProducts, routineStepCompletions } from "@/lib/db";
 import { eq, and, asc, gte, inArray } from "drizzle-orm";
 import { makeUserProfileRepo } from "../compliance-actions/user-profile.repo";
-import { calculateDeadlines, shouldGenerateForDate } from "@/lib/compliance-utils";
+import {
+  calculateDeadlines,
+  shouldGenerateForDate,
+} from "@/lib/compliance-utils";
 import { addMonths, addDays } from "date-fns";
 
 // Dependency injection for testing (follows TESTING.md)
@@ -68,11 +71,12 @@ const defaultDepsWithRegeneration: CreateRoutineProductWithRegenerationDeps = {
 };
 
 // Default dependencies with regeneration for updateRoutineProduct (production)
-const defaultUpdateDepsWithRegeneration: UpdateRoutineProductWithRegenerationDeps = {
-  repo: makeRoutineProductsRepo(),
-  routineRepo: makeRoutineInfoRepo(),
-  now: () => new Date(),
-};
+const defaultUpdateDepsWithRegeneration: UpdateRoutineProductWithRegenerationDeps =
+  {
+    repo: makeRoutineProductsRepo(),
+    routineRepo: makeRoutineInfoRepo(),
+    now: () => new Date(),
+  };
 
 // Default dependencies with cleanup for deleteRoutineProduct (production)
 const defaultDeleteDepsWithCleanup: DeleteRoutineProductWithCleanupDeps = {
@@ -120,9 +124,12 @@ const createRoutineProductSchema = z.object({
   productName: requiredStringSchema,
   productUrl: z.preprocess(
     (val) => (val === "" ? null : val),
-    z.string().url().nullable()
+    z.string().url().nullable(),
   ),
   instructions: requiredStringSchema,
+  productPurchaseInstructions: z
+    .preprocess((val) => (val === "" ? null : val), z.string().nullable())
+    .optional(),
   frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]),
   days: z.array(z.string()).nullable(),
   timeOfDay: timeOfDaySchema,
@@ -134,10 +141,12 @@ const updateRoutineProductSchema = z.object({
   productName: z.string().trim().min(1).optional(),
   productUrl: z.preprocess(
     (val) => (val === "" ? undefined : val),
-    z.string().url().nullable().optional()
+    z.string().url().nullable().optional(),
   ),
   instructions: z.string().trim().min(1).optional(),
-  frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]).optional(),
+  frequency: z
+    .enum(["daily", "2x per week", "3x per week", "specific_days"])
+    .optional(),
   days: z.array(z.string()).nullable().optional(),
 });
 
@@ -156,7 +165,7 @@ const reorderRoutineProductsSchema = z.object({
  */
 export async function getRoutineProducts(
   userId: string,
-  deps: RoutineProductDeps = defaultDeps
+  deps: RoutineProductDeps = defaultDeps,
 ): Promise<Result<RoutineProduct[]>> {
   const { repo } = deps;
 
@@ -182,7 +191,7 @@ export async function getRoutineProducts(
 export async function getRoutineProductsByTimeOfDay(
   userId: string,
   timeOfDay: "morning" | "evening",
-  deps: RoutineProductDeps = defaultDeps
+  deps: RoutineProductDeps = defaultDeps,
 ): Promise<Result<RoutineProduct[]>> {
   const { repo } = deps;
 
@@ -202,7 +211,7 @@ export async function getRoutineProductsByTimeOfDay(
     // Fetch products from repo
     const products = await repo.findByUserIdAndTimeOfDay(
       validation.data.userId,
-      validation.data.timeOfDay
+      validation.data.timeOfDay,
     );
     return { success: true, data: products };
   } catch (error) {
@@ -222,7 +231,7 @@ export async function getRoutineProductsByTimeOfDay(
 export async function createRoutineProduct(
   userId: string,
   input: CreateRoutineProductInput,
-  deps: CreateRoutineProductWithRegenerationDeps = defaultDepsWithRegeneration
+  deps: CreateRoutineProductWithRegenerationDeps = defaultDepsWithRegeneration,
 ): Promise<Result<RoutineProduct>> {
   const { routineRepo } = deps;
 
@@ -275,8 +284,8 @@ export async function createRoutineProduct(
         .where(
           and(
             eq(skincareRoutineProducts.userProfileId, validation.data.userId),
-            eq(skincareRoutineProducts.timeOfDay, validation.data.timeOfDay)
-          )
+            eq(skincareRoutineProducts.timeOfDay, validation.data.timeOfDay),
+          ),
         )
         .orderBy(asc(skincareRoutineProducts.order));
 
@@ -294,6 +303,8 @@ export async function createRoutineProduct(
         productName: validation.data.productName,
         productUrl: validation.data.productUrl ?? null,
         instructions: validation.data.instructions,
+        productPurchaseInstructions:
+          validation.data.productPurchaseInstructions ?? null,
         frequency: validation.data.frequency,
         days: validation.data.days ?? null,
         timeOfDay: validation.data.timeOfDay,
@@ -323,14 +334,19 @@ export async function createRoutineProduct(
         let currentDate = new Date(today);
 
         while (currentDate <= endDate) {
-          if (shouldGenerateForDate({
-            frequency: validation.data.frequency,
-            days: validation.data.days ?? undefined
-          }, currentDate)) {
+          if (
+            shouldGenerateForDate(
+              {
+                frequency: validation.data.frequency,
+                days: validation.data.days ?? undefined,
+              },
+              currentDate,
+            )
+          ) {
             const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
               currentDate,
               validation.data.timeOfDay,
-              user.timezone
+              user.timezone,
             );
 
             completionsToCreate.push({
@@ -359,7 +375,10 @@ export async function createRoutineProduct(
     return { success: true, data: product };
   } catch (error) {
     console.error("Error creating routine product:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to create routine product";
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create routine product";
     return { success: false, error: errorMessage };
   }
 }
@@ -375,7 +394,7 @@ export async function createRoutineProduct(
 export async function updateRoutineProduct(
   productId: string,
   updates: UpdateRoutineProductInput,
-  deps: UpdateRoutineProductWithRegenerationDeps = defaultUpdateDepsWithRegeneration
+  deps: UpdateRoutineProductWithRegenerationDeps = defaultUpdateDepsWithRegeneration,
 ): Promise<Result<void>> {
   const { routineRepo, now } = deps;
 
@@ -455,18 +474,16 @@ export async function updateRoutineProduct(
         today.setHours(0, 0, 0, 0);
 
         // Delete pending and missed steps from today onwards using tx
-        const deletedSteps = await tx
+        await tx
           .delete(routineStepCompletions)
           .where(
             and(
               eq(routineStepCompletions.routineProductId, product.id),
               gte(routineStepCompletions.scheduledDate, today),
-              inArray(routineStepCompletions.status, ["pending", "missed"])
-            )
+              inArray(routineStepCompletions.status, ["pending", "missed"]),
+            ),
           )
           .returning({ id: routineStepCompletions.id });
-
-        console.log(`Deleted ${deletedSteps.length} scheduled steps for product ${product.id}`);
 
         // Regenerate steps inline in SAME transaction
         const userRepo = makeUserProfileRepo();
@@ -483,21 +500,28 @@ export async function updateRoutineProduct(
         let currentDate = new Date(today);
 
         while (currentDate <= endDate) {
-          if (shouldGenerateForDate({
-            frequency: updatedProduct.frequency,
-            days: updatedProduct.days ?? undefined
-          }, currentDate)) {
+          if (
+            shouldGenerateForDate(
+              {
+                frequency: updatedProduct.frequency,
+                days: updatedProduct.days ?? undefined,
+              },
+              currentDate,
+            )
+          ) {
             const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
               currentDate,
               updatedProduct.timeOfDay as "morning" | "evening",
-              user.timezone
+              user.timezone,
             );
 
             completionsToCreate.push({
               routineProductId: updatedProduct.id,
               userProfileId: product.userProfileId,
               scheduledDate: new Date(currentDate),
-              scheduledTimeOfDay: updatedProduct.timeOfDay as "morning" | "evening",
+              scheduledTimeOfDay: updatedProduct.timeOfDay as
+                | "morning"
+                | "evening",
               onTimeDeadline,
               gracePeriodEnd,
               completedAt: null,
@@ -517,7 +541,10 @@ export async function updateRoutineProduct(
     return { success: true, data: undefined };
   } catch (error) {
     console.error("Error updating routine product:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to update routine product";
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to update routine product";
     return { success: false, error: errorMessage };
   }
 }
@@ -527,7 +554,7 @@ export async function updateRoutineProduct(
  */
 export async function deleteRoutineProduct(
   productId: string,
-  deps: DeleteRoutineProductWithCleanupDeps = defaultDeleteDepsWithCleanup
+  deps: DeleteRoutineProductWithCleanupDeps = defaultDeleteDepsWithCleanup,
 ): Promise<Result<void>> {
   const { routineRepo } = deps;
 
@@ -565,18 +592,16 @@ export async function deleteRoutineProduct(
         today.setHours(0, 0, 0, 0);
 
         // Delete pending and missed steps from today onwards using tx
-        const deletedSteps = await tx
+        await tx
           .delete(routineStepCompletions)
           .where(
             and(
               eq(routineStepCompletions.routineProductId, product.id),
               gte(routineStepCompletions.scheduledDate, today),
-              inArray(routineStepCompletions.status, ["pending", "missed"])
-            )
+              inArray(routineStepCompletions.status, ["pending", "missed"]),
+            ),
           )
           .returning({ id: routineStepCompletions.id });
-
-        console.log(`Deleted ${deletedSteps.length} scheduled steps for product ${product.id}`);
       }
 
       // Delete product using tx (transaction object)
@@ -593,7 +618,10 @@ export async function deleteRoutineProduct(
     return { success: true, data: undefined };
   } catch (error) {
     console.error("Error deleting routine product:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to delete routine product";
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to delete routine product";
     return { success: false, error: errorMessage };
   }
 }
@@ -606,7 +634,7 @@ export async function reorderRoutineProducts(
   userId: string,
   timeOfDay: "morning" | "evening",
   reorderedProductIds: string[],
-  deps: RoutineProductDeps = defaultDeps
+  deps: RoutineProductDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo, now } = deps;
 

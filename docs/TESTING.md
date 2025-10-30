@@ -1,28 +1,48 @@
-# Unit Testing Guide
+# Testing Guide
 
 ## Table of Contents
-1. What is a unit test
-2. Core rules
-3. Test structure
-4. Test doubles (stub / fake / mock)
-5. Externals: do this, not that
+1. Testing philosophy
+2. What is a unit test vs integration test
+3. Core rules
+4. Test structure
+5. Test doubles (stub / fake / mock)
+6. Type management strategy (InferSelectModel + Pick/Omit)
+7. Testing patterns in this project
+    * Repository tests (integration tests with PGlite)
+    * Service/action tests (unit tests with fake repos)
+8. Externals: do this, not that
     * Database
     * HTTP
     * Filesystem
     * Clock / Time
     * Randomness / IDs
-6. Routes/controllers: unit vs integration
-7. Smells (fix these)
-8. Refactors vs. breaking changes (contracts) — data-structure caveat
-9. Checklists
-10. Litmus test
+8. Routes/controllers: unit vs integration
+9. Smells (fix these)
+10. Refactors vs. breaking changes (contracts) — data-structure caveat
+11. Checklists
+12. Litmus test
 
-## What is a unit test
-* Tests one small piece (function/module) through its public API (the exported function real code calls).
-* Uses no real externals: no real DB, no real HTTP server/calls, no real filesystem, no real "now", no Math.random() / crypto.randomUUID().
-* Replace externals with stubs/fakes so tests are fast, deterministic, and repeatable.
+## Testing philosophy
 
-If any real external is involved, it's not a unit test (that's integration/E2E).
+**Increase test fidelity by using real implementations as fakes where possible.**
+
+This project follows Google's testing guidance: prefer real implementations (like PGlite for Postgres) over mocks to increase test fidelity and catch real bugs. See: [Google Testing Blog - Increase Test Fidelity by Avoiding Mocks](https://testing.googleblog.com/2024/02/increase-test-fidelity-by-avoiding-mocks.html)
+
+## What is a unit test vs integration test
+
+### Unit Test
+* Tests one small piece (function/module) through its public API
+* Dependencies are mocked/stubbed (not real implementations)
+* Fast, isolated, deterministic
+* **Example:** Service layer tests with mocked repositories
+
+### Integration Test
+* Tests multiple components working together
+* Uses real implementations where possible (e.g., PGlite for database)
+* Slower but higher fidelity - catches real integration bugs
+* **Example:** Repository tests with PGlite database
+
+**Both types are valuable** - unit tests for business logic isolation, integration tests for verifying components work together correctly.
 
 ## Core rules
 * Test WHAT, not HOW. Assert result/state/event/error; don't assert private helpers or internal call order. (Google: "Test state, not interactions.")
@@ -42,54 +62,280 @@ Then    (assert result / state / event / error)
 
 ## Test doubles (stub / fake / mock)
 * **Stub** → returns a pre-set answer. No memory, no rules. Use when you just need a value back.
-* **Fake** → in-memory mini implementation with state and maybe simple rules. Use to assert outcomes without a real DB/queue.
+* **Fake** → working implementation optimized for testing (e.g., PGlite for Postgres, Map for repository). Provides real behavior without production dependencies.
 * **Mock** → verify that a specific external call happened. Use only when the external call is the requirement (e.g., "send one email"). (Google: interaction checks only when the interaction is the contract.)
 
-**Chooser:** value → Stub; state/rules → Fake; must prove external call → Mock.
+**Chooser:** value → Stub; working implementation → Fake; must prove external call → Mock.
+
+**Prefer fakes over mocks** for higher test fidelity. A fake (like PGlite) behaves like the real thing and catches real bugs that mocks miss.
+
+## Type management strategy (InferSelectModel + Pick/Omit)
+
+**Problem:** Adding optional fields to the database schema breaks tests and components that don't even use those fields.
+
+**Solution:** Use Drizzle's `InferSelectModel` as the single source of truth, then derive component-specific types using `Pick` and `Omit`.
+
+### Pattern
+
+```typescript
+// src/lib/db/types.ts
+import { type InferSelectModel } from "drizzle-orm";
+import { userProfiles } from "./schema";
+
+// 1. Base row type (tracks schema changes automatically)
+export type UserProfileRow = InferSelectModel<typeof userProfiles>;
+
+// 2. Component-specific view models (only fields needed)
+export type UserProfileCard = Pick<UserProfileRow, "id" | "firstName" | "lastName" | "email">;
+export type SubscriberTableRow = Pick<UserProfileRow, "id" | "email" | "isCompleted">;
+export type ProfileFormData = Omit<UserProfileRow, "id" | "createdAt" | "updatedAt">;
+```
+
+### Test Factories
+
+Use factories that provide defaults for ALL fields:
+
+```typescript
+// src/test/factories.ts
+import { type UserProfileRow } from "@/lib/db/types";
+
+export function makeUserProfile(
+  overrides: Partial<UserProfileRow> = {}
+): UserProfileRow {
+  return {
+    id: crypto.randomUUID(),
+    firstName: "Test",
+    lastName: "User",
+    email: "test@example.com",
+    nickname: null, // ← Add new fields here once
+    // ... all other fields with defaults
+    ...overrides,
+  };
+}
+
+// In tests:
+const user = makeUserProfile({ firstName: "Jane" });
+// All fields including 'nickname' are automatically included
+```
+
+### Benefits
+
+✅ **Schema changes don't break unrelated code** - Adding `nickname` to the schema only requires updating:
+  - The factory (once)
+  - Components that actually display nickname
+
+✅ **Compile-time safety** - TypeScript catches when you use a field that doesn't exist
+
+✅ **Components get exactly what they need** - No over-fetching or unnecessary dependencies
+
+✅ **No manual type duplication** - Types derive from schema automatically
+
+### Migration Path
+
+When adding a new field:
+
+1. Add to schema
+2. Run migration
+3. Add to factory with default value
+4. Add to view models that need it (using Pick)
+5. Tests continue working!
+
+## Testing patterns in this project
+
+This project uses **two testing patterns** depending on what you're testing:
+
+### Pattern 1: Repository tests (Integration tests with PGlite)
+
+**Use PGlite when testing repositories** that contain complex queries or business logic:
+- Complex JOINs across multiple tables
+- Business logic in SQL (filtering, mapping, ordering)
+- Custom SQL expressions
+
+```typescript
+// dashboard.repo.unit.test.ts
+import { createTestDatabase, cleanupTestDatabase, type TestDatabase } from '@/test/db-helper';
+import { makeDashboardRepo } from './dashboard.repo';
+import * as schema from '@/lib/db/schema';
+import type { PGlite } from '@electric-sql/pglite';
+
+describe('DashboardRepo', () => {
+  let db: TestDatabase;
+  let client: PGlite;
+  let repo: ReturnType<typeof makeDashboardRepo>;
+
+  beforeEach(async () => {
+    // Create fresh in-memory database for each test
+    const setup = await createTestDatabase();
+    db = setup.db;
+    client = setup.client;
+    repo = makeDashboardRepo({ db });
+
+    // Seed test data
+    await db.insert(schema.userProfiles).values({...});
+  });
+
+  afterEach(async () => {
+    await cleanupTestDatabase(client);
+  });
+
+  it('returns user with joined goals and routine data', async () => {
+    // Test complex JOINs work correctly
+    const result = await repo.getUserDashboardData('user-123');
+    expect(result.goalsTemplateStatus).toBe('published');
+  });
+});
+```
+
+**Why PGlite?**
+- ✅ Real Postgres behavior (catches SQL bugs that mocks miss)
+- ✅ Fast (in-memory, no Docker)
+- ✅ Tests your SQL queries, not just business logic
+- ✅ Higher test fidelity than Map-based fakes
+
+### Pattern 2: Service/action tests (Unit tests with mocked repos)
+
+**Use mocked repositories when testing services/actions** that contain business logic:
+
+```typescript
+// dashboard.service.unit.test.ts
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { makeDashboardService, type DashboardServiceDeps } from './dashboard.service';
+
+describe('DashboardService', () => {
+  let service: ReturnType<typeof makeDashboardService>;
+  let mockRepo: {
+    getUserDashboardData: ReturnType<typeof vi.fn>;
+    getPublishedGoals: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    mockRepo = {
+      getUserDashboardData: vi.fn(),
+      getPublishedGoals: vi.fn(),
+    };
+
+    service = makeDashboardService({ repo: mockRepo });
+  });
+
+  it('calculates setup progress correctly', async () => {
+    // Mock repository responses
+    mockRepo.getUserDashboardData.mockResolvedValue({
+      hasCompletedSkinTest: true,
+      hasCompletedBooking: true,
+      goalsTemplateStatus: 'published',
+      routineStatus: 'published',
+    });
+    mockRepo.getPublishedGoals.mockResolvedValue([]);
+
+    const result = await service.getConsumerDashboard('user-123');
+
+    expect(result.data.setupProgress.percentage).toBe(100);
+  });
+});
+```
+
+**Why mocked repos?**
+- ✅ Isolates business logic
+- ✅ Faster than database tests
+- ✅ Tests service layer independently
+- ✅ Easy to test edge cases
+
+### When to use which pattern
+
+| What you're testing | Pattern | Tool |
+|-------------------|---------|------|
+| Repository with complex JOINs | Integration test | PGlite |
+| Repository with SQL business logic | Integration test | PGlite |
+| Service/action business logic | Unit test | Mocked repo (vi.fn) |
+| API route handler | Unit test | Mocked service |
+| Utility functions | Unit test | Direct calls |
 
 ## Externals: do this, not that
 
 ### Database
-**Real (not in unit tests):** Postgres/MySQL/Mongo/Redis; ORMs hitting them; SQLite/H2/Testcontainers.
+**Real (production):** Postgres/MySQL/Mongo/Redis connecting to actual servers.
 
-**Unit test:** use an in-memory fake repo (Map) or a stub.
+**Integration tests (repositories):** PGlite in-memory database for real PostgreSQL behavior without a server.
+
+**Unit tests (services/actions):** Mock the repository layer with vi.fn().
 
 ```typescript
-// admins.repo.fake.ts
-export function makeAdminsRepoFake() {
-  const store = new Map<string, any>();
-  return {
-    getByEmail(email: string) { return Promise.resolve(store.get(email)); },
-    save(admin: any) {
-      if (store.has(admin.email)) return Promise.reject(new Error("duplicate"));
-      store.set(admin.email, admin);
-      return Promise.resolve();
-    }
-  };
+// test-db-helper.ts
+import { PGlite } from '@electric-sql/pglite';
+import { drizzle } from 'drizzle-orm/pglite';
+import * as schema from '@/lib/db/schema';
+
+export async function createTestDatabase() {
+  // Create in-memory PgLite instance
+  const client = new PGlite('memory://');
+  const db = drizzle(client, { schema });
+
+  // Apply schema (for tests, push is faster than migrations)
+  await applyTestSchema(client);
+
+  return { db, client };
 }
 
-// admin.service.ts (functions)
-export function makeAdminService(deps: { repo: ReturnType<typeof makeAdminsRepoFake> }) {
+// For test isolation - clone a base database
+export async function cloneTestDatabase(baseClient: PGlite) {
+  const client = await baseClient.clone();
+  const db = drizzle(client, { schema });
+  return { db, client };
+}
+
+// admin.service.ts (with dependency injection)
+export function makeAdminService(deps: { db: any }) {
   return {
     async create(dto: { email: string; name: string }) {
-      const existing = await deps.repo.getByEmail(dto.email);
-      if (existing) throw new Error("duplicate");
-      const admin = { ...dto, role: "ADMIN" };
-      await deps.repo.save(admin);
+      const existing = await deps.db
+        .select()
+        .from(admins)
+        .where(eq(admins.email, dto.email))
+        .limit(1);
+
+      if (existing.length > 0) throw new Error("duplicate");
+
+      const [admin] = await deps.db
+        .insert(admins)
+        .values({ ...dto, role: "ADMIN" })
+        .returning();
+
       return admin;
     }
   };
 }
 
 // admin.service.unit.test.ts
-it("creates admin with default role", async () => {
-  const repo = makeAdminsRepoFake();
-  const svc = makeAdminService({ repo });
+import { createTestDatabase } from '@/test/db-helper';
 
-  const admin = await svc.create({ email: "a@b.com", name: "Ada" });
+describe('AdminService', () => {
+  let db: any;
+  let client: PGlite;
 
-  expect(admin).toMatchObject({ email: "a@b.com", name: "Ada", role: "ADMIN" });
-  expect(await repo.getByEmail("a@b.com")).toBeDefined(); // state in fake
+  beforeEach(async () => {
+    const setup = await createTestDatabase();
+    db = setup.db;
+    client = setup.client;
+  });
+
+  afterEach(async () => {
+    await client.close();
+  });
+
+  it("creates admin with default role", async () => {
+    const svc = makeAdminService({ db });
+
+    const admin = await svc.create({ email: "a@b.com", name: "Ada" });
+
+    expect(admin).toMatchObject({ email: "a@b.com", name: "Ada", role: "ADMIN" });
+
+    // Verify in database
+    const found = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.email, "a@b.com"));
+    expect(found).toHaveLength(1);
+  });
 });
 ```
 
@@ -275,8 +521,12 @@ const prodDeps = { db: realDb, validateId: isValidUUID };
 **Why?** This lets tests use simple IDs like `"user_1"` instead of UUIDs, while production validates strictly.
 
 ## Routes/controllers: unit vs integration
-* **Unit (handler only):** Call the handler function directly with fake req/res and fakes for deps. Do not start a server. Do not use a real DB.
-* **Integration:** Start the app and/or use a real DB (e.g., supertest + Testcontainers). This is not a unit test.
+* **Unit (handler only):** Call the handler function directly with fake req/res and mocked services. Do not start a server. Do not use a real DB.
+* **Integration:** Start the app with supertest (future work). Not currently implemented in this project.
+
+**This project uses:**
+- Integration tests for repositories (PGlite)
+- Unit tests for services, actions, and handlers (mocked dependencies)
 
 ## Smells (fix these)
 
@@ -445,11 +695,29 @@ expect(result.map(x => x.name).sort()).toEqual(["Algeria","Kenya","Zimbabwe"]);
 
 ## Checklists
 
+### "What type of test should I write?"
+
+**Repository test (integration test):**
+* Contains complex JOINs? → Use PGlite
+* Contains SQL business logic? → Use PGlite
+* Custom SQL expressions? → Use PGlite
+
+**Service/action test (unit test):**
+* Business logic above the data layer? → Mock repository
+* Validation, formatting, calculations? → Mock dependencies
+
 ### "Is this a unit test?"
 * Calls exported function of a small module? **Yes**
-* Uses no real externals (DB/HTTP/FS/time/random)? **Yes** (uses stubs/fakes)
+* Dependencies are mocked (not real)? **Yes**
 * One behavior with Given/When/Then? **Yes**
 * Deterministic (fixed time/IDs)? **Yes**
+* Fast (< 100ms per test)? **Yes**
+
+### "Is this an integration test?"
+* Tests multiple components together? **Yes**
+* Uses real implementations (PGlite)? **Yes**
+* Tests complex interactions (JOINs, queries)? **Yes**
+* Slower but higher fidelity? **Yes**
 
 ### "Stub vs Fake vs Mock?"
 * Need a value → **Stub**
@@ -533,72 +801,87 @@ export async function createGoal(
 
 **Why?** This allows tests to inject fake repos and fixed timestamps.
 
-## 3. Fake Repository Pattern
+## 3. PgLite Database Pattern for Repository Testing
 
-Create a fake repository using Map for in-memory storage.
+Use PgLite in-memory databases for testing repositories with real PostgreSQL behavior.
 
-### Repository Structure
+### Test Database Setup
 
-Every repository has these files:
-- `<entity>.repo.fake.ts` - Fake repository for tests
-- `<entity>.repo.ts` - Real repository using Drizzle ORM
-
-### Fake Repository Template
+Create a shared test database helper:
 
 ```typescript
-// goals.repo.fake.ts
-export type Goal = {
-  id: string;
-  userProfileId: string;
-  name: string;
-  description: string;
-  timeframe: string;
-  complete: boolean;
-  order: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
+// test/db-helper.ts
+import { PGlite } from '@electric-sql/pglite';
+import { drizzle } from 'drizzle-orm/pglite';
+import * as schema from '@/lib/db/schema';
+import type { PgliteDatabase } from 'drizzle-orm/pglite';
 
-export type NewGoal = Omit<Goal, 'id'>;
+export type TestDatabase = PgliteDatabase<typeof schema>;
 
-export function makeGoalsRepoFake() {
-  const store = new Map<string, Goal>();
-  let idCounter = 0;
+export async function createTestDatabase(): Promise<{
+  db: TestDatabase;
+  client: PGlite;
+}> {
+  // Create in-memory PgLite instance
+  const client = new PGlite('memory://');
 
-  return {
-    async findByUserId(userId: string): Promise<Goal[]> {
-      const goals = Array.from(store.values())
-        .filter((g) => g.userProfileId === userId)
-        .sort((a, b) => a.order - b.order);
-      return goals;
-    },
+  // Create Drizzle instance with schema
+  const db = drizzle(client, { schema });
 
-    async create(goal: NewGoal): Promise<Goal> {
-      const id = `goal_${++idCounter}`;
-      const newGoal: Goal = { ...goal, id };
-      store.set(id, newGoal);
-      return newGoal;
-    },
+  // Apply schema directly (faster than migrations for tests)
+  await applyTestSchema(client);
 
-    async update(goalId: string, updates: Partial<Goal>): Promise<Goal | null> {
-      const goal = store.get(goalId);
-      if (!goal) return null;
+  return { db, client };
+}
 
-      Object.assign(goal, updates);
-      return goal;
-    },
+// Clone for test isolation
+export async function cloneTestDatabase(baseClient: PGlite): Promise<{
+  db: TestDatabase;
+  client: PGlite;
+}> {
+  const client = await baseClient.clone();
+  const db = drizzle(client, { schema });
+  return { db, client };
+}
 
-    async deleteById(goalId: string): Promise<Goal | null> {
-      const goal = store.get(goalId);
-      if (!goal) return null;
+async function applyTestSchema(client: PGlite): Promise<void> {
+  // Create enums
+  await client.exec(`
+    CREATE TYPE admin_role AS ENUM ('admin', 'super_admin');
+    CREATE TYPE goal_template_status AS ENUM ('published', 'unpublished');
+  `);
 
-      store.delete(goalId);
-      return goal;
-    },
+  // Create tables with SQL
+  await client.exec(`
+    CREATE TABLE admins (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email VARCHAR(255) NOT NULL UNIQUE,
+      role admin_role NOT NULL DEFAULT 'admin',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
 
-    // Test helper to inspect state
-    _store: store,
-  };
+    CREATE TABLE user_profiles (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email VARCHAR(255) NOT NULL UNIQUE,
+      first_name VARCHAR(100),
+      last_name VARCHAR(100),
+      has_completed_skin_test BOOLEAN,
+      has_completed_booking BOOLEAN,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Add other tables as needed
+  `);
+}
+
+// Seed test data helper
+export async function seedTestData(db: TestDatabase) {
+  const [admin] = await db.insert(schema.admins).values({
+    email: 'test@example.com',
+    role: 'admin',
+  }).returning();
+
+  return { admin };
 }
 ```
 
@@ -892,126 +1175,129 @@ describe("Goal Actions - Unit Tests", () => {
 - Routines: `750e8400...`
 - Makes it clear what entity type you're referencing
 
-## 8. Complete Test File Template
+## 8. Complete Test File Template with PgLite
 
 ```typescript
-import { describe, it, expect, beforeEach } from "vitest";
-import { makeGoalsRepoFake } from "./goals.repo.fake";
-import {
-  getGoals,
-  createGoal,
-  updateGoal,
-  deleteGoal,
-  type GoalDeps,
-} from "./actions";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createTestDatabase, type TestDatabase } from "@/test/db-helper";
+import { makeGoalsRepo } from "./goals.repo";
+import * as schema from "@/lib/db/schema";
+import type { PGlite } from "@electric-sql/pglite";
 
-describe("Goal Actions - Unit Tests", () => {
-  let repo: ReturnType<typeof makeGoalsRepoFake>;
-  let deps: GoalDeps;
-  let mockNow: Date;
+describe("Goals Repository - Unit Tests", () => {
+  let db: TestDatabase;
+  let client: PGlite;
+  let repo: ReturnType<typeof makeGoalsRepo>;
 
   // Test UUIDs
   const user1Id = "550e8400-e29b-41d4-a716-446655440000";
-  const goal1Id = "650e8400-e29b-41d4-a716-446655440001";
+  const templateId = "750e8400-e29b-41d4-a716-446655440001";
 
-  beforeEach(() => {
-    repo = makeGoalsRepoFake();
-    mockNow = new Date("2025-01-15T10:00:00Z");
-    deps = {
-      repo,
-      now: () => mockNow,
-    };
-  });
+  beforeEach(async () => {
+    // Create fresh in-memory database for each test
+    const setup = await createTestDatabase();
+    db = setup.db;
+    client = setup.client;
 
-  describe("getGoals", () => {
-    it("returns empty array when user has no goals", async () => {
-      const result = await getGoals(user1Id, deps);
+    // Create repository with test database
+    repo = makeGoalsRepo(db);
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toEqual([]);
-      }
+    // Seed base data
+    await db.insert(schema.userProfiles).values({
+      id: user1Id,
+      email: "test@example.com",
+      firstName: "Test",
+      lastName: "User",
+    });
+
+    await db.insert(schema.skinGoalsTemplate).values({
+      id: templateId,
+      userId: user1Id,
+      status: "published",
+      createdBy: "admin-id",
+      updatedBy: "admin-id",
     });
   });
 
-  describe("createGoal", () => {
-    it("creates goal successfully with all required fields", async () => {
-      const data = {
-        name: "Clear skin",
-        description: "Reduce acne breakouts",
-        timeframe: "12 weeks",
-      };
+  afterEach(async () => {
+    // Clean up after each test
+    await client.close();
+  });
 
-      const result = await createGoal(user1Id, data, deps);
+  describe("findByTemplateId", () => {
+    it("returns empty array when template has no goals", async () => {
+      const goals = await repo.findByTemplateId(templateId);
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.name).toBe("Clear skin");
-      }
+      expect(goals).toEqual([]);
+    });
+
+    it("returns goals ordered by order field", async () => {
+      // Insert test goals
+      await db.insert(schema.skincareGoals).values([
+        { templateId, description: "Goal 2", order: 2 },
+        { templateId, description: "Goal 1", order: 1 },
+        { templateId, description: "Goal 3", order: 3 },
+      ]);
+
+      const goals = await repo.findByTemplateId(templateId);
+
+      expect(goals).toHaveLength(3);
+      expect(goals[0].description).toBe("Goal 1");
+      expect(goals[1].description).toBe("Goal 2");
+      expect(goals[2].description).toBe("Goal 3");
     });
   });
 
-  describe("updateGoal", () => {
-    it("updates goal name successfully", async () => {
-      // Manually set up store
-      repo._store.set(goal1Id, {
-        id: goal1Id,
-        userProfileId: user1Id,
-        name: "Old name",
-        description: "Description",
-        timeframe: "4 weeks",
+  describe("create", () => {
+    it("creates goal with all required fields", async () => {
+      const newGoal = await repo.create({
+        templateId,
+        description: "Clear skin",
         complete: false,
-        order: 0,
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-01"),
+        order: 1,
       });
 
-      const result = await updateGoal(goal1Id, { name: "New name" }, deps);
+      expect(newGoal.id).toBeDefined();
+      expect(newGoal.description).toBe("Clear skin");
+      expect(newGoal.complete).toBe(false);
+      expect(newGoal.createdAt).toBeInstanceOf(Date);
 
-      expect(result.success).toBe(true);
-      expect(repo._store.get(goal1Id)!.name).toBe("New name");
+      // Verify in database
+      const found = await db
+        .select()
+        .from(schema.skincareGoals)
+        .where(eq(schema.skincareGoals.id, newGoal.id));
+
+      expect(found).toHaveLength(1);
     });
   });
 
-  describe("deleteGoal", () => {
-    it("deletes goal successfully", async () => {
-      repo._store.set(goal1Id, {
-        id: goal1Id,
-        userProfileId: user1Id,
-        name: "Goal to delete",
-        description: "Desc",
-        timeframe: "4w",
+  describe("toggleComplete", () => {
+    it("marks goal as complete with completedAt timestamp", async () => {
+      const [goal] = await db.insert(schema.skincareGoals).values({
+        templateId,
+        description: "Test goal",
         complete: false,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+        order: 1,
+      }).returning();
 
-      const result = await deleteGoal(goal1Id, deps);
+      const updated = await repo.toggleComplete(goal.id, true);
 
-      expect(result.success).toBe(true);
-      expect(repo._store.has(goal1Id)).toBe(false);
+      expect(updated).not.toBeNull();
+      expect(updated!.complete).toBe(true);
+      expect(updated!.completedAt).toBeInstanceOf(Date);
     });
   });
 
   describe("Error Handling", () => {
-    it("createGoal handles repository errors", async () => {
-      repo.create = async () => {
-        throw new Error("Database connection failed");
-      };
-
-      const data = {
-        name: "Test goal",
-        description: "Test description",
-        timeframe: "4 weeks",
-      };
-
-      const result = await createGoal(user1Id, data, deps);
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe("Failed to create goal");
-      }
+    it("handles database constraint violations", async () => {
+      // Try to create goal with non-existent template
+      await expect(repo.create({
+        templateId: "non-existent-id",
+        description: "Test",
+        complete: false,
+        order: 1,
+      })).rejects.toThrow();
     });
   });
 });

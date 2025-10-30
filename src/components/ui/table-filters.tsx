@@ -36,15 +36,11 @@ export function TableFilters<TFilters extends Record<string, string>>({
 }: TableFiltersProps<TFilters>) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {filters.map((filter) => {
-          const colSpanClass = filter.columnSpan
-            ? `lg:col-span-${filter.columnSpan}`
-            : "";
-
           if (filter.type === "text") {
             return (
-              <div key={filter.id} className={colSpanClass || "lg:col-span-2"}>
+              <div key={filter.id}>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   {filter.label}
                 </label>
@@ -60,7 +56,7 @@ export function TableFilters<TFilters extends Record<string, string>>({
 
           if (filter.type === "select") {
             return (
-              <div key={filter.id} className={colSpanClass}>
+              <div key={filter.id}>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   {filter.label}
                 </label>

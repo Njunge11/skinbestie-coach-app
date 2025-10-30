@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Check, X, ChevronsUpDown, Trash2 } from "lucide-react";
+import { Plus, Check, ChevronsUpDown, Trash2 } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -79,25 +79,25 @@ interface RoutineSectionProps {
     templateId: string,
     routineName: string,
     startDate: Date,
-    endDate: Date | null
+    endDate: Date | null,
   ) => Promise<void>;
   onCreateBlank: (
     routineName: string,
     startDate: Date,
-    endDate: Date | null
+    endDate: Date | null,
   ) => Promise<void>;
   onUpdateRoutine: (data: RoutineFormData) => Promise<void>;
   onPublishRoutine: () => Promise<void>;
   onDeleteRoutine: () => Promise<void>;
   onAddProduct: (
     timeOfDay: "morning" | "evening",
-    data: RoutineProductFormData
+    data: RoutineProductFormData,
   ) => Promise<void>;
   onUpdateProduct: (id: string, data: RoutineProductFormData) => Promise<void>;
   onDeleteProduct: (id: string) => Promise<void>;
   onReorderProducts: (
     timeOfDay: "morning" | "evening",
-    reorderedProducts: RoutineProduct[]
+    reorderedProducts: RoutineProduct[],
   ) => Promise<void>;
 }
 
@@ -130,15 +130,20 @@ export function RoutineSection({
     productName: "",
     productUrl: "",
     instructions: "",
+    productPurchaseInstructions: "",
     frequency: "daily",
     days: undefined,
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleAdd = (timeOfDay: "morning" | "evening") => {
@@ -157,6 +162,7 @@ export function RoutineSection({
         productName: "",
         productUrl: "",
         instructions: "",
+        productPurchaseInstructions: "",
         frequency: "daily",
         days: undefined,
       });
@@ -174,24 +180,21 @@ export function RoutineSection({
 
   const handleDragEnd = (
     event: DragEndEvent,
-    timeOfDay: "morning" | "evening"
+    timeOfDay: "morning" | "evening",
   ) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      console.log(`🎯 ROUTINE DRAG END (${timeOfDay}) - Calculating new order`);
       const currentProducts =
         timeOfDay === "morning" ? morningProducts : eveningProducts;
       const oldIndex = currentProducts.findIndex(
-        (item) => item.id === active.id
+        (item) => item.id === active.id,
       );
       const newIndex = currentProducts.findIndex((item) => item.id === over.id);
       const reorderedProducts = arrayMove(currentProducts, oldIndex, newIndex);
 
-      console.log(`🎯 Calling parent handler (onReorderProducts for ${timeOfDay})`);
       // Parent handler updates state optimistically (before server call)
       onReorderProducts(timeOfDay, reorderedProducts);
-      console.log("🎯 Parent handler called (not awaited)");
     }
   };
 
@@ -202,6 +205,7 @@ export function RoutineSection({
       productName: "",
       productUrl: "",
       instructions: "",
+      productPurchaseInstructions: "",
       frequency: "daily",
       days: undefined,
     });
@@ -214,100 +218,155 @@ export function RoutineSection({
 
   const renderAddForm = (timeOfDay: "morning" | "evening") => (
     <div className="rounded-lg border border-gray-200 p-4 space-y-3">
-      <Popover open={openRoutineStep} onOpenChange={setOpenRoutineStep}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={openRoutineStep}
-            className="w-full justify-between font-normal"
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Routine Step</label>
+        <Popover open={openRoutineStep} onOpenChange={setOpenRoutineStep}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={openRoutineStep}
+              className="w-full justify-between font-normal mt-2"
+            >
+              {newProduct.routineStep || "Select routine step..."}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[var(--radix-popover-trigger-width)] p-0"
+            align="start"
           >
-            {newProduct.routineStep || "Select routine step..."}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Search routine step..." />
-            <CommandList>
-              <CommandEmpty>No routine step found.</CommandEmpty>
-              <CommandGroup>
-                {ROUTINE_STEPS.map((step) => (
-                  <CommandItem
-                    key={step}
-                    value={step}
-                    onSelect={() => {
-                      setNewProduct((prev) => ({ ...prev, routineStep: step }));
-                      setOpenRoutineStep(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        newProduct.routineStep === step
-                          ? "opacity-100"
-                          : "opacity-0"
-                      )}
-                    />
-                    {step}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+            <Command>
+              <CommandInput placeholder="Search routine step..." />
+              <CommandList>
+                <CommandEmpty>No routine step found.</CommandEmpty>
+                <CommandGroup>
+                  {ROUTINE_STEPS.map((step) => (
+                    <CommandItem
+                      key={step}
+                      value={step}
+                      onSelect={() => {
+                        setNewProduct((prev) => ({
+                          ...prev,
+                          routineStep: step,
+                        }));
+                        setOpenRoutineStep(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          newProduct.routineStep === step
+                            ? "opacity-100"
+                            : "opacity-0",
+                        )}
+                      />
+                      {step}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
 
-      <Input
-        placeholder="Product name"
-        value={newProduct.productName}
-        onChange={(e) =>
-          setNewProduct((prev) => ({ ...prev, productName: e.target.value }))
-        }
-        className="font-medium"
-      />
+      <div className="space-y-2">
+        <label htmlFor="product-name" className="text-sm font-medium">
+          Product Name
+        </label>
+        <Input
+          id="product-name"
+          placeholder="Product name"
+          value={newProduct.productName}
+          onChange={(e) =>
+            setNewProduct((prev) => ({ ...prev, productName: e.target.value }))
+          }
+          className="font-medium mt-2"
+        />
+      </div>
 
-      <Input
-        placeholder="Product URL (optional)"
-        value={newProduct.productUrl || ""}
-        onChange={(e) =>
-          setNewProduct((prev) => ({ ...prev, productUrl: e.target.value }))
-        }
-        type="url"
-        className="text-sm"
-      />
+      <div className="space-y-2">
+        <label htmlFor="product-url" className="text-sm font-medium">
+          Product URL (optional)
+        </label>
+        <Input
+          id="product-url"
+          placeholder="Product URL (optional)"
+          value={newProduct.productUrl || ""}
+          onChange={(e) =>
+            setNewProduct((prev) => ({ ...prev, productUrl: e.target.value }))
+          }
+          type="url"
+          className="text-sm mt-2"
+        />
+      </div>
 
-      <Textarea
-        placeholder="Instructions (e.g., Apply to damp skin, massage gently)"
-        value={newProduct.instructions}
-        onChange={(e) =>
-          setNewProduct((prev) => ({ ...prev, instructions: e.target.value }))
-        }
-        rows={2}
-        className="text-sm resize-none"
-      />
+      <div className="space-y-2">
+        <label htmlFor="instructions" className="text-sm font-medium">
+          Instructions
+        </label>
+        <Textarea
+          id="instructions"
+          placeholder="e.g., Apply to damp skin, massage gently"
+          value={newProduct.instructions}
+          onChange={(e) =>
+            setNewProduct((prev) => ({ ...prev, instructions: e.target.value }))
+          }
+          rows={2}
+          className="text-sm resize-none mt-2"
+        />
+      </div>
 
-      <Select
-        value={newProduct.frequency}
-        onValueChange={(value) =>
-          setNewProduct((prev) => ({
-            ...prev,
-            frequency: value as Frequency,
-            days: value === "daily" ? undefined : prev.days || [],
-          }))
-        }
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Select frequency" />
-        </SelectTrigger>
-        <SelectContent>
-          {FREQUENCIES.map((freq) => (
-            <SelectItem key={freq.value} value={freq.value}>
-              {freq.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="space-y-2">
+        <label
+          htmlFor="product-purchase-instructions"
+          className="text-sm font-medium"
+        >
+          Purchase Instructions (optional)
+        </label>
+        <p className="text-xs text-gray-500">
+          Where to buy this product or any special purchasing notes
+        </p>
+        <Textarea
+          id="product-purchase-instructions"
+          placeholder="e.g., Available at Sephora, Use code SAVE10 for discount"
+          value={newProduct.productPurchaseInstructions || ""}
+          onChange={(e) =>
+            setNewProduct((prev) => ({
+              ...prev,
+              productPurchaseInstructions: e.target.value,
+            }))
+          }
+          rows={2}
+          className="text-sm resize-none mt-2"
+        />
+      </div>
+
+      <div className="space-y-2 mt-4">
+        <label className="text-sm font-medium">Frequency</label>
+        <Select
+          value={newProduct.frequency}
+          onValueChange={(value) =>
+            setNewProduct((prev) => ({
+              ...prev,
+              frequency: value as Frequency,
+              days: value === "daily" ? undefined : prev.days || [],
+            }))
+          }
+        >
+          <SelectTrigger className="mt-2">
+            <SelectValue placeholder="Select frequency" />
+          </SelectTrigger>
+          <SelectContent>
+            {FREQUENCIES.map((freq) => (
+              <SelectItem key={freq.value} value={freq.value}>
+                {freq.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {newProduct.frequency !== "daily" && (
         <div className="space-y-2">
@@ -347,7 +406,9 @@ export function RoutineSection({
                     isSelected
                       ? "bg-primary text-primary-foreground"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200",
-                    !canSelect && !isSelected && "opacity-50 cursor-not-allowed"
+                    !canSelect &&
+                      !isSelected &&
+                      "opacity-50 cursor-not-allowed",
                   )}
                   disabled={!canSelect && !isSelected}
                 >
@@ -362,13 +423,11 @@ export function RoutineSection({
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-4">
         <Button size="sm" onClick={() => handleAdd(timeOfDay)}>
-          <Check className="w-4 h-4 mr-2" />
           Add
         </Button>
         <Button size="sm" variant="outline" onClick={handleCancel}>
-          <X className="w-4 h-4 mr-2" />
           Cancel
         </Button>
       </div>

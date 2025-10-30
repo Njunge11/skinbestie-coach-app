@@ -39,10 +39,13 @@ export function RoutineManagementClient({
 
   const totalProducts = templates.reduce(
     (sum, t) => sum + t.morningProducts + t.eveningProducts,
-    0
+    0,
   );
 
-  const handleCreateTemplate = async (data: { name: string; description: string | null }) => {
+  const handleCreateTemplate = async (data: {
+    name: string;
+    description: string | null;
+  }) => {
     const result = await createTemplate(adminId, data);
 
     if (result.success) {
@@ -54,10 +57,12 @@ export function RoutineManagementClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Routine Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Routine Management
+          </h1>
           <p className="mt-1 text-sm text-gray-600">
             Create and manage reusable routine templates
           </p>

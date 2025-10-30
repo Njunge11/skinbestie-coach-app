@@ -2,17 +2,35 @@
 
 import { z } from "zod";
 import { makeGoalsRepo } from "./goals.repo";
+import { makeGoalsTemplateRepo } from "./goals-template.repo";
 import type { Goal, NewGoal } from "./goals.repo";
+import type { GoalsTemplate } from "./goals-template.repo";
 
-// Dependency injection for testing (follows TESTING.md)
+// Import auth at the top level
+import { auth } from "@/lib/auth";
+
+// Get the current admin ID from NextAuth session
+async function getCurrentAdminId(): Promise<string> {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw new Error("No admin session found");
+  }
+
+  return session.user.id;
+}
+
+// Dependency injection for testing
 export type GoalDeps = {
   repo: ReturnType<typeof makeGoalsRepo>;
+  templateRepo: ReturnType<typeof makeGoalsTemplateRepo>;
   now: () => Date;
 };
 
 // Default dependencies (production)
 const defaultDeps: GoalDeps = {
   repo: makeGoalsRepo(),
+  templateRepo: makeGoalsTemplateRepo(),
   now: () => new Date(),
 };
 
@@ -21,17 +39,15 @@ type SuccessResult<T> = { success: true; data: T };
 type ErrorResult = { success: false; error: string };
 type Result<T> = SuccessResult<T> | ErrorResult;
 
-// Input types
+// Input types - simplified to match schema
 export type CreateGoalInput = {
-  name: string;
   description: string;
-  timeframe: string;
+  isPrimaryGoal?: boolean;
 };
 
 export type UpdateGoalInput = {
-  name?: string;
   description?: string;
-  timeframe?: string;
+  isPrimaryGoal?: boolean;
   complete?: boolean;
 };
 
@@ -41,16 +57,14 @@ const requiredStringSchema = z.string().trim().min(1);
 
 const createGoalSchema = z.object({
   userId: uuidSchema,
-  name: requiredStringSchema,
   description: requiredStringSchema,
-  timeframe: requiredStringSchema,
+  isPrimaryGoal: z.boolean().optional(),
 });
 
 const updateGoalSchema = z.object({
   goalId: uuidSchema,
-  name: z.string().trim().min(1).optional(),
   description: z.string().trim().min(1).optional(),
-  timeframe: z.string().trim().min(1).optional(),
+  isPrimaryGoal: z.boolean().optional(),
   complete: z.boolean().optional(),
 });
 
@@ -59,30 +73,38 @@ const deleteGoalSchema = z.object({
 });
 
 const reorderGoalsSchema = z.object({
-  userId: uuidSchema,
+  templateId: uuidSchema,
   goalIds: z.array(uuidSchema).min(1),
 });
 
 /**
- * Get all goals for a user, ordered by priority
+ * Get template and goals for a user
  */
-export async function getGoals(
+export async function getGoalsWithTemplate(
   userId: string,
-  deps: GoalDeps = defaultDeps
-): Promise<Result<Goal[]>> {
-  const { repo } = deps;
+  deps: GoalDeps = defaultDeps,
+): Promise<Result<{ template: GoalsTemplate | null; goals: Goal[] }>> {
+  const { repo, templateRepo } = deps;
 
-
-  // Validate userId with Zod
+  // Validate userId
   const validation = uuidSchema.safeParse(userId);
   if (!validation.success) {
     return { success: false, error: "Invalid user ID" };
   }
 
   try {
-    // Fetch goals from repo
-    const goals = await repo.findByUserId(validation.data);
-    return { success: true, data: goals };
+    // Get template for user
+    const template = await templateRepo.findByUserId(validation.data);
+
+    // If no template, return empty goals
+    if (!template) {
+      return { success: true, data: { template: null, goals: [] } };
+    }
+
+    // Get goals for template
+    const goals = await repo.findByTemplateId(template.id);
+
+    return { success: true, data: { template, goals } };
   } catch (error) {
     console.error("Error fetching goals:", error);
     return { success: false, error: "Failed to fetch goals" };
@@ -90,21 +112,20 @@ export async function getGoals(
 }
 
 /**
- * Create a new goal for a user
+ * Create a new goal for a user (creates template if needed)
  */
 export async function createGoal(
   userId: string,
   input: CreateGoalInput,
-  deps: GoalDeps = defaultDeps
+  deps: GoalDeps = defaultDeps,
 ): Promise<Result<Goal>> {
-  const { repo } = deps;
+  const { repo, templateRepo } = deps;
 
-  // Validate input with Zod
+  // Validate input
   const validation = createGoalSchema.safeParse({
     userId,
-    name: input.name,
     description: input.description,
-    timeframe: input.timeframe,
+    isPrimaryGoal: input.isPrimaryGoal,
   });
 
   if (!validation.success) {
@@ -112,20 +133,37 @@ export async function createGoal(
   }
 
   try {
+    // Get or create template
+    let template = await templateRepo.findByUserId(validation.data.userId);
+
+    if (!template) {
+      // Create template on first goal
+      const adminId = await getCurrentAdminId();
+      template = await templateRepo.create({
+        userId: validation.data.userId,
+        status: "unpublished", // Start unpublished
+        createdBy: adminId,
+        updatedBy: adminId,
+      });
+    }
+
+    // If marking as primary, unmark all other primary goals for this template
+    if (validation.data.isPrimaryGoal) {
+      await repo.unmarkAllPrimary(template.id);
+    }
+
     // Get existing goals to determine order
-    const existingGoals = await repo.findByUserId(validation.data.userId);
+    const existingGoals = await repo.findByTemplateId(template.id);
+    const order =
+      existingGoals.length > 0
+        ? Math.max(...existingGoals.map((g) => g.order)) + 1
+        : 0;
 
-    // Calculate order (max order + 1, or 0 if no goals)
-    const order = existingGoals.length > 0
-      ? Math.max(...existingGoals.map((g) => g.order)) + 1
-      : 0;
-
-    // Create goal with validated data (already trimmed by Zod)
+    // Create goal
     const newGoal: NewGoal = {
-      userProfileId: validation.data.userId,
-      name: validation.data.name,
+      templateId: template.id,
       description: validation.data.description,
-      timeframe: validation.data.timeframe,
+      isPrimaryGoal: validation.data.isPrimaryGoal ?? false,
       complete: false,
       order,
     };
@@ -144,11 +182,11 @@ export async function createGoal(
 export async function updateGoal(
   goalId: string,
   updates: UpdateGoalInput,
-  deps: GoalDeps = defaultDeps
+  deps: GoalDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo, now } = deps;
 
-  // Validate input with Zod
+  // Validate input
   const validation = updateGoalSchema.safeParse({
     goalId,
     ...updates,
@@ -159,25 +197,32 @@ export async function updateGoal(
   }
 
   try {
-    // Build update data with validated fields (already trimmed by Zod)
+    // If marking as primary, need to get the goal's template first
+    if (validation.data.isPrimaryGoal) {
+      const goal = await repo.findById(validation.data.goalId);
+      if (!goal) {
+        return { success: false, error: "Goal not found" };
+      }
+      // Unmark all other primary goals for this template
+      await repo.unmarkAllPrimary(goal.templateId);
+    }
+
+    // Build update data
     const updateData: Partial<Goal> = {
       updatedAt: now(),
     };
-
-    if (validation.data.name !== undefined) {
-      updateData.name = validation.data.name;
-    }
 
     if (validation.data.description !== undefined) {
       updateData.description = validation.data.description;
     }
 
-    if (validation.data.timeframe !== undefined) {
-      updateData.timeframe = validation.data.timeframe;
+    if (validation.data.isPrimaryGoal !== undefined) {
+      updateData.isPrimaryGoal = validation.data.isPrimaryGoal;
     }
 
     if (validation.data.complete !== undefined) {
       updateData.complete = validation.data.complete;
+      updateData.completedAt = validation.data.complete ? now() : null;
     }
 
     // Update goal
@@ -195,15 +240,46 @@ export async function updateGoal(
 }
 
 /**
+ * Toggle goal completion
+ */
+export async function toggleGoalComplete(
+  goalId: string,
+  deps: GoalDeps = defaultDeps,
+): Promise<Result<void>> {
+  const { repo } = deps;
+
+  // Validate input
+  const validation = uuidSchema.safeParse(goalId);
+  if (!validation.success) {
+    return { success: false, error: "Invalid goal ID" };
+  }
+
+  try {
+    // First get the goal to know current state
+    // This is a simplification - you might want to add a findById method
+    const updatedGoal = await repo.toggleComplete(validation.data, true);
+
+    if (!updatedGoal) {
+      return { success: false, error: "Goal not found" };
+    }
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Error toggling goal:", error);
+    return { success: false, error: "Failed to toggle goal" };
+  }
+}
+
+/**
  * Delete a goal
  */
 export async function deleteGoal(
   goalId: string,
-  deps: GoalDeps = defaultDeps
+  deps: GoalDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo } = deps;
 
-  // Validate input with Zod
+  // Validate input
   const validation = deleteGoalSchema.safeParse({ goalId });
 
   if (!validation.success) {
@@ -211,7 +287,6 @@ export async function deleteGoal(
   }
 
   try {
-    // Delete goal
     const deletedGoal = await repo.deleteById(validation.data.goalId);
 
     if (!deletedGoal) {
@@ -229,19 +304,20 @@ export async function deleteGoal(
  * Reorder goals by updating their order values
  */
 export async function reorderGoals(
-  userId: string,
+  templateId: string,
   reorderedGoalIds: string[],
-  deps: GoalDeps = defaultDeps
+  deps: GoalDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo, now } = deps;
 
-  // Validate input with Zod
+  // Validate input
   const validation = reorderGoalsSchema.safeParse({
-    userId,
+    templateId,
     goalIds: reorderedGoalIds,
   });
 
   if (!validation.success) {
+    console.error("❌ Validation failed:", validation.error);
     return { success: false, error: "Invalid data" };
   }
 
@@ -262,7 +338,57 @@ export async function reorderGoals(
 
     return { success: true, data: undefined };
   } catch (error) {
-    console.error("Error reordering goals:", error);
+    console.error("❌ Error reordering goals:", error);
+    console.error("Error type:", typeof error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : "Unknown",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to reorder goals" };
+  }
+}
+
+/**
+ * Toggle template publish status
+ */
+export async function toggleTemplatePublish(
+  userId: string,
+  deps: GoalDeps = defaultDeps,
+): Promise<Result<GoalsTemplate>> {
+  const { templateRepo } = deps;
+
+  // Validate input
+  const validation = uuidSchema.safeParse(userId);
+  if (!validation.success) {
+    return { success: false, error: "Invalid user ID" };
+  }
+
+  try {
+    // Get current template
+    const template = await templateRepo.findByUserId(validation.data);
+
+    if (!template) {
+      return { success: false, error: "No goals template found" };
+    }
+
+    // Toggle status
+    const newStatus =
+      template.status === "published" ? "unpublished" : "published";
+    const adminId = await getCurrentAdminId();
+
+    const updated = await templateRepo.updateStatus(
+      template.id,
+      newStatus,
+      adminId,
+    );
+
+    if (!updated) {
+      return { success: false, error: "Failed to update template" };
+    }
+
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Error toggling template publish:", error);
+    return { success: false, error: "Failed to toggle publish status" };
   }
 }

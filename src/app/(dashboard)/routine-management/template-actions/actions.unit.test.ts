@@ -11,6 +11,7 @@ import {
   type UpdateTemplateInput,
 } from "./actions";
 import { makeTemplateRepoFake } from "./template.repo.fake";
+import { makeRoutineTemplate } from "@/test/factories";
 
 // Fixed test data (follows TESTING.md)
 const adminId = "550e8400-e29b-41d4-a716-446655440000";
@@ -37,24 +38,30 @@ describe("Template Actions - Unit Tests", () => {
     it("returns all templates sorted by creation date", async () => {
       const repo = makeTemplateRepoFake();
 
-      // Manually set up templates
-      repo._templateStore.set("template_1", {
-        id: "template_1",
-        name: "Template 1",
-        description: "First template",
-        createdBy: adminId,
-        createdAt: new Date("2025-01-01"),
-        updatedAt: new Date("2025-01-01"),
-      });
+      // Set up templates using factories
+      repo._templateStore.set(
+        "template_1",
+        makeRoutineTemplate({
+          id: "template_1",
+          name: "Template 1",
+          description: "First template",
+          createdBy: adminId,
+          createdAt: new Date("2025-01-01"),
+          updatedAt: new Date("2025-01-01"),
+        }),
+      );
 
-      repo._templateStore.set("template_2", {
-        id: "template_2",
-        name: "Template 2",
-        description: "Second template",
-        createdBy: adminId,
-        createdAt: new Date("2025-01-02"),
-        updatedAt: new Date("2025-01-02"),
-      });
+      repo._templateStore.set(
+        "template_2",
+        makeRoutineTemplate({
+          id: "template_2",
+          name: "Template 2",
+          description: "Second template",
+          createdBy: adminId,
+          createdAt: new Date("2025-01-02"),
+          updatedAt: new Date("2025-01-02"),
+        }),
+      );
 
       const deps: TemplateDeps = { repo, now: () => mockNow };
 
@@ -116,7 +123,10 @@ describe("Template Actions - Unit Tests", () => {
       const repo = makeTemplateRepoFake();
       const deps: TemplateDeps = { repo, now: () => mockNow };
 
-      const result = await getTemplate("550e8400-e29b-41d4-a716-999999999999", deps);
+      const result = await getTemplate(
+        "550e8400-e29b-41d4-a716-999999999999",
+        deps,
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -384,7 +394,11 @@ describe("Template Actions - Unit Tests", () => {
         name: "New Name",
       };
 
-      const result = await updateTemplate("550e8400-e29b-41d4-a716-999999999999", updates, deps);
+      const result = await updateTemplate(
+        "550e8400-e29b-41d4-a716-999999999999",
+        updates,
+        deps,
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -535,7 +549,10 @@ describe("Template Actions - Unit Tests", () => {
       const repo = makeTemplateRepoFake();
       const deps: TemplateDeps = { repo, now: () => mockNow };
 
-      const result = await deleteTemplate("550e8400-e29b-41d4-a716-999999999999", deps);
+      const result = await deleteTemplate(
+        "550e8400-e29b-41d4-a716-999999999999",
+        deps,
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {

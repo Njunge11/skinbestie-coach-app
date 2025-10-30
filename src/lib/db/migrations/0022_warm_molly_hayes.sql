@@ -1,0 +1,1 @@
+DROP INDEX "skincare_goals_template_order_idx";

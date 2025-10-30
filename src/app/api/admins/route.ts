@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { admins } from "@/lib/db/schema";
 import { validateApiKey } from "../auth";
-import { z } from "zod";
-
-const createAdminSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  name: z.string().optional(),
-});
+import { makeAdminsRepo } from "./admins.repo";
+import { createAdminSchema } from "@/lib/db/validation";
 
 /**
  * POST /api/admins
  * Create a new admin user
  */
 export async function POST(request: NextRequest) {
-  console.log("\x1b[36m=== CREATE ADMIN REQUEST ===\x1b[0m");
-
   // Validate API key
   const authError = validateApiKey(request);
   if (authError) {
@@ -24,33 +16,25 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    console.log("Request body:", { email: body.email, name: body.name });
 
     // Validate request body
     const parseResult = createAdminSchema.safeParse(body);
     if (!parseResult.success) {
       const firstError = parseResult.error.issues[0];
       const errorMessage = firstError?.message || "Invalid request data";
-      return NextResponse.json(
-        { error: errorMessage },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
     const { email, name } = parseResult.data;
 
-    // Create admin
-    const [admin] = await db
-      .insert(admins)
-      .values({
-        email,
-        name: name || null,
-        passwordSet: false,
-        role: "admin",
-      })
-      .returning();
-
-    console.log(`✅ Admin created: ${admin.email} (${admin.id})`);
+    // Create admin using repository
+    const repo = makeAdminsRepo();
+    const admin = await repo.create({
+      email,
+      name: name || null,
+      passwordSet: false,
+      role: "admin",
+    });
 
     return NextResponse.json(admin, { status: 201 });
   } catch (error: unknown) {
@@ -67,13 +51,13 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Admin with this email already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

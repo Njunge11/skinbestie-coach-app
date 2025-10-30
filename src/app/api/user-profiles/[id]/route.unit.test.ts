@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import { GET, PATCH } from "./route";
+import { makeUserProfile } from "@/test/factories";
 
 // Mock the server actions module
 vi.mock("@/app/(dashboard)/subscribers/actions", () => ({
@@ -34,7 +35,7 @@ describe("GET /api/user-profiles/[id]", () => {
       // Given: request without API key
       const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
-        { status: 401 }
+        { status: 401 },
       );
       vi.mocked(validateApiKey).mockReturnValue(mockAuthError);
 
@@ -42,11 +43,13 @@ describe("GET /api/user-profiles/[id]", () => {
         `${baseUrl}/api/user-profiles/${userId}`,
         {
           method: "GET",
-        }
+        },
       );
 
       // When: calling GET handler
-      const response = await GET(request, { params: Promise.resolve({ id: userId }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 401
       expect(response.status).toBe(401);
@@ -61,28 +64,22 @@ describe("GET /api/user-profiles/[id]", () => {
       // Given: valid request with API key
       vi.mocked(validateApiKey).mockReturnValue(null);
 
-      const userData = {
+      const userData = makeUserProfile({
         id: userId,
+        userId: "auth-user-123",
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
-        phoneNumber: "+1234567890",
-        dateOfBirth: new Date("1990-01-01"),
         skinType: ["oily"],
         concerns: ["acne"],
         hasAllergies: false,
-        allergyDetails: null,
-        occupation: null,
-        bio: null,
-        timezone: "UTC",
         isSubscribed: true,
         hasCompletedBooking: true,
+        hasCompletedSkinTest: true,
         completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS"],
-        isCompleted: false,
-        completedAt: null,
         createdAt: new Date("2025-01-15T10:00:00Z"),
         updatedAt: new Date("2025-01-15T10:00:00Z"),
-      };
+      });
 
       vi.mocked(getUserProfileById).mockResolvedValue({
         success: true,
@@ -96,11 +93,13 @@ describe("GET /api/user-profiles/[id]", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
-      const response = await GET(request, { params: Promise.resolve({ id: userId }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 200 with user data
       expect(response.status).toBe(200);
@@ -128,11 +127,13 @@ describe("GET /api/user-profiles/[id]", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
-      const response = await GET(request, { params: Promise.resolve({ id: userId }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 404
       expect(response.status).toBe(404);
@@ -144,7 +145,7 @@ describe("GET /api/user-profiles/[id]", () => {
       // Given: request throws unexpected error
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(getUserProfileById).mockRejectedValue(
-        new Error("Database connection failed")
+        new Error("Database connection failed"),
       );
 
       const request = new NextRequest(
@@ -154,11 +155,13 @@ describe("GET /api/user-profiles/[id]", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
-      const response = await GET(request, { params: Promise.resolve({ id: userId }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 500
       expect(response.status).toBe(500);
@@ -183,7 +186,7 @@ describe("PATCH /api/user-profiles/[id]", () => {
       // Given: request without API key
       const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
-        { status: 401 }
+        { status: 401 },
       );
       vi.mocked(validateApiKey).mockReturnValue(mockAuthError);
 
@@ -197,11 +200,13 @@ describe("PATCH /api/user-profiles/[id]", () => {
           body: JSON.stringify({
             skinType: ["dry"],
           }),
-        }
+        },
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
+      const response = await PATCH(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 401
       expect(response.status).toBe(401);
@@ -216,33 +221,23 @@ describe("PATCH /api/user-profiles/[id]", () => {
       // Given: valid request with API key
       vi.mocked(validateApiKey).mockReturnValue(null);
 
-      const updatedUser = {
+      const updatedUser = makeUserProfile({
         id: userId,
+        userId: "auth-user-123",
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
-        phoneNumber: "+1234567890",
-        dateOfBirth: new Date("1990-01-01"),
         skinType: ["dry", "sensitive"],
         concerns: ["wrinkles"],
         hasAllergies: true,
         allergyDetails: "Fragrance allergies",
-        occupation: null,
-        bio: null,
-        timezone: "UTC",
         isSubscribed: true,
         hasCompletedBooking: true,
-        completedSteps: [
-          "PERSONAL",
-          "SKIN_TYPE",
-          "SKIN_CONCERNS",
-          "ALLERGIES",
-        ],
-        isCompleted: false,
-        completedAt: null,
+        hasCompletedSkinTest: true,
+        completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS", "ALLERGIES"],
         createdAt: new Date("2025-01-15T10:00:00Z"),
         updatedAt: new Date("2025-01-15T11:00:00Z"),
-      };
+      });
 
       vi.mocked(updateUserProfile).mockResolvedValue({
         success: true,
@@ -263,11 +258,13 @@ describe("PATCH /api/user-profiles/[id]", () => {
             hasAllergies: true,
             allergyDetails: "Fragrance allergies",
           }),
-        }
+        },
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
+      const response = await PATCH(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 200 with updated user
       expect(response.status).toBe(200);
@@ -304,11 +301,13 @@ describe("PATCH /api/user-profiles/[id]", () => {
           body: JSON.stringify({
             skinType: ["dry"],
           }),
-        }
+        },
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
+      const response = await PATCH(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 404
       expect(response.status).toBe(404);
@@ -335,11 +334,13 @@ describe("PATCH /api/user-profiles/[id]", () => {
           body: JSON.stringify({
             skinType: ["invalid-type"],
           }),
-        }
+        },
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
+      const response = await PATCH(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 400
       expect(response.status).toBe(400);
@@ -351,7 +352,7 @@ describe("PATCH /api/user-profiles/[id]", () => {
       // Given: request throws unexpected error
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(updateUserProfile).mockRejectedValue(
-        new Error("Database connection failed")
+        new Error("Database connection failed"),
       );
 
       const request = new NextRequest(
@@ -365,11 +366,13 @@ describe("PATCH /api/user-profiles/[id]", () => {
           body: JSON.stringify({
             skinType: ["dry"],
           }),
-        }
+        },
       );
 
       // When: calling PATCH handler
-      const response = await PATCH(request, { params: Promise.resolve({ id: userId }) });
+      const response = await PATCH(request, {
+        params: Promise.resolve({ id: userId }),
+      });
 
       // Then: returns 500
       expect(response.status).toBe(500);

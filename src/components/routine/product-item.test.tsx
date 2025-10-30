@@ -27,7 +27,7 @@ describe("ProductItem", () => {
         index={0}
         onEdit={onEdit}
         onDelete={onDelete}
-      />
+      />,
     );
 
     // User sees routine step badge
@@ -41,7 +41,9 @@ describe("ProductItem", () => {
     expect(screen.getByText("CeraVe Hydrating Cleanser")).toBeInTheDocument();
 
     // User sees instructions
-    expect(screen.getByText("Apply to damp skin, massage gently")).toBeInTheDocument();
+    expect(
+      screen.getByText("Apply to damp skin, massage gently"),
+    ).toBeInTheDocument();
 
     // User sees step number
     expect(screen.getByText("1")).toBeInTheDocument();
@@ -69,7 +71,7 @@ describe("ProductItem", () => {
         index={0}
         onEdit={onEdit}
         onDelete={onDelete}
-      />
+      />,
     );
 
     // User sees product name as a link
@@ -102,12 +104,14 @@ describe("ProductItem", () => {
         index={0}
         onEdit={onEdit}
         onDelete={onDelete}
-      />
+      />,
     );
 
     // User sees product name as plain text (not a link)
     expect(screen.getByText("Simple Face Cream")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Simple Face Cream" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Simple Face Cream" }),
+    ).not.toBeInTheDocument();
   });
 
   it("user clicks to edit product and sees edit form", async () => {
@@ -133,7 +137,7 @@ describe("ProductItem", () => {
         index={0}
         onEdit={onEdit}
         onDelete={onDelete}
-      />
+      />,
     );
 
     // User clicks on the product to edit it (click on instructions, not the link)
@@ -141,7 +145,9 @@ describe("ProductItem", () => {
 
     // Edit form should now be visible
     // User should see the product name input pre-filled
-    expect(screen.getByPlaceholderText(/product name/i)).toHaveValue("Hydrating Toner");
+    expect(screen.getByPlaceholderText(/product name/i)).toHaveValue(
+      "Hydrating Toner",
+    );
 
     // User should see Save button instead of Add
     expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
@@ -173,7 +179,7 @@ describe("ProductItem", () => {
         index={0}
         onEdit={onEdit}
         onDelete={onDelete}
-      />
+      />,
     );
 
     // User clicks on the product to edit it
@@ -188,7 +194,7 @@ describe("ProductItem", () => {
     await user.type(nameInput, "Updated Moisturizer");
 
     // User changes the instructions
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput = screen.getByLabelText(/^instructions$/i);
     await user.clear(instructionsInput);
     await user.type(instructionsInput, "Apply twice daily");
 
@@ -201,7 +207,7 @@ describe("ProductItem", () => {
       expect.objectContaining({
         productName: "Updated Moisturizer",
         instructions: "Apply twice daily",
-      })
+      }),
     );
   });
 });

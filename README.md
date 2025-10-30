@@ -20,6 +20,40 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Git Hooks
+
+This project uses [Husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged) to enforce code quality.
+
+### What Happens When You Commit
+
+Every `git commit` automatically runs:
+- **ESLint** - Auto-fixes code issues
+- **Prettier** - Formats your code
+- **Tests** - Runs all Vitest tests
+- **Type Check** - Validates TypeScript
+
+### What Happens When You Push
+
+Every `git push` automatically runs:
+- **Tests** - Full test suite
+- **Type Check** - Full TypeScript validation
+- **Build** - Production build verification
+
+### Quick Reference
+
+```bash
+# Normal workflow - hooks run automatically
+git add .
+git commit -m "Your message"  # Runs pre-commit checks
+git push                       # Runs pre-push checks
+
+# Emergency only - skip hooks (not recommended)
+git commit -m "Hotfix" --no-verify
+git push --no-verify
+```
+
+For complete documentation, see [Git Hooks Guide](./docs/GIT_HOOKS_GUIDE.md).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

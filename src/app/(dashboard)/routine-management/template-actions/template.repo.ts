@@ -3,12 +3,36 @@
 import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { routineTemplates, routineTemplateProducts } from "@/lib/db/schema";
-import type {
-  RoutineTemplate,
-  NewRoutineTemplate,
-  RoutineTemplateProduct,
-  NewRoutineTemplateProduct,
-} from "./template.repo.fake";
+import {
+  type RoutineTemplateRow,
+  type RoutineTemplateProductRow,
+} from "@/lib/db/types";
+
+// Define types (same as fake repo, derived from centralized schema)
+export type RoutineTemplate = Pick<
+  RoutineTemplateRow,
+  "id" | "name" | "description" | "createdBy" | "createdAt" | "updatedAt"
+>;
+
+export type NewRoutineTemplate = Omit<RoutineTemplate, "id">;
+
+export type RoutineTemplateProduct = Pick<
+  RoutineTemplateProductRow,
+  | "id"
+  | "templateId"
+  | "routineStep"
+  | "productName"
+  | "productUrl"
+  | "instructions"
+  | "frequency"
+  | "days"
+  | "timeOfDay"
+  | "order"
+  | "createdAt"
+  | "updatedAt"
+>;
+
+export type NewRoutineTemplateProduct = Omit<RoutineTemplateProduct, "id">;
 
 export function makeTemplateRepo() {
   return {
@@ -59,7 +83,7 @@ export function makeTemplateRepo() {
 
     async update(
       templateId: string,
-      updates: Partial<RoutineTemplate>
+      updates: Partial<RoutineTemplate>,
     ): Promise<RoutineTemplate | null> {
       const [updatedTemplate] = await db
         .update(routineTemplates)
@@ -81,7 +105,7 @@ export function makeTemplateRepo() {
 
     // Template Product CRUD
     async findProductsByTemplateId(
-      templateId: string
+      templateId: string,
     ): Promise<RoutineTemplateProduct[]> {
       const products = await db
         .select({
@@ -112,7 +136,7 @@ export function makeTemplateRepo() {
     },
 
     async findProductById(
-      productId: string
+      productId: string,
     ): Promise<RoutineTemplateProduct | null> {
       const [product] = await db
         .select({
@@ -138,7 +162,7 @@ export function makeTemplateRepo() {
     },
 
     async createProduct(
-      product: NewRoutineTemplateProduct
+      product: NewRoutineTemplateProduct,
     ): Promise<RoutineTemplateProduct> {
       const [newProduct] = await db
         .insert(routineTemplateProducts)
@@ -150,7 +174,7 @@ export function makeTemplateRepo() {
 
     async updateProduct(
       productId: string,
-      updates: Partial<RoutineTemplateProduct>
+      updates: Partial<RoutineTemplateProduct>,
     ): Promise<RoutineTemplateProduct | null> {
       const [updatedProduct] = await db
         .update(routineTemplateProducts)
@@ -162,7 +186,7 @@ export function makeTemplateRepo() {
     },
 
     async deleteProductById(
-      productId: string
+      productId: string,
     ): Promise<RoutineTemplateProduct | null> {
       const [deletedProduct] = await db
         .delete(routineTemplateProducts)
@@ -173,7 +197,7 @@ export function makeTemplateRepo() {
     },
 
     async updateManyProducts(
-      updates: Array<{ id: string; data: Partial<RoutineTemplateProduct> }>
+      updates: Array<{ id: string; data: Partial<RoutineTemplateProduct> }>,
     ): Promise<void> {
       if (updates.length === 0) return;
 
@@ -187,17 +211,21 @@ export function makeTemplateRepo() {
           .join(" ");
 
         const updatedAtCases = updates
-          .map((u) => `WHEN '${u.id}' THEN '${u.data.updatedAt?.toISOString()}'`)
+          .map(
+            (u) => `WHEN '${u.id}' THEN '${u.data.updatedAt?.toISOString()}'`,
+          )
           .join(" ");
 
         // Single batch UPDATE query - constraint check deferred to commit
-        await tx.execute(sql.raw(`
+        await tx.execute(
+          sql.raw(`
           UPDATE routine_template_products
           SET
             "order" = (CASE id ${orderCases} END),
             updated_at = (CASE id ${updatedAtCases} END)::timestamp
           WHERE id IN (${ids})
-        `));
+        `),
+        );
       });
     },
   };
