@@ -1,14 +1,15 @@
-import NextAuth from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
-import { getAdminByEmail } from './db/queries';
-import { verifyPassword } from './password';
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { getAdminByEmail } from "./db/queries";
+import { verifyPassword } from "./password";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -27,7 +28,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         // Verify password
-        const isValidPassword = await verifyPassword(password, admin.passwordHash);
+        const isValidPassword = await verifyPassword(
+          password,
+          admin.passwordHash,
+        );
 
         if (!isValidPassword) {
           return null;
@@ -43,10 +47,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   callbacks: {
     async jwt({ token, user }) {

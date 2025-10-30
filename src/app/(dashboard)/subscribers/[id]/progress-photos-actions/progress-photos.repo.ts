@@ -1,11 +1,18 @@
 import { db } from "@/lib/db";
-import { progressPhotos, type ProgressPhoto, type NewProgressPhoto } from "@/lib/db/schema";
+import { progressPhotos } from "@/lib/db/schema";
+import {
+  type ProgressPhotoRow,
+  type ProgressPhotoInsert,
+} from "@/lib/db/types";
 import { eq, and, desc } from "drizzle-orm";
+
+// Repository-specific types derived from centralized types (TYPE_SYSTEM_GUIDE.md)
+export type ProgressPhoto = ProgressPhotoRow;
+export type NewProgressPhoto = ProgressPhotoInsert;
 
 export function makeProgressPhotosRepo() {
   return {
     async findByUserId(userId: string): Promise<ProgressPhoto[]> {
-      console.time('[REPO-PROGRESS-PHOTOS] query');
       const photos = await db
         .select({
           id: progressPhotos.id,
@@ -21,13 +28,12 @@ export function makeProgressPhotosRepo() {
         .where(eq(progressPhotos.userProfileId, userId))
         .orderBy(desc(progressPhotos.uploadedAt))
         .limit(100);
-      console.timeEnd('[REPO-PROGRESS-PHOTOS] query');
       return photos;
     },
 
     async findByUserIdAndWeek(
       userId: string,
-      weekNumber: number
+      weekNumber: number,
     ): Promise<ProgressPhoto[]> {
       const photos = await db
         .select({
@@ -44,8 +50,8 @@ export function makeProgressPhotosRepo() {
         .where(
           and(
             eq(progressPhotos.userProfileId, userId),
-            eq(progressPhotos.weekNumber, weekNumber)
-          )
+            eq(progressPhotos.weekNumber, weekNumber),
+          ),
         )
         .orderBy(desc(progressPhotos.uploadedAt));
 
@@ -72,17 +78,14 @@ export function makeProgressPhotosRepo() {
     },
 
     async create(photo: NewProgressPhoto): Promise<ProgressPhoto> {
-      const result = await db
-        .insert(progressPhotos)
-        .values(photo)
-        .returning();
+      const result = await db.insert(progressPhotos).values(photo).returning();
 
       return result[0];
     },
 
     async update(
       id: string,
-      updates: Partial<ProgressPhoto>
+      updates: Partial<ProgressPhoto>,
     ): Promise<ProgressPhoto | null> {
       const result = await db
         .update(progressPhotos)

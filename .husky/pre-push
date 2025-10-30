@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Run tests
+npm run test:run
+
+# Run type check
+npx tsc --noEmit
+
+# Run build
+npm run build

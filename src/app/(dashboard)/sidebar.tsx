@@ -27,7 +27,11 @@ export default function Sidebar({
   const navItems: NavItem[] = [
     { href: "/", label: "Home", icon: Home },
     { href: "/subscribers", label: "Subscribers", icon: Users },
-    { href: "/routine-management", label: "Routine Management", icon: Calendar },
+    {
+      href: "/routine-management",
+      label: "Routine Management",
+      icon: Calendar,
+    },
   ];
 
   const handleLogout = (): void => {
@@ -64,15 +68,17 @@ export default function Sidebar({
             {navItems.map((item) => {
               const Icon = item.icon;
               // For home ("/"), use exact match. For other routes, match if pathname starts with href
-              const isActive = item.href === "/"
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
+              const isActive =
+                item.href === "/"
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   onClick={() => setIsMobileOpen(false)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"

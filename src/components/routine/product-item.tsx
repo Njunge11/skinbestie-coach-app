@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ProductForm, ProductFormData } from "./product-form";
 import { getFrequencyLabel } from "@/lib/routine-constants";
-import type { Frequency, TimeOfDay } from "@/app/(dashboard)/subscribers/[id]/types";
+import type {
+  Frequency,
+  TimeOfDay,
+} from "@/app/(dashboard)/subscribers/[id]/types";
 
 export interface Product {
   id: string;
@@ -106,72 +109,74 @@ export function ProductItem({
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
+      onClick={handleStartEdit}
       className={cn(
-        "group rounded-lg border border-gray-200 hover:border-gray-300 transition-colors",
-        isDragging && "opacity-50"
+        "flex items-center gap-3 rounded-lg border border-gray-200 p-4 transition-all hover:border-gray-300 cursor-pointer",
+        isDragging && "opacity-50 cursor-grabbing",
       )}
     >
-      <div className="flex items-center gap-3 p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-sm font-semibold text-primary-foreground">
-              {index + 1}
-            </span>
-          </div>
-          <button
-            className="cursor-grab active:cursor-grabbing touch-none"
-            {...attributes}
-            {...listeners}
-            aria-label="Drag to reorder"
-          >
-            <GripVertical className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
-
-        <button onClick={handleStartEdit} className="flex-1 text-left">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <Badge variant="secondary" className="font-normal">
-              {product.routineStep}
-            </Badge>
-            {product.frequency && (
-              <Badge variant="outline" className="font-normal">
-                {getFrequencyLabel(product.frequency)}
-                {product.days && product.days.length > 0 && (
-                  <span className="ml-1">• {product.days.join(", ")}</span>
-                )}
-              </Badge>
-            )}
-          </div>
-          <h4 className="font-semibold text-gray-900 mb-1">
-            {product.productUrl ? (
-              <a
-                href={product.productUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 underline"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {product.productName}
-              </a>
-            ) : (
-              product.productName
-            )}
-          </h4>
-          {product.instructions && (
-            <p className="text-sm text-gray-600">{product.instructions}</p>
-          )}
-        </button>
-
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onDelete(product.id)}
-          className="h-10 w-10 p-0"
-          aria-label="Delete step"
-        >
-          <Trash2 className="w-6 h-6 text-gray-500 hover:text-red-600" />
-        </Button>
+      {/* Drag Handle - Visual indicator */}
+      <div className="text-gray-400">
+        <GripVertical className="w-5 h-5" />
       </div>
+
+      {/* Priority Badge */}
+      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+        <span className="text-sm font-semibold text-primary-foreground">
+          {index + 1}
+        </span>
+      </div>
+
+      {/* Product Content */}
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <Badge variant="secondary" className="font-normal">
+            {product.routineStep}
+          </Badge>
+          {product.frequency && (
+            <Badge variant="outline" className="font-normal">
+              {getFrequencyLabel(product.frequency)}
+              {product.days && product.days.length > 0 && (
+                <span className="ml-1">• {product.days.join(", ")}</span>
+              )}
+            </Badge>
+          )}
+        </div>
+        <h4 className="font-semibold text-gray-900 mb-1">
+          {product.productUrl ? (
+            <a
+              href={product.productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {product.productName}
+            </a>
+          ) : (
+            product.productName
+          )}
+        </h4>
+        {product.instructions && (
+          <p className="text-sm text-gray-600">{product.instructions}</p>
+        )}
+      </div>
+
+      {/* Delete Button */}
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(product.id);
+        }}
+        className="h-10 w-10 p-0"
+        aria-label="Delete step"
+      >
+        <Trash2 className="w-6 h-6 text-gray-500 hover:text-red-600" />
+      </Button>
     </div>
   );
 }

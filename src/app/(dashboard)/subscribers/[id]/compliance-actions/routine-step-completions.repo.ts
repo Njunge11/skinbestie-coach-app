@@ -4,24 +4,16 @@
 
 import { db } from "@/lib/db";
 import { routineStepCompletions } from "@/lib/db/schema";
+import { type RoutineStepCompletionRow } from "@/lib/db/types";
 import { eq, and, gte, lte, lt, inArray, asc } from "drizzle-orm";
 
-// Type definitions
-export type RoutineStepCompletion = {
-  id: string;
-  routineProductId: string;
-  userProfileId: string;
-  scheduledDate: Date;
-  scheduledTimeOfDay: "morning" | "evening";
-  onTimeDeadline: Date;
-  gracePeriodEnd: Date;
-  completedAt: Date | null;
-  status: "pending" | "on-time" | "late" | "missed";
-  createdAt: Date;
-  updatedAt: Date;
-};
+// Derive types from centralized schema (TYPE_SYSTEM_GUIDE.md)
+export type RoutineStepCompletion = RoutineStepCompletionRow;
 
-export type NewRoutineStepCompletion = Omit<RoutineStepCompletion, "id" | "createdAt" | "updatedAt">;
+export type NewRoutineStepCompletion = Omit<
+  RoutineStepCompletion,
+  "id" | "createdAt" | "updatedAt"
+>;
 
 export function makeRoutineStepCompletionsRepo() {
   return {
@@ -29,7 +21,7 @@ export function makeRoutineStepCompletionsRepo() {
      * Create a new routine step completion record
      */
     async create(
-      completion: NewRoutineStepCompletion
+      completion: NewRoutineStepCompletion,
     ): Promise<RoutineStepCompletion> {
       const [created] = await db
         .insert(routineStepCompletions)
@@ -43,7 +35,7 @@ export function makeRoutineStepCompletionsRepo() {
      * Batch create multiple completions (for generating schedules)
      */
     async createMany(
-      completions: NewRoutineStepCompletion[]
+      completions: NewRoutineStepCompletion[],
     ): Promise<RoutineStepCompletion[]> {
       if (completions.length === 0) return [];
 
@@ -86,7 +78,7 @@ export function makeRoutineStepCompletionsRepo() {
     async findByUserAndDateRange(
       userId: string,
       startDate: Date,
-      endDate: Date
+      endDate: Date,
     ): Promise<RoutineStepCompletion[]> {
       const results = await db
         .select({
@@ -107,8 +99,8 @@ export function makeRoutineStepCompletionsRepo() {
           and(
             eq(routineStepCompletions.userProfileId, userId),
             gte(routineStepCompletions.scheduledDate, startDate),
-            lte(routineStepCompletions.scheduledDate, endDate)
-          )
+            lte(routineStepCompletions.scheduledDate, endDate),
+          ),
         )
         .orderBy(asc(routineStepCompletions.scheduledDate));
 
@@ -120,7 +112,7 @@ export function makeRoutineStepCompletionsRepo() {
      */
     async findByUserAndDate(
       userId: string,
-      date: Date
+      date: Date,
     ): Promise<RoutineStepCompletion[]> {
       // Get the date without time (YYYY-MM-DD)
       const dateOnly = new Date(date);
@@ -148,8 +140,8 @@ export function makeRoutineStepCompletionsRepo() {
           and(
             eq(routineStepCompletions.userProfileId, userId),
             gte(routineStepCompletions.scheduledDate, dateOnly),
-            lt(routineStepCompletions.scheduledDate, nextDay)
-          )
+            lt(routineStepCompletions.scheduledDate, nextDay),
+          ),
         )
         .orderBy(asc(routineStepCompletions.scheduledTimeOfDay));
 
@@ -186,7 +178,7 @@ export function makeRoutineStepCompletionsRepo() {
      */
     async update(
       id: string,
-      updates: Partial<Omit<RoutineStepCompletion, "id" | "createdAt">>
+      updates: Partial<Omit<RoutineStepCompletion, "id" | "createdAt">>,
     ): Promise<RoutineStepCompletion | null> {
       const [updated] = await db
         .update(routineStepCompletions)
@@ -203,7 +195,7 @@ export function makeRoutineStepCompletionsRepo() {
      */
     async updateMany(
       ids: string[],
-      updates: Partial<Omit<RoutineStepCompletion, "id" | "createdAt">>
+      updates: Partial<Omit<RoutineStepCompletion, "id" | "createdAt">>,
     ): Promise<number> {
       if (ids.length === 0) return 0;
 
@@ -231,8 +223,8 @@ export function makeRoutineStepCompletionsRepo() {
           and(
             eq(routineStepCompletions.userProfileId, userId),
             eq(routineStepCompletions.status, "pending"),
-            lt(routineStepCompletions.gracePeriodEnd, now)
-          )
+            lt(routineStepCompletions.gracePeriodEnd, now),
+          ),
         )
         .returning({ id: routineStepCompletions.id });
 
@@ -247,7 +239,7 @@ export function makeRoutineStepCompletionsRepo() {
     async deleteByRoutineProductId(
       routineProductId: string,
       fromDate?: Date,
-      statuses?: ("pending" | "missed")[]
+      statuses?: ("pending" | "missed")[],
     ): Promise<number> {
       const conditions = [
         eq(routineStepCompletions.routineProductId, routineProductId),

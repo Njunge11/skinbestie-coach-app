@@ -3,30 +3,32 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userProfiles } from "@/lib/db/schema";
+import { type UserProfileRow } from "@/lib/db/types";
 
-// Type definitions
-export type UserProfile = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  dateOfBirth: Date;
-  skinType: string[] | null;
-  concerns: string[] | null;
-  hasAllergies: boolean | null;
-  allergyDetails: string | null;
-  isSubscribed: boolean | null;
-  hasCompletedBooking: boolean | null;
-  occupation: string | null;
-  bio: string | null;
-  timezone: string;
-  completedSteps: string[];
-  isCompleted: boolean;
-  completedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+// Derive type from centralized schema (TYPE_SYSTEM_GUIDE.md)
+export type UserProfile = Pick<
+  UserProfileRow,
+  | "id"
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "phoneNumber"
+  | "dateOfBirth"
+  | "skinType"
+  | "concerns"
+  | "hasAllergies"
+  | "allergyDetails"
+  | "isSubscribed"
+  | "hasCompletedBooking"
+  | "occupation"
+  | "bio"
+  | "timezone"
+  | "completedSteps"
+  | "isCompleted"
+  | "completedAt"
+  | "createdAt"
+  | "updatedAt"
+>;
 
 export function makeUserProfileRepo() {
   return {
@@ -62,10 +64,7 @@ export function makeUserProfileRepo() {
     },
 
     async update(id: string, updates: Partial<UserProfile>): Promise<void> {
-      await db
-        .update(userProfiles)
-        .set(updates)
-        .where(eq(userProfiles.id, id));
+      await db.update(userProfiles).set(updates).where(eq(userProfiles.id, id));
     },
   };
 }

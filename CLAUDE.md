@@ -47,6 +47,29 @@ Development server runs on http://localhost:3000
 - **Testing**: Vitest with React Testing Library
 - **Database ORM**: Drizzle ORM with PostgreSQL
 - **Database Driver**: postgres (postgres-js)
+- **Git Hooks**: Husky + lint-staged for pre-commit/pre-push validation
+
+## Git Hooks (Husky + lint-staged)
+
+This project uses Git hooks to enforce code quality automatically:
+
+### Pre-commit Hook
+Runs on every `git commit`:
+1. **lint-staged**: ESLint + Prettier on staged `.ts`/`.tsx` files
+2. **Tests**: `npm run test:run` (all tests must pass)
+3. **Type check**: `npx tsc --noEmit` (zero TypeScript errors)
+
+### Pre-push Hook
+Runs on every `git push`:
+1. **Tests**: `npm run test:run`
+2. **Type check**: `npx tsc --noEmit`
+3. **Build**: `npm run build` (production build must succeed)
+
+### Documentation
+- Full guide: `docs/GIT_HOOKS_GUIDE.md`
+- Quick reference: `docs/GIT_HOOKS_QUICK_REFERENCE.md`
+
+**Note**: When making commits, be aware that hooks will run automatically. All checks must pass before commits/pushes succeed.
 
 ## Project Structure
 

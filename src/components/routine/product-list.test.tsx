@@ -21,7 +21,7 @@ describe("ProductList", () => {
         onUpdate={onUpdate}
         onDelete={onDelete}
         onReorder={onReorder}
-      />
+      />,
     );
 
     // User sees empty state
@@ -45,7 +45,7 @@ describe("ProductList", () => {
     const nameInput = screen.getByPlaceholderText(/product name/i);
     await user.type(nameInput, "CeraVe Cleanser");
 
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput = screen.getByLabelText(/^instructions$/i);
     await user.type(instructionsInput, "Apply to damp skin");
 
     // User clicks Add button
@@ -58,7 +58,7 @@ describe("ProductList", () => {
         productName: "CeraVe Cleanser",
         instructions: "Apply to damp skin",
         frequency: "daily",
-      })
+      }),
     );
   });
 
@@ -91,7 +91,7 @@ describe("ProductList", () => {
         onUpdate={onUpdate}
         onDelete={onDelete}
         onReorder={onReorder}
-      />
+      />,
     );
 
     // User sees existing product
@@ -115,7 +115,7 @@ describe("ProductList", () => {
     const nameInput = screen.getByPlaceholderText(/product name/i);
     await user.type(nameInput, "Retinol Eye Cream");
 
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput = screen.getByLabelText(/^instructions$/i);
     await user.type(instructionsInput, "Apply around eyes");
 
     // User clicks Add button
@@ -128,7 +128,7 @@ describe("ProductList", () => {
         productName: "Retinol Eye Cream",
         instructions: "Apply around eyes",
         frequency: "daily",
-      })
+      }),
     );
   });
 
@@ -147,7 +147,7 @@ describe("ProductList", () => {
         onUpdate={onUpdate}
         onDelete={onDelete}
         onReorder={onReorder}
-      />
+      />,
     );
 
     // User clicks Add Step
@@ -160,10 +160,14 @@ describe("ProductList", () => {
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
     // Form should disappear
-    expect(screen.queryByPlaceholderText(/product name/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(/product name/i),
+    ).not.toBeInTheDocument();
 
     // Add Step button should be visible again
-    expect(screen.getByRole("button", { name: /add step/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /add step/i }),
+    ).toBeInTheDocument();
 
     // onAdd should not have been called
     expect(onAdd).not.toHaveBeenCalled();
@@ -183,7 +187,7 @@ describe("ProductList", () => {
         onUpdate={onUpdate}
         onDelete={onDelete}
         onReorder={onReorder}
-      />
+      />,
     );
 
     // User sees "Morning" label
@@ -207,7 +211,7 @@ describe("ProductList", () => {
         onUpdate={onUpdate}
         onDelete={onDelete}
         onReorder={onReorder}
-      />
+      />,
     );
 
     // User sees "Evening" label

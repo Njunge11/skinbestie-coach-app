@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
+import { makeAdmin } from "@/test/factories";
 
 // Mock the database
 vi.mock("@/lib/db", () => ({
@@ -22,7 +23,7 @@ describe("POST /api/admins", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.API_KEY = validApiKey;
+    process.env.CONSUMER_APP_API_KEY = validApiKey;
   });
 
   describe("Authentication", () => {
@@ -78,16 +79,10 @@ describe("POST /api/admins", () => {
     it("creates admin successfully with valid API key", async () => {
       // Given: valid request with API key
 
-      const mockAdmin = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+      const mockAdmin = makeAdmin({
         email: "admin@example.com",
         name: "Admin User",
-        passwordHash: null,
-        passwordSet: false,
-        role: "admin",
-        createdAt: new Date("2025-01-15T10:00:00Z"),
-        updatedAt: new Date("2025-01-15T10:00:00Z"),
-      };
+      });
 
       const mockInsert = vi.fn().mockReturnValue({
         values: vi.fn().mockReturnValue({
@@ -126,16 +121,10 @@ describe("POST /api/admins", () => {
     it("creates admin with only email (name optional)", async () => {
       // Given: valid request without name
 
-      const mockAdmin = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+      const mockAdmin = makeAdmin({
         email: "admin@example.com",
         name: null,
-        passwordHash: null,
-        passwordSet: false,
-        role: "admin",
-        createdAt: new Date("2025-01-15T10:00:00Z"),
-        updatedAt: new Date("2025-01-15T10:00:00Z"),
-      };
+      });
 
       const mockInsert = vi.fn().mockReturnValue({
         values: vi.fn().mockReturnValue({
@@ -257,7 +246,9 @@ describe("POST /api/admins", () => {
 
       const mockInsert = vi.fn().mockReturnValue({
         values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockRejectedValue(new Error("Database connection failed")),
+          returning: vi
+            .fn()
+            .mockRejectedValue(new Error("Database connection failed")),
         }),
       });
 

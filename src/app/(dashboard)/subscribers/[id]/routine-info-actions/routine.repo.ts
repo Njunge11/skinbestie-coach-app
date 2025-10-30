@@ -3,18 +3,20 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { skincareRoutines } from "@/lib/db/schema";
+import { type SkincareRoutineRow } from "@/lib/db/types";
 
-// Type definitions
-export type Routine = {
-  id: string;
-  userProfileId: string;
-  name: string;
-  startDate: Date;
-  endDate: Date | null;
-  status: "draft" | "published";
-  createdAt: Date;
-  updatedAt: Date;
-};
+// Type definitions derived from schema
+export type Routine = Pick<
+  SkincareRoutineRow,
+  | "id"
+  | "userProfileId"
+  | "name"
+  | "startDate"
+  | "endDate"
+  | "status"
+  | "createdAt"
+  | "updatedAt"
+>;
 
 export type NewRoutine = Omit<Routine, "id" | "createdAt" | "updatedAt">;
 
@@ -34,30 +36,34 @@ export function makeRoutineRepo() {
         })
         .from(skincareRoutines)
         .where(eq(skincareRoutines.id, routineId))
-        .limit(1)
-        .execute();
+        .limit(1);
 
       return routine ? (routine as Routine) : null;
     },
 
     async findByUserId(userId: string): Promise<Routine | null> {
-      const [routine] = await db
-        .select({
-          id: skincareRoutines.id,
-          userProfileId: skincareRoutines.userProfileId,
-          name: skincareRoutines.name,
-          startDate: skincareRoutines.startDate,
-          endDate: skincareRoutines.endDate,
-          status: skincareRoutines.status,
-          createdAt: skincareRoutines.createdAt,
-          updatedAt: skincareRoutines.updatedAt,
-        })
-        .from(skincareRoutines)
-        .where(eq(skincareRoutines.userProfileId, userId))
-        .limit(1)
-        .execute();
+      try {
+        const [routine] = await db
+          .select({
+            id: skincareRoutines.id,
+            userProfileId: skincareRoutines.userProfileId,
+            name: skincareRoutines.name,
+            startDate: skincareRoutines.startDate,
+            endDate: skincareRoutines.endDate,
+            status: skincareRoutines.status,
+            createdAt: skincareRoutines.createdAt,
+            updatedAt: skincareRoutines.updatedAt,
+          })
+          .from(skincareRoutines)
+          .where(eq(skincareRoutines.userProfileId, userId))
+          .limit(1);
 
-      return routine ? (routine as Routine) : null;
+        return routine ? (routine as Routine) : null;
+      } catch (error) {
+        console.error("❌ Error in findByUserId:", error);
+        console.error("Query params:", { userId });
+        throw error;
+      }
     },
 
     async create(routine: NewRoutine): Promise<Routine> {
@@ -71,7 +77,7 @@ export function makeRoutineRepo() {
 
     async update(
       routineId: string,
-      updates: Partial<Routine>
+      updates: Partial<Routine>,
     ): Promise<Routine | null> {
       const [updatedRoutine] = await db
         .update(skincareRoutines)

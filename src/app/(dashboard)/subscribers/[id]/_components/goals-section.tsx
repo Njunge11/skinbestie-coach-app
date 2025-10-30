@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Check, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -19,84 +19,109 @@ import {
 } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { GoalItem } from "./goal-item";
-import type { Goal, GoalFormData } from "../types";
+import type { Goal, GoalFormData, GoalsTemplate } from "../types";
 
 interface GoalsSectionProps {
   goals: Goal[];
+  template: GoalsTemplate | null;
   onAddGoal: (data: GoalFormData) => Promise<void>;
   onUpdateGoal: (id: string, data: GoalFormData) => Promise<void>;
   onToggleGoal: (id: string) => Promise<void>;
   onDeleteGoal: (id: string) => Promise<void>;
   onReorderGoals: (goals: Goal[]) => Promise<void>;
+  onPublishToggle?: () => Promise<void>;
+  showMainFocus?: boolean;
+  showCheckbox?: boolean;
 }
 
 export function GoalsSection({
   goals,
+  template,
   onAddGoal,
   onUpdateGoal,
   onToggleGoal,
   onDeleteGoal,
   onReorderGoals,
+  onPublishToggle,
+  showMainFocus = false,
+  showCheckbox = false,
 }: GoalsSectionProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newGoalData, setNewGoalData] = useState<GoalFormData>({
-    name: "",
     description: "",
-    timeframe: "",
+    isPrimaryGoal: false,
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      console.log("🎯 DRAG END - Calculating new order");
       const oldIndex = goals.findIndex((goal) => goal.id === active.id);
       const newIndex = goals.findIndex((goal) => goal.id === over.id);
       const reorderedGoals = arrayMove(goals, oldIndex, newIndex);
 
-      console.log("🎯 Calling parent handler (onReorderGoals)");
-      // Parent handler updates state optimistically (before server call)
       onReorderGoals(reorderedGoals);
-      console.log("🎯 Parent handler called (not awaited)");
     }
   };
 
   const handleStartAdding = () => {
-    setNewGoalData({ name: "", description: "", timeframe: "" });
+    setNewGoalData({ description: "", isPrimaryGoal: false });
     setIsAdding(true);
   };
 
   const handleSaveNew = () => {
-    if (
-      newGoalData.name.trim() &&
-      newGoalData.description.trim() &&
-      newGoalData.timeframe.trim()
-    ) {
+    if (newGoalData.description.trim()) {
       onAddGoal(newGoalData);
       setIsAdding(false);
-      setNewGoalData({ name: "", description: "", timeframe: "" });
+      setNewGoalData({ description: "", isPrimaryGoal: false });
     }
   };
 
   const handleCancelNew = () => {
     setIsAdding(false);
-    setNewGoalData({ name: "", description: "", timeframe: "" });
+    setNewGoalData({ description: "", isPrimaryGoal: false });
   };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Skin Goals</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CardTitle>Skin Goals</CardTitle>
+          {template && (
+            <Badge
+              variant={
+                template.status === "published" ? "default" : "secondary"
+              }
+            >
+              {template.status === "published" ? "Published" : "Unpublished"}
+            </Badge>
+          )}
+        </div>
+        {template && onPublishToggle && (
+          <Button
+            size="sm"
+            variant={template.status === "published" ? "outline" : "default"}
+            onClick={onPublishToggle}
+          >
+            {template.status === "published" ? "Unpublish" : "Publish"}
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {goals.length === 0 && !isAdding ? (
@@ -129,64 +154,89 @@ export function GoalsSection({
                     onToggle={onToggleGoal}
                     onEdit={onUpdateGoal}
                     onDelete={onDeleteGoal}
+                    showCheckbox={showCheckbox}
+                    showMainFocus={showMainFocus}
                   />
                 ))}
 
                 {isAdding ? (
-              <div className="rounded-lg border border-gray-200 p-4 space-y-3">
-                <Input
-                  placeholder="Goal name"
-                  value={newGoalData.name}
-                  onChange={(e) =>
-                    setNewGoalData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  className="font-medium"
-                  autoFocus
-                />
-                <Textarea
-                  placeholder="Description"
-                  value={newGoalData.description}
-                  onChange={(e) =>
-                    setNewGoalData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  rows={2}
-                  className="text-sm resize-none"
-                />
-                <Input
-                  placeholder="Timeframe (e.g., 12 weeks)"
-                  value={newGoalData.timeframe}
-                  onChange={(e) =>
-                    setNewGoalData((prev) => ({
-                      ...prev,
-                      timeframe: e.target.value,
-                    }))
-                  }
-                  className="text-sm"
-                />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSaveNew}>
-                    <Check className="w-4 h-4 mr-2" />
-                    Add Goal
+                  <div className="rounded-lg border border-gray-200 p-4">
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="new-goal"
+                          className="text-sm font-medium"
+                        >
+                          Goal Description
+                        </label>
+                        <Textarea
+                          id="new-goal"
+                          placeholder="Enter the clients goal"
+                          value={newGoalData.description}
+                          onChange={(e) =>
+                            setNewGoalData({
+                              ...newGoalData,
+                              description: e.target.value,
+                            })
+                          }
+                          rows={2}
+                          className="resize-none mt-2"
+                          autoFocus
+                        />
+                      </div>
+                      {showMainFocus && (
+                        <div className="flex items-center justify-between rounded-lg border border-gray-200 p-3 mt-4">
+                          <div className="space-y-0.5">
+                            <Label
+                              htmlFor="new-goal-primary"
+                              className="text-sm font-medium"
+                            >
+                              Make this the main focus
+                            </Label>
+                            <p className="text-xs text-gray-500">
+                              Mark this as the top priority goal to work on
+                            </p>
+                          </div>
+                          <Switch
+                            id="new-goal-primary"
+                            checked={newGoalData.isPrimaryGoal ?? false}
+                            onCheckedChange={(checked) =>
+                              setNewGoalData({
+                                ...newGoalData,
+                                isPrimaryGoal: checked,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={handleSaveNew}
+                          disabled={!newGoalData.description.trim()}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancelNew}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : goals.length > 0 ? (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleStartAdding}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Another Goal
                   </Button>
-                  <Button size="sm" variant="outline" onClick={handleCancelNew}>
-                    <X className="w-4 h-4 mr-2" />
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleStartAdding}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Another Goal
-              </Button>
-                )}
+                ) : null}
               </div>
             </SortableContext>
           </DndContext>

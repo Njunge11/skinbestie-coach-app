@@ -1,0 +1,1 @@
+ALTER TABLE "skincare_goals" ADD COLUMN "is_primary_goal" boolean DEFAULT false NOT NULL;

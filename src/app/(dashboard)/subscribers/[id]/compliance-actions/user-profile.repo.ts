@@ -4,12 +4,11 @@
 
 import { db } from "@/lib/db";
 import { userProfiles } from "@/lib/db/schema";
+import { type UserProfileRow } from "@/lib/db/types";
 import { eq } from "drizzle-orm";
 
-export type UserProfile = {
-  id: string;
-  timezone: string;
-};
+// Derive type from centralized schema (TYPE_SYSTEM_GUIDE.md)
+export type UserProfile = Pick<UserProfileRow, "id" | "timezone">;
 
 export function makeUserProfileRepo() {
   return {
