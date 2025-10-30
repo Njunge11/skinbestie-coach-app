@@ -5,7 +5,10 @@ import { makeRoutineRepo, type Routine, type NewRoutine } from "./routine.repo";
 import { makeRoutineProductsRepo } from "../compliance-actions/routine-products.repo";
 import { db, skincareRoutines, routineStepCompletions } from "@/lib/db";
 import { makeUserProfileRepo } from "../compliance-actions/user-profile.repo";
-import { calculateDeadlines, shouldGenerateForDate } from "@/lib/compliance-utils";
+import {
+  calculateDeadlines,
+  shouldGenerateForDate,
+} from "@/lib/compliance-utils";
 import { addMonths, addDays } from "date-fns";
 import { eq } from "drizzle-orm";
 
@@ -67,7 +70,7 @@ const deleteRoutineSchema = z.object({
  */
 export async function getRoutine(
   userId: string,
-  deps: RoutineDeps = defaultDeps
+  deps: RoutineDeps = defaultDeps,
 ): Promise<Result<Routine | null>> {
   const { repo } = deps;
 
@@ -93,7 +96,7 @@ export async function getRoutine(
 export async function createRoutine(
   userId: string,
   input: CreateRoutineInput,
-  deps: RoutineDeps = defaultDeps
+  deps: RoutineDeps = defaultDeps,
 ): Promise<Result<Routine>> {
   const { repo } = deps;
 
@@ -139,7 +142,7 @@ export async function createRoutine(
 export async function updateRoutine(
   routineId: string,
   updates: UpdateRoutineInput,
-  deps: RoutineDeps = defaultDeps
+  deps: RoutineDeps = defaultDeps,
 ): Promise<Result<Routine>> {
   const { repo, now } = deps;
 
@@ -172,7 +175,10 @@ export async function updateRoutine(
     }
 
     // Update routine
-    const updatedRoutine = await repo.update(validation.data.routineId, updateData);
+    const updatedRoutine = await repo.update(
+      validation.data.routineId,
+      updateData,
+    );
 
     if (!updatedRoutine) {
       return { success: false, error: "Routine not found" };
@@ -190,7 +196,7 @@ export async function updateRoutine(
  */
 export async function deleteRoutine(
   routineId: string,
-  deps: RoutineDeps = defaultDeps
+  deps: RoutineDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo } = deps;
 
@@ -219,14 +225,7 @@ export async function deleteRoutine(
 // Dependency injection for publishRoutine
 export type PublishRoutineDeps = {
   routineRepo: ReturnType<typeof makeRoutineRepo>;
-  productRepo: {
-    findByRoutineId: (routineId: string) => Promise<Array<{
-      id: string;
-      frequency: string;
-      days?: string[];
-      timeOfDay: "morning" | "evening";
-    }>>;
-  };
+  productRepo: ReturnType<typeof makeRoutineProductsRepo>;
   now: () => Date;
 };
 
@@ -255,7 +254,7 @@ const publishRoutineSchema = z.object({
  */
 export async function publishRoutine(
   routineId: string,
-  deps: PublishRoutineDeps = defaultPublishDeps
+  deps: PublishRoutineDeps = defaultPublishDeps,
 ): Promise<Result<Routine>> {
   const { routineRepo, productRepo, now } = deps;
 
@@ -280,9 +279,14 @@ export async function publishRoutine(
     }
 
     // Check if routine has products
-    const products = await productRepo.findByRoutineId(validation.data.routineId);
+    const products = await productRepo.findByRoutineId(
+      validation.data.routineId,
+    );
     if (products.length === 0) {
-      return { success: false, error: "Cannot publish routine without products" };
+      return {
+        success: false,
+        error: "Cannot publish routine without products",
+      };
     }
 
     // Fetch user for timezone
@@ -308,11 +312,16 @@ export async function publishRoutine(
 
     while (currentDate <= endDate) {
       for (const product of products) {
-        if (shouldGenerateForDate(product, currentDate)) {
+        if (
+          shouldGenerateForDate(
+            { frequency: product.frequency, days: product.days ?? undefined },
+            currentDate,
+          )
+        ) {
           const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
             currentDate,
             product.timeOfDay,
-            user.timezone
+            user.timezone,
           );
 
           completionsToCreate.push({
@@ -357,7 +366,8 @@ export async function publishRoutine(
     return { success: true, data: updatedRoutine };
   } catch (error) {
     console.error("Error publishing routine:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to publish routine";
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to publish routine";
     return { success: false, error: errorMessage };
   }
 }

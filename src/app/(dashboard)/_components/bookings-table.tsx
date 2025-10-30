@@ -15,7 +15,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { TableFilters, type FilterConfig } from "@/components/ui/table-filters";
 import { toast } from "sonner";
 import type { Booking, BookingFilters } from "../types";
-import { fetchBookings, fetchHosts } from "../actions";
+import { fetchBookings } from "../actions";
 import { BookingDetailsDrawer } from "./booking-details-drawer";
 import { InviteBookingModal } from "./invite-booking-modal";
 import { CancelBookingModal } from "./cancel-booking-modal";
@@ -31,22 +31,12 @@ export function BookingsTable() {
   const [filters, setFilters] = useState<BookingFilters>({
     dateFilter: "upcoming",
     statusFilter: "all",
-    hostFilter: "all",
     searchQuery: "",
   });
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [cancelEventUuid, setCancelEventUuid] = useState<string | null>(null);
-
-  // Fetch hosts for filter dropdown
-  const { data: hostsData } = useQuery({
-    queryKey: ["hosts"],
-    queryFn: async () => {
-      const result = await fetchHosts();
-      return result.success ? result.data : [];
-    },
-  });
 
   // Fetch bookings with filters (only date and status filters trigger API calls)
   const {
@@ -65,7 +55,7 @@ export function BookingsTable() {
     },
   });
 
-  // Apply client-side filters (search and host)
+  // Apply client-side filters (search)
   const filteredData = allBookingsData.filter((booking: Booking) => {
     // Filter by search query (client name or email)
     if (filters.searchQuery) {
@@ -76,18 +66,13 @@ export function BookingsTable() {
       if (!matchesSearch) return false;
     }
 
-    // Filter by host
-    if (filters.hostFilter && filters.hostFilter !== "all") {
-      if (booking.host !== filters.hostFilter) return false;
-    }
-
     return true;
   });
 
   // Get paginated data for current page
   const paginatedData = filteredData.slice(
     pagination.pageIndex * pagination.pageSize,
-    (pagination.pageIndex + 1) * pagination.pageSize
+    (pagination.pageIndex + 1) * pagination.pageSize,
   );
 
   const formatDateTime = (date: Date) => {
@@ -128,13 +113,6 @@ export function BookingsTable() {
         <span className="text-sm font-medium text-gray-900">
           {row.getValue("title")}
         </span>
-      ),
-    },
-    {
-      accessorKey: "host",
-      header: "Host",
-      cell: ({ row }) => (
-        <span className="text-sm text-gray-700">{row.getValue("host")}</span>
       ),
     },
     {
@@ -219,7 +197,6 @@ export function BookingsTable() {
       label: "Search",
       type: "text",
       placeholder: "Search by client name or email...",
-      columnSpan: 2,
     },
     {
       id: "dateFilter",
@@ -242,15 +219,6 @@ export function BookingsTable() {
         { value: "canceled", label: "Canceled" },
       ],
     },
-    {
-      id: "hostFilter",
-      label: "Host",
-      type: "select",
-      options: [
-        { value: "all", label: "All hosts" },
-        ...(hostsData?.map((host) => ({ value: host, label: host })) || []),
-      ],
-    },
   ];
 
   const handleFilterChange = (id: string, value: string) => {
@@ -269,7 +237,10 @@ export function BookingsTable() {
             onClick={() => refetch()}
             disabled={isRefetching}
           >
-            <RefreshCw size={18} className={isRefetching ? "animate-spin" : ""} />
+            <RefreshCw
+              size={18}
+              className={isRefetching ? "animate-spin" : ""}
+            />
             Refresh
           </Button>
           <Button onClick={() => setShowInviteModal(true)}>

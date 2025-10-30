@@ -1,32 +1,35 @@
 // Fake repository for unit testing (follows TESTING.md)
 
-export type RoutineTemplate = {
-  id: string;
-  name: string;
-  description: string | null;
-  createdBy: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import {
+  type RoutineTemplateRow,
+  type RoutineTemplateProductRow,
+} from "@/lib/db/types";
 
-export type NewRoutineTemplate = Omit<RoutineTemplate, 'id'>;
+// Derive types from centralized schema (TYPE_SYSTEM_GUIDE.md)
+export type RoutineTemplate = Pick<
+  RoutineTemplateRow,
+  "id" | "name" | "description" | "createdBy" | "createdAt" | "updatedAt"
+>;
 
-export type RoutineTemplateProduct = {
-  id: string;
-  templateId: string;
-  routineStep: string;
-  productName: string;
-  productUrl: string | null;
-  instructions: string;
-  frequency: "daily" | "2x per week" | "3x per week" | "specific_days";
-  days: string[] | null;
-  timeOfDay: 'morning' | 'evening';
-  order: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type NewRoutineTemplate = Omit<RoutineTemplate, "id">;
 
-export type NewRoutineTemplateProduct = Omit<RoutineTemplateProduct, 'id'>;
+export type RoutineTemplateProduct = Pick<
+  RoutineTemplateProductRow,
+  | "id"
+  | "templateId"
+  | "routineStep"
+  | "productName"
+  | "productUrl"
+  | "instructions"
+  | "frequency"
+  | "days"
+  | "timeOfDay"
+  | "order"
+  | "createdAt"
+  | "updatedAt"
+>;
+
+export type NewRoutineTemplateProduct = Omit<RoutineTemplateProduct, "id">;
 
 export function makeTemplateRepoFake() {
   const templateStore = new Map<string, RoutineTemplate>();
@@ -37,8 +40,8 @@ export function makeTemplateRepoFake() {
   return {
     // Template CRUD
     async findAll(): Promise<RoutineTemplate[]> {
-      return Array.from(templateStore.values()).sort((a, b) =>
-        b.createdAt.getTime() - a.createdAt.getTime()
+      return Array.from(templateStore.values()).sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
       );
     },
 
@@ -53,7 +56,10 @@ export function makeTemplateRepoFake() {
       return newTemplate;
     },
 
-    async update(templateId: string, updates: Partial<RoutineTemplate>): Promise<RoutineTemplate | null> {
+    async update(
+      templateId: string,
+      updates: Partial<RoutineTemplate>,
+    ): Promise<RoutineTemplate | null> {
       const template = templateStore.get(templateId);
       if (!template) return null;
 
@@ -66,37 +72,48 @@ export function makeTemplateRepoFake() {
       if (!template) return null;
 
       // Cascade delete products
-      const products = Array.from(productStore.values()).filter(p => p.templateId === templateId);
-      products.forEach(p => productStore.delete(p.id));
+      const products = Array.from(productStore.values()).filter(
+        (p) => p.templateId === templateId,
+      );
+      products.forEach((p) => productStore.delete(p.id));
 
       templateStore.delete(templateId);
       return template;
     },
 
     // Template Product CRUD
-    async findProductsByTemplateId(templateId: string): Promise<RoutineTemplateProduct[]> {
+    async findProductsByTemplateId(
+      templateId: string,
+    ): Promise<RoutineTemplateProduct[]> {
       return Array.from(productStore.values())
-        .filter(p => p.templateId === templateId)
+        .filter((p) => p.templateId === templateId)
         .sort((a, b) => {
           if (a.timeOfDay !== b.timeOfDay) {
-            return a.timeOfDay === 'morning' ? -1 : 1;
+            return a.timeOfDay === "morning" ? -1 : 1;
           }
           return a.order - b.order;
         });
     },
 
-    async findProductById(productId: string): Promise<RoutineTemplateProduct | null> {
+    async findProductById(
+      productId: string,
+    ): Promise<RoutineTemplateProduct | null> {
       return productStore.get(productId) || null;
     },
 
-    async createProduct(product: NewRoutineTemplateProduct): Promise<RoutineTemplateProduct> {
+    async createProduct(
+      product: NewRoutineTemplateProduct,
+    ): Promise<RoutineTemplateProduct> {
       const id = `product_${++productIdCounter}`;
       const newProduct: RoutineTemplateProduct = { ...product, id };
       productStore.set(id, newProduct);
       return newProduct;
     },
 
-    async updateProduct(productId: string, updates: Partial<RoutineTemplateProduct>): Promise<RoutineTemplateProduct | null> {
+    async updateProduct(
+      productId: string,
+      updates: Partial<RoutineTemplateProduct>,
+    ): Promise<RoutineTemplateProduct | null> {
       const product = productStore.get(productId);
       if (!product) return null;
 
@@ -104,7 +121,9 @@ export function makeTemplateRepoFake() {
       return product;
     },
 
-    async deleteProductById(productId: string): Promise<RoutineTemplateProduct | null> {
+    async deleteProductById(
+      productId: string,
+    ): Promise<RoutineTemplateProduct | null> {
       const product = productStore.get(productId);
       if (!product) return null;
 
@@ -113,7 +132,7 @@ export function makeTemplateRepoFake() {
     },
 
     async updateManyProducts(
-      updates: Array<{ id: string; data: Partial<RoutineTemplateProduct> }>
+      updates: Array<{ id: string; data: Partial<RoutineTemplateProduct> }>,
     ): Promise<void> {
       for (const { id, data } of updates) {
         const product = productStore.get(id);

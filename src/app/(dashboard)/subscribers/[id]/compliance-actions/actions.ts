@@ -5,7 +5,11 @@ import { makeRoutineStepCompletionsRepo } from "./routine-step-completions.repo"
 import { makeRoutineRepo } from "./routine.repo";
 import { makeRoutineProductsRepo } from "./routine-products.repo";
 import { makeUserProfileRepo } from "./user-profile.repo";
-import { calculateDeadlines, shouldGenerateForDate, determineStatus } from "@/lib/compliance-utils";
+import {
+  calculateDeadlines,
+  shouldGenerateForDate,
+  determineStatus,
+} from "@/lib/compliance-utils";
 import { addMonths, addDays, format } from "date-fns";
 import { makeRoutineProductsRepo as makeRoutineProductsRepoForStats } from "../routine-actions/routine.repo";
 
@@ -38,7 +42,7 @@ const defaultDeps: ComplianceDeps = {
 export async function markOverdueAsMissed(
   userId: string,
   now: Date = new Date(),
-  deps: ComplianceDeps = defaultDeps
+  deps: ComplianceDeps = defaultDeps,
 ): Promise<Result<{ count: number }>> {
   const { repo } = deps;
 
@@ -76,7 +80,7 @@ export async function markStepComplete(
   stepCompletionId: string,
   userId: string,
   now: Date = new Date(),
-  deps: ComplianceDeps = defaultDeps
+  deps: ComplianceDeps = defaultDeps,
 ): Promise<
   Result<{ status: "on-time" | "late" | "missed"; completedAt: Date }>
 > {
@@ -111,7 +115,11 @@ export async function markStepComplete(
     }
 
     // Calculate status based on completion time
-    const status = determineStatus(now, step.onTimeDeadline, step.gracePeriodEnd);
+    const status = determineStatus(
+      now,
+      step.onTimeDeadline,
+      step.gracePeriodEnd,
+    );
 
     // Update the step
     const updated = await repo.update(stepCompletionId, {
@@ -154,21 +162,7 @@ export type GenerateStepsDeps = {
       endDate: Date | null;
     } | null>;
   };
-  productRepo: {
-    findByRoutineId: (routineId: string) => Promise<
-      {
-        id: string;
-        routineId: string;
-        userProfileId: string;
-        routineStep: string;
-        productName: string;
-        instructions: string;
-        frequency: string;
-        days?: string[];
-        timeOfDay: "morning" | "evening";
-      }[]
-    >;
-  };
+  productRepo: ReturnType<typeof makeRoutineProductsRepo>;
   userRepo: {
     findById: (id: string) => Promise<{
       id: string;
@@ -201,7 +195,7 @@ export async function deleteScheduledStepsForProduct(
   productId: string,
   routineId: string,
   userId: string,
-  deps: GenerateStepsDeps = defaultGenerateStepsDeps
+  deps: GenerateStepsDeps = defaultGenerateStepsDeps,
 ): Promise<Result<{ count: number }>> {
   const { completionsRepo } = deps;
 
@@ -213,7 +207,7 @@ export async function deleteScheduledStepsForProduct(
     const count = await completionsRepo.deleteByRoutineProductId(
       productId,
       today,
-      ["pending", "missed"]
+      ["pending", "missed"],
     );
 
     return {
@@ -244,7 +238,7 @@ export async function generateScheduledStepsForProduct(
   productId: string,
   routineId: string,
   userId: string,
-  deps: GenerateStepsDeps = defaultGenerateStepsDeps
+  deps: GenerateStepsDeps = defaultGenerateStepsDeps,
 ): Promise<Result<{ count: number }>> {
   const { routineRepo, productRepo, userRepo, completionsRepo } = deps;
 
@@ -290,12 +284,17 @@ export async function generateScheduledStepsForProduct(
     // Loop through each day from today to end
     while (currentDate <= endDate) {
       // Check if product should be scheduled on this day
-      if (shouldGenerateForDate(product, currentDate)) {
+      if (
+        shouldGenerateForDate(
+          { frequency: product.frequency, days: product.days ?? undefined },
+          currentDate,
+        )
+      ) {
         // Calculate deadlines for this step
         const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
           currentDate,
           product.timeOfDay,
-          user.timezone
+          user.timezone,
         );
 
         // Create completion record
@@ -345,7 +344,7 @@ export async function generateScheduledStepsForProduct(
  */
 export async function generateScheduledSteps(
   routineId: string,
-  deps: GenerateStepsDeps = defaultGenerateStepsDeps
+  deps: GenerateStepsDeps = defaultGenerateStepsDeps,
 ): Promise<Result<{ count: number }>> {
   const { routineRepo, productRepo, userRepo, completionsRepo } = deps;
 
@@ -390,12 +389,17 @@ export async function generateScheduledSteps(
     while (currentDate <= endDate) {
       // For each product, check if it should be scheduled on this day
       for (const product of products) {
-        if (shouldGenerateForDate(product, currentDate)) {
+        if (
+          shouldGenerateForDate(
+            { frequency: product.frequency, days: product.days ?? undefined },
+            currentDate,
+          )
+        ) {
           // Calculate deadlines for this step
           const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
             currentDate,
             product.timeOfDay,
-            user.timezone
+            user.timezone,
           );
 
           // Create completion record
@@ -501,7 +505,7 @@ export async function getComplianceStats(
   userId: string,
   startDate: Date,
   endDate: Date,
-  deps: ComplianceStatsDeps = defaultComplianceStatsDeps
+  deps: ComplianceStatsDeps = defaultComplianceStatsDeps,
 ): Promise<Result<ComplianceStats>> {
   const { completionsRepo, productsRepo } = deps;
 
@@ -516,14 +520,18 @@ export async function getComplianceStats(
     const completions = await completionsRepo.findByUserAndDateRange(
       validation.data,
       startDate,
-      endDate
+      endDate,
     );
 
     // Filter out pending steps - only count completed or missed
-    const countableCompletions = completions.filter((c) => c.status !== "pending");
+    const countableCompletions = completions.filter(
+      (c) => c.status !== "pending",
+    );
 
     // Fetch product details for all completions in a single batch query
-    const productIds = [...new Set(countableCompletions.map((c) => c.routineProductId))];
+    const productIds = [
+      ...new Set(countableCompletions.map((c) => c.routineProductId)),
+    ];
     const products = await productsRepo.findByIds(productIds);
     const productsMap = new Map(products.map((p) => [p.id, p]));
 
@@ -536,34 +544,45 @@ export async function getComplianceStats(
     };
 
     // Calculate AM stats
-    const amCompletions = countableCompletions.filter((c) => c.scheduledTimeOfDay === "morning");
+    const amCompletions = countableCompletions.filter(
+      (c) => c.scheduledTimeOfDay === "morning",
+    );
     const am = {
       prescribed: amCompletions.length,
-      completed: amCompletions.filter((c) => c.status === "on-time" || c.status === "late").length,
+      completed: amCompletions.filter(
+        (c) => c.status === "on-time" || c.status === "late",
+      ).length,
       onTime: amCompletions.filter((c) => c.status === "on-time").length,
       late: amCompletions.filter((c) => c.status === "late").length,
       missed: amCompletions.filter((c) => c.status === "missed").length,
     };
 
     // Calculate PM stats
-    const pmCompletions = countableCompletions.filter((c) => c.scheduledTimeOfDay === "evening");
+    const pmCompletions = countableCompletions.filter(
+      (c) => c.scheduledTimeOfDay === "evening",
+    );
     const pm = {
       prescribed: pmCompletions.length,
-      completed: pmCompletions.filter((c) => c.status === "on-time" || c.status === "late").length,
+      completed: pmCompletions.filter(
+        (c) => c.status === "on-time" || c.status === "late",
+      ).length,
       onTime: pmCompletions.filter((c) => c.status === "on-time").length,
       late: pmCompletions.filter((c) => c.status === "late").length,
       missed: pmCompletions.filter((c) => c.status === "missed").length,
     };
 
     // Calculate per-product stats
-    const productStats = new Map<string, {
-      routineProductId: string;
-      routineStep: string;
-      productName: string;
-      timeOfDay: "morning" | "evening";
-      frequency: string;
-      completions: typeof countableCompletions;
-    }>();
+    const productStats = new Map<
+      string,
+      {
+        routineProductId: string;
+        routineStep: string;
+        productName: string;
+        timeOfDay: "morning" | "evening";
+        frequency: string;
+        completions: typeof countableCompletions;
+      }
+    >();
 
     for (const completion of countableCompletions) {
       const product = productsMap.get(completion.routineProductId);
@@ -580,13 +599,17 @@ export async function getComplianceStats(
         });
       }
 
-      productStats.get(completion.routineProductId)!.completions.push(completion);
+      productStats
+        .get(completion.routineProductId)!
+        .completions.push(completion);
     }
 
     // Build steps array
     const steps = Array.from(productStats.values()).map((productStat) => {
       const completions = productStat.completions;
-      const missedCompletions = completions.filter((c) => c.status === "missed");
+      const missedCompletions = completions.filter(
+        (c) => c.status === "missed",
+      );
 
       return {
         routineProductId: productStat.routineProductId,
@@ -595,12 +618,14 @@ export async function getComplianceStats(
         timeOfDay: productStat.timeOfDay,
         frequency: productStat.frequency,
         prescribed: completions.length,
-        completed: completions.filter((c) => c.status === "on-time" || c.status === "late").length,
+        completed: completions.filter(
+          (c) => c.status === "on-time" || c.status === "late",
+        ).length,
         onTime: completions.filter((c) => c.status === "on-time").length,
         late: completions.filter((c) => c.status === "late").length,
         missed: missedCompletions.length,
         missedDates: missedCompletions.map((c) =>
-          format(c.scheduledDate, "EEEE, MMM d, yyyy")
+          format(c.scheduledDate, "EEEE, MMM d, yyyy"),
         ),
       };
     });

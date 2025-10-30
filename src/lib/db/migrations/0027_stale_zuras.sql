@@ -1,0 +1,1 @@
+ALTER TABLE "skin_goals_template" ADD COLUMN "goals_acknowledged_by_client" boolean DEFAULT false NOT NULL;

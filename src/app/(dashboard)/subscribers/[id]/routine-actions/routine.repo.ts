@@ -1,27 +1,33 @@
 // Real repository using Drizzle ORM (production)
 
-import { eq, asc, and, inArray, sql } from "drizzle-orm";
+import { eq, asc, and, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { skincareRoutineProducts } from "@/lib/db/schema";
+import { type SkincareRoutineProductRow } from "@/lib/db/types";
 
-// Type definitions
-export type RoutineProduct = {
-  id: string;
-  routineId: string;
-  userProfileId: string;
-  routineStep: string;
-  productName: string;
-  productUrl: string | null;
-  instructions: string;
-  frequency: "daily" | "2x per week" | "3x per week" | "specific_days";
-  days: string[] | null;
-  timeOfDay: "morning" | "evening";
-  order: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
+// Type definitions derived from schema
+export type RoutineProduct = Pick<
+  SkincareRoutineProductRow,
+  | "id"
+  | "routineId"
+  | "userProfileId"
+  | "routineStep"
+  | "productName"
+  | "productUrl"
+  | "instructions"
+  | "productPurchaseInstructions"
+  | "frequency"
+  | "days"
+  | "timeOfDay"
+  | "order"
+  | "createdAt"
+  | "updatedAt"
+>;
 
-export type NewRoutineProduct = Omit<RoutineProduct, "id" | "createdAt" | "updatedAt">;
+export type NewRoutineProduct = Omit<
+  RoutineProduct,
+  "id" | "createdAt" | "updatedAt"
+>;
 
 export function makeRoutineProductsRepo() {
   return {
@@ -44,15 +50,17 @@ export function makeRoutineProductsRepo() {
         })
         .from(skincareRoutineProducts)
         .where(eq(skincareRoutineProducts.userProfileId, userId))
-        .orderBy(asc(skincareRoutineProducts.timeOfDay), asc(skincareRoutineProducts.order))
-        .execute();
+        .orderBy(
+          asc(skincareRoutineProducts.timeOfDay),
+          asc(skincareRoutineProducts.order),
+        );
 
       return products as RoutineProduct[];
     },
 
     async findByUserIdAndTimeOfDay(
       userId: string,
-      timeOfDay: "morning" | "evening"
+      timeOfDay: "morning" | "evening",
     ): Promise<RoutineProduct[]> {
       const products = await db
         .select({
@@ -74,11 +82,10 @@ export function makeRoutineProductsRepo() {
         .where(
           and(
             eq(skincareRoutineProducts.userProfileId, userId),
-            eq(skincareRoutineProducts.timeOfDay, timeOfDay)
-          )
+            eq(skincareRoutineProducts.timeOfDay, timeOfDay),
+          ),
         )
-        .orderBy(asc(skincareRoutineProducts.order))
-        .execute();
+        .orderBy(asc(skincareRoutineProducts.order));
 
       return products as RoutineProduct[];
     },
@@ -102,8 +109,7 @@ export function makeRoutineProductsRepo() {
         })
         .from(skincareRoutineProducts)
         .where(eq(skincareRoutineProducts.id, productId))
-        .limit(1)
-        .execute();
+        .limit(1);
 
       return product ? (product as RoutineProduct) : null;
     },
@@ -128,8 +134,7 @@ export function makeRoutineProductsRepo() {
           updatedAt: skincareRoutineProducts.updatedAt,
         })
         .from(skincareRoutineProducts)
-        .where(inArray(skincareRoutineProducts.id, productIds))
-        .execute();
+        .where(inArray(skincareRoutineProducts.id, productIds));
 
       return products as RoutineProduct[];
     },
@@ -145,7 +150,7 @@ export function makeRoutineProductsRepo() {
 
     async update(
       productId: string,
-      updates: Partial<RoutineProduct>
+      updates: Partial<RoutineProduct>,
     ): Promise<RoutineProduct | null> {
       const [updatedProduct] = await db
         .update(skincareRoutineProducts)
@@ -166,31 +171,21 @@ export function makeRoutineProductsRepo() {
     },
 
     async updateMany(
-      updates: Array<{ id: string; data: Partial<RoutineProduct> }>
+      updates: Array<{ id: string; data: Partial<RoutineProduct> }>,
     ): Promise<void> {
       if (updates.length === 0) return;
 
-      // Use transaction - constraint is DEFERRABLE so we can update in one pass
+      // Use simple transactional approach that works
       await db.transaction(async (tx) => {
-        // Build CASE statements for batch update
-        const ids = updates.map((u) => `'${u.id}'`).join(", ");
-
-        const orderCases = updates
-          .map((u) => `WHEN '${u.id}' THEN ${u.data.order}`)
-          .join(" ");
-
-        const updatedAtCases = updates
-          .map((u) => `WHEN '${u.id}' THEN '${u.data.updatedAt?.toISOString()}'`)
-          .join(" ");
-
-        // Single batch UPDATE query - constraint check deferred to commit
-        await tx.execute(sql.raw(`
-          UPDATE skincare_routine_products
-          SET
-            "order" = (CASE id ${orderCases} END),
-            updated_at = (CASE id ${updatedAtCases} END)::timestamp
-          WHERE id IN (${ids})
-        `));
+        for (const update of updates) {
+          await tx
+            .update(skincareRoutineProducts)
+            .set({
+              order: update.data.order,
+              updatedAt: update.data.updatedAt,
+            })
+            .where(eq(skincareRoutineProducts.id, update.id));
+        }
       });
     },
   };

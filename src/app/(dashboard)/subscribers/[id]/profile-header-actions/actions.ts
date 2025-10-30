@@ -32,6 +32,7 @@ export type UserProfileData = {
   concerns: string[];
   occupation: string;
   bio: string;
+  createdAt: Date;
 };
 
 // Zod schemas for validation
@@ -64,7 +65,7 @@ function calculateAge(dateOfBirth: Date, now: Date): number {
  */
 export async function getUserProfile(
   userId: string,
-  deps: SubscriberDeps = defaultDeps
+  deps: SubscriberDeps = defaultDeps,
 ): Promise<Result<UserProfileData>> {
   const { repo, now } = deps;
 
@@ -93,6 +94,7 @@ export async function getUserProfile(
       concerns: user.concerns || [],
       occupation: user.occupation || "",
       bio: user.bio || "",
+      createdAt: user.createdAt,
     };
 
     return { success: true, data };
@@ -108,7 +110,7 @@ export async function getUserProfile(
 export async function updateUserProfile(
   userId: string,
   updates: { occupation?: string; bio?: string },
-  deps: SubscriberDeps = defaultDeps
+  deps: SubscriberDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo, now } = deps;
 

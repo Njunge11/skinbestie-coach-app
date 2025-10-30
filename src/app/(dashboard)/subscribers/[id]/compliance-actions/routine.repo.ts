@@ -4,15 +4,14 @@
 
 import { db } from "@/lib/db";
 import { skincareRoutines } from "@/lib/db/schema";
+import { type SkincareRoutineRow } from "@/lib/db/types";
 import { eq } from "drizzle-orm";
 
-export type Routine = {
-  id: string;
-  userProfileId: string;
-  name: string;
-  startDate: Date;
-  endDate: Date | null;
-};
+// Derive type from centralized schema (TYPE_SYSTEM_GUIDE.md)
+export type Routine = Pick<
+  SkincareRoutineRow,
+  "id" | "userProfileId" | "name" | "startDate" | "endDate"
+>;
 
 export function makeRoutineRepo() {
   return {

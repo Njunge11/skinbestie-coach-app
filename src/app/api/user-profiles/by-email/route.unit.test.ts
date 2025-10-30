@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import { GET } from "./route";
+import { makeUserProfile } from "@/test/factories";
 
 // Mock the server actions module
 vi.mock("@/app/(dashboard)/subscribers/actions", () => ({
@@ -30,7 +31,7 @@ describe("GET /api/user-profiles/by-email", () => {
       // Given: request without API key
       const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
-        { status: 401 }
+        { status: 401 },
       );
       vi.mocked(validateApiKey).mockReturnValue(mockAuthError);
 
@@ -38,7 +39,7 @@ describe("GET /api/user-profiles/by-email", () => {
         `${baseUrl}/api/user-profiles/by-email?email=john@example.com`,
         {
           method: "GET",
-        }
+        },
       );
 
       // When: calling GET handler
@@ -57,28 +58,22 @@ describe("GET /api/user-profiles/by-email", () => {
       // Given: valid request with API key and email
       vi.mocked(validateApiKey).mockReturnValue(null);
 
-      const userData = {
+      const userData = makeUserProfile({
         id: userId,
+        userId: "auth-user-123",
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
-        phoneNumber: "+1234567890",
-        dateOfBirth: new Date("1990-01-01"),
-        skinType: ["oily"] as string[] | null,
-        concerns: ["acne"] as string[] | null,
-        hasAllergies: false as boolean | null,
-        allergyDetails: null,
-        occupation: null,
-        bio: null,
-        timezone: "UTC",
-        isSubscribed: true as boolean | null,
-        hasCompletedBooking: true as boolean | null,
+        skinType: ["oily"],
+        concerns: ["acne"],
+        hasAllergies: false,
+        isSubscribed: true,
+        hasCompletedBooking: true,
+        hasCompletedSkinTest: true,
         completedSteps: ["PERSONAL", "SKIN_TYPE", "SKIN_CONCERNS"],
-        isCompleted: false,
-        completedAt: null,
         createdAt: new Date("2025-01-15T10:00:00Z"),
         updatedAt: new Date("2025-01-15T10:00:00Z"),
-      };
+      });
 
       vi.mocked(getUserProfileByEmail).mockResolvedValue({
         success: true,
@@ -92,7 +87,7 @@ describe("GET /api/user-profiles/by-email", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -111,28 +106,16 @@ describe("GET /api/user-profiles/by-email", () => {
       // Given: valid request with URL-encoded email
       vi.mocked(validateApiKey).mockReturnValue(null);
 
-      const userData = {
+      const userData = makeUserProfile({
         id: userId,
+        userId: "auth-user-456",
         firstName: "John",
         lastName: "Doe",
         email: "john+test@example.com",
-        phoneNumber: "+1234567890",
-        dateOfBirth: new Date("1990-01-01"),
-        skinType: null as string[] | null,
-        concerns: null as string[] | null,
-        hasAllergies: null as boolean | null,
-        allergyDetails: null,
-        occupation: null,
-        bio: null,
-        timezone: "UTC",
-        isSubscribed: null as boolean | null,
-        hasCompletedBooking: null as boolean | null,
         completedSteps: ["PERSONAL"],
-        isCompleted: false,
-        completedAt: null,
         createdAt: new Date("2025-01-15T10:00:00Z"),
         updatedAt: new Date("2025-01-15T10:00:00Z"),
-      };
+      });
 
       vi.mocked(getUserProfileByEmail).mockResolvedValue({
         success: true,
@@ -141,14 +124,14 @@ describe("GET /api/user-profiles/by-email", () => {
 
       const request = new NextRequest(
         `${baseUrl}/api/user-profiles/by-email?email=${encodeURIComponent(
-          "john+test@example.com"
+          "john+test@example.com",
         )}`,
         {
           method: "GET",
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -159,7 +142,7 @@ describe("GET /api/user-profiles/by-email", () => {
       const data = await response.json();
       expect(data.email).toBe("john+test@example.com");
       expect(getUserProfileByEmail).toHaveBeenCalledWith(
-        "john+test@example.com"
+        "john+test@example.com",
       );
     });
   });
@@ -169,15 +152,12 @@ describe("GET /api/user-profiles/by-email", () => {
       // Given: request without email parameter
       vi.mocked(validateApiKey).mockReturnValue(null);
 
-      const request = new NextRequest(
-        `${baseUrl}/api/user-profiles/by-email`,
-        {
-          method: "GET",
-          headers: {
-            "x-api-key": validApiKey,
-          },
-        }
-      );
+      const request = new NextRequest(`${baseUrl}/api/user-profiles/by-email`, {
+        method: "GET",
+        headers: {
+          "x-api-key": validApiKey,
+        },
+      });
 
       // When: calling GET handler
       const response = await GET(request);
@@ -204,7 +184,7 @@ describe("GET /api/user-profiles/by-email", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -220,7 +200,7 @@ describe("GET /api/user-profiles/by-email", () => {
       // Given: request throws unexpected error
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(getUserProfileByEmail).mockRejectedValue(
-        new Error("Database connection failed")
+        new Error("Database connection failed"),
       );
 
       const request = new NextRequest(
@@ -230,7 +210,7 @@ describe("GET /api/user-profiles/by-email", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler

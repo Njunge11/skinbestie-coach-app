@@ -2,7 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RoutineSection } from "./routine-section";
-import type { Routine, RoutineProduct } from "../types";
+import type { RoutineProduct } from "../types";
+import { makeRoutine, makeRoutineProduct } from "@/test/factories";
 
 describe("RoutineSection - Complete User Workflows", () => {
   // Mock server actions at the network boundary
@@ -17,9 +18,21 @@ describe("RoutineSection - Complete User Workflows", () => {
   const mockOnReorderProducts = vi.fn();
 
   const mockTemplates = [
-    { id: "template-1", name: "Morning Glow Routine", description: "Energizing morning skincare" },
-    { id: "template-2", name: "Night Recovery Routine", description: "Deep repair and hydration" },
-    { id: "template-3", name: "Acne-Prone Skin Care", description: "Clear and balanced skin" },
+    {
+      id: "template-1",
+      name: "Morning Glow Routine",
+      description: "Energizing morning skincare",
+    },
+    {
+      id: "template-2",
+      name: "Night Recovery Routine",
+      description: "Deep repair and hydration",
+    },
+    {
+      id: "template-3",
+      name: "Acne-Prone Skin Care",
+      description: "Clear and balanced skin",
+    },
   ];
 
   beforeEach(() => {
@@ -29,13 +42,13 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user edits routine name and dates successfully", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "Old Routine Name",
       startDate: new Date("2025-01-01"),
       endDate: new Date("2025-03-01"),
       status: "draft",
-    };
+    });
 
     render(
       <RoutineSection
@@ -51,7 +64,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User sees existing routine
@@ -65,7 +78,10 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // User updates the name
     await user.clear(screen.getByLabelText(/routine name/i));
-    await user.type(screen.getByLabelText(/routine name/i), "Updated Routine Name");
+    await user.type(
+      screen.getByLabelText(/routine name/i),
+      "Updated Routine Name",
+    );
 
     // User updates end date
     await user.clear(screen.getByLabelText(/end date/i));
@@ -85,13 +101,13 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user deletes routine with confirmation and sees empty state", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "Routine to Delete",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     const { rerender } = render(
       <RoutineSection
@@ -107,7 +123,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User sees routine
@@ -118,7 +134,9 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // User sees confirmation dialog
     expect(screen.getByText(/delete routine\?/i)).toBeInTheDocument();
-    expect(screen.getByText(/this will permanently delete/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/this will permanently delete/i),
+    ).toBeInTheDocument();
 
     // User confirms deletion
     await user.click(screen.getByRole("button", { name: /^delete$/i }));
@@ -141,7 +159,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User sees empty state again
@@ -151,13 +169,13 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user adds evening product with all required fields", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     render(
       <RoutineSection
@@ -173,7 +191,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User clicks "Add Step" in evening section (second button)
@@ -186,9 +204,18 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.click(screen.getByText("Moisturizer / Cream"));
 
     // User fills in product details
-    await user.type(screen.getByPlaceholderText(/product name/i), "Night Moisturizer");
-    await user.type(screen.getByPlaceholderText(/product url/i), "https://example.com/moisturizer");
-    await user.type(screen.getByPlaceholderText(/instructions/i), "Apply generously before bed");
+    await user.type(
+      screen.getByPlaceholderText(/product name/i),
+      "Night Moisturizer",
+    );
+    await user.type(
+      screen.getByPlaceholderText(/product url/i),
+      "https://example.com/moisturizer",
+    );
+    await user.type(
+      screen.getByPlaceholderText(/apply to damp skin/i),
+      "Apply generously before bed",
+    );
 
     // User clicks Add
     await user.click(screen.getByRole("button", { name: /^add$/i }));
@@ -199,6 +226,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "Night Moisturizer",
       productUrl: "https://example.com/moisturizer",
       instructions: "Apply generously before bed",
+      productPurchaseInstructions: "",
       frequency: "daily",
       days: undefined,
     });
@@ -207,16 +235,16 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user edits existing product instructions and saves", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     const existingProducts: RoutineProduct[] = [
-      {
+      makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "Cleanser",
@@ -227,9 +255,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      }),
     ];
 
     render(
@@ -246,7 +272,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User sees existing product
@@ -259,7 +285,8 @@ describe("RoutineSection - Complete User Workflows", () => {
     expect(screen.getByDisplayValue("Old instructions")).toBeInTheDocument();
 
     // User updates instructions
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput =
+      screen.getByPlaceholderText(/apply to damp skin/i);
     await user.clear(instructionsInput);
     await user.type(instructionsInput, "Updated instructions");
 
@@ -272,6 +299,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "CeraVe Cleanser",
       productUrl: "",
       instructions: "Updated instructions",
+      productPurchaseInstructions: "",
       frequency: "daily",
       days: undefined,
     });
@@ -280,16 +308,16 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user deletes a product", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     const existingProducts: RoutineProduct[] = [
-      {
+      makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "Cleanser",
@@ -300,9 +328,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      }),
     ];
 
     render(
@@ -319,7 +345,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User sees product
@@ -335,13 +361,13 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user adds product with 2x per week frequency and selects days", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     render(
       <RoutineSection
@@ -357,7 +383,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User clicks "Add Step" in morning section
@@ -371,7 +397,10 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // User fills in product details
     await user.type(screen.getByPlaceholderText(/product name/i), "AHA Toner");
-    await user.type(screen.getByPlaceholderText(/instructions/i), "Apply with cotton pad");
+    await user.type(
+      screen.getByPlaceholderText(/apply to damp skin/i),
+      "Apply with cotton pad",
+    );
 
     // User changes frequency to 2x per week
     await user.click(comboboxes[1]); // Frequency combobox
@@ -393,6 +422,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "AHA Toner",
       productUrl: "",
       instructions: "Apply with cotton pad",
+      productPurchaseInstructions: "",
       frequency: "2x per week",
       days: expect.arrayContaining(["Monday", "Thursday"]),
     });
@@ -420,7 +450,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User clicks "Add Routine"
@@ -428,7 +458,9 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.click(screen.getByText(/blank routine/i));
 
     // User tries to submit without filling fields
-    const createButton = screen.getByRole("button", { name: /create routine/i });
+    const createButton = screen.getByRole("button", {
+      name: /create routine/i,
+    });
 
     // Button should be disabled without name and start date
     expect(createButton).toBeDisabled();
@@ -452,7 +484,7 @@ describe("RoutineSection - Complete User Workflows", () => {
     expect(mockOnCreateBlank).toHaveBeenCalledWith(
       "My Routine",
       expect.any(Date),
-      null
+      null,
     );
   });
 
@@ -473,7 +505,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User opens modal and selects template option
@@ -486,7 +518,10 @@ describe("RoutineSection - Complete User Workflows", () => {
     expect(screen.getByText("Acne-Prone Skin Care")).toBeInTheDocument();
 
     // User searches for "night"
-    await user.type(screen.getByPlaceholderText(/search routine templates/i), "night");
+    await user.type(
+      screen.getByPlaceholderText(/search routine templates/i),
+      "night",
+    );
 
     // User sees only matching template
     expect(screen.getByText("Night Recovery Routine")).toBeInTheDocument();
@@ -511,7 +546,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User opens modal and selects template option
@@ -519,7 +554,10 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.click(screen.getByText(/from template/i));
 
     // User searches for something that doesn't exist
-    await user.type(screen.getByPlaceholderText(/search routine templates/i), "nonexistent");
+    await user.type(
+      screen.getByPlaceholderText(/search routine templates/i),
+      "nonexistent",
+    );
 
     // User sees "no templates found" message
     expect(screen.getByText(/no templates found/i)).toBeInTheDocument();
@@ -542,7 +580,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User opens modal and goes to routine info form
@@ -573,13 +611,13 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user sees validation errors when adding product, corrects them, and succeeds", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     render(
       <RoutineSection
@@ -595,7 +633,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User clicks "Add Step" in morning section
@@ -603,8 +641,14 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.click(addStepButtons[0]);
 
     // User tries to add without selecting routine step
-    await user.type(screen.getByPlaceholderText(/product name/i), "Some Product");
-    await user.type(screen.getByPlaceholderText(/instructions/i), "Some instructions");
+    await user.type(
+      screen.getByPlaceholderText(/product name/i),
+      "Some Product",
+    );
+    await user.type(
+      screen.getByPlaceholderText(/apply to damp skin/i),
+      "Some instructions",
+    );
     await user.click(screen.getByRole("button", { name: /^add$/i }));
 
     // Server action should not be called (validation failed)
@@ -624,6 +668,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "Some Product",
       productUrl: "",
       instructions: "Some instructions",
+      productPurchaseInstructions: "",
       frequency: "daily",
       days: undefined,
     });
@@ -651,7 +696,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User sees empty state
@@ -661,7 +706,9 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.click(screen.getByRole("button", { name: /add routine/i }));
 
     // User chooses to create blank routine
-    await user.click(screen.getByRole("button", { name: /start from scratch/i }));
+    await user.click(
+      screen.getByRole("button", { name: /start from scratch/i }),
+    );
 
     // User fills in routine info
     await user.type(screen.getByLabelText(/routine name/i), "Test Routine");
@@ -675,7 +722,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       expect(mockOnCreateBlank).toHaveBeenCalledWith(
         "Test Routine",
         new Date("2025-01-15"),
-        null
+        null,
       );
     });
 
@@ -684,7 +731,9 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // User tries again - opens modal again
     await user.click(screen.getByRole("button", { name: /add routine/i }));
-    await user.click(screen.getByRole("button", { name: /start from scratch/i }));
+    await user.click(
+      screen.getByRole("button", { name: /start from scratch/i }),
+    );
 
     // User fills in routine info again
     await user.type(screen.getByLabelText(/routine name/i), "Fixed Routine");
@@ -716,15 +765,20 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User opens Add Routine modal and chooses blank routine
     await user.click(screen.getByRole("button", { name: /add routine/i }));
-    await user.click(screen.getByRole("button", { name: /start from scratch/i }));
+    await user.click(
+      screen.getByRole("button", { name: /start from scratch/i }),
+    );
 
     // User fills in routine info
-    await user.type(screen.getByLabelText(/routine name/i), "My Custom Routine");
+    await user.type(
+      screen.getByLabelText(/routine name/i),
+      "My Custom Routine",
+    );
     await user.type(screen.getByLabelText(/start date/i), "2025-03-15");
     await user.type(screen.getByLabelText(/end date/i), "2025-06-15");
 
@@ -732,15 +786,25 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.click(screen.getByRole("button", { name: /go back/i }));
 
     // User should see start view again
-    expect(screen.getByRole("button", { name: /use a template/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /start from scratch/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /use a template/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /start from scratch/i }),
+    ).toBeInTheDocument();
 
     // User clicks "Start from scratch" again to return to form
-    await user.click(screen.getByRole("button", { name: /start from scratch/i }));
+    await user.click(
+      screen.getByRole("button", { name: /start from scratch/i }),
+    );
 
     // Data should still be filled in (preserved during navigation)
-    const routineNameInput = screen.getByLabelText(/routine name/i) as HTMLInputElement;
-    const startDateInput = screen.getByLabelText(/start date/i) as HTMLInputElement;
+    const routineNameInput = screen.getByLabelText(
+      /routine name/i,
+    ) as HTMLInputElement;
+    const startDateInput = screen.getByLabelText(
+      /start date/i,
+    ) as HTMLInputElement;
     const endDateInput = screen.getByLabelText(/end date/i) as HTMLInputElement;
 
     expect(routineNameInput.value).toBe("My Custom Routine");
@@ -751,16 +815,16 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user cancels editing a product without saving changes", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     const existingProducts: RoutineProduct[] = [
-      {
+      makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "Cleanser",
@@ -771,9 +835,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      }),
     ];
 
     render(
@@ -790,7 +852,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User clicks on product to edit
@@ -804,7 +866,8 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.clear(nameInput);
     await user.type(nameInput, "Changed Name");
 
-    const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+    const instructionsInput =
+      screen.getByPlaceholderText(/apply to damp skin/i);
     await user.clear(instructionsInput);
     await user.type(instructionsInput, "Changed instructions");
 
@@ -822,16 +885,16 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user changes frequency from 2x per week back to Daily and days are cleared", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     const existingProducts: RoutineProduct[] = [
-      {
+      makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "Exfoliant / Peel",
@@ -842,9 +905,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         days: ["Mon", "Thu"],
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      }),
     ];
 
     render(
@@ -861,7 +922,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User clicks on product to edit
@@ -889,6 +950,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "AHA Toner",
       productUrl: "",
       instructions: "Apply with cotton pad",
+      productPurchaseInstructions: "",
       frequency: "daily",
       days: undefined,
     });
@@ -897,13 +959,13 @@ describe("RoutineSection - Complete User Workflows", () => {
   it("user deselects a day and cannot select more than max days", async () => {
     const user = userEvent.setup();
 
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     render(
       <RoutineSection
@@ -919,7 +981,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User clicks "Add Step" in morning section
@@ -930,8 +992,14 @@ describe("RoutineSection - Complete User Workflows", () => {
     const comboboxes = screen.getAllByRole("combobox");
     await user.click(comboboxes[0]);
     await user.click(screen.getByText("Serum / Treatment"));
-    await user.type(screen.getByPlaceholderText(/product name/i), "Vitamin C Serum");
-    await user.type(screen.getByPlaceholderText(/instructions/i), "Apply in the morning");
+    await user.type(
+      screen.getByPlaceholderText(/product name/i),
+      "Vitamin C Serum",
+    );
+    await user.type(
+      screen.getByPlaceholderText(/apply to damp skin/i),
+      "Apply in the morning",
+    );
 
     // User changes frequency to 2x per week
     await user.click(comboboxes[1]);
@@ -968,22 +1036,23 @@ describe("RoutineSection - Complete User Workflows", () => {
       productName: "Vitamin C Serum",
       productUrl: "",
       instructions: "Apply in the morning",
+      productPurchaseInstructions: "",
       frequency: "2x per week",
       days: expect.arrayContaining(["Thursday", "Wednesday"]),
     });
   });
 
   it("user sees product with URL displayed as clickable link", async () => {
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     const existingProducts: RoutineProduct[] = [
-      {
+      makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "Moisturizer / Cream",
@@ -994,9 +1063,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      }),
     ];
 
     render(
@@ -1013,27 +1080,32 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User sees product name as clickable link
-    const productLink = screen.getByRole("link", { name: /cerave moisturizer/i });
-    expect(productLink).toHaveAttribute("href", "https://example.com/cerave-moisturizer");
+    const productLink = screen.getByRole("link", {
+      name: /cerave moisturizer/i,
+    });
+    expect(productLink).toHaveAttribute(
+      "href",
+      "https://example.com/cerave-moisturizer",
+    );
     expect(productLink).toHaveAttribute("target", "_blank");
     expect(productLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("user sees days displayed in frequency badge for product with 2x per week", async () => {
-    const existingRoutine: Routine = {
+    const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
       startDate: new Date("2025-01-01"),
       endDate: null,
       status: "draft",
-    };
+    });
 
     const existingProducts: RoutineProduct[] = [
-      {
+      makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "Exfoliant / Peel",
@@ -1044,9 +1116,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         days: ["Mon", "Thu"],
         timeOfDay: "evening",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      }),
     ];
 
     render(
@@ -1063,7 +1133,7 @@ describe("RoutineSection - Complete User Workflows", () => {
         onUpdateProduct={mockOnUpdateProduct}
         onDeleteProduct={mockOnDeleteProduct}
         onReorderProducts={mockOnReorderProducts}
-      />
+      />,
     );
 
     // User sees frequency badge with days displayed

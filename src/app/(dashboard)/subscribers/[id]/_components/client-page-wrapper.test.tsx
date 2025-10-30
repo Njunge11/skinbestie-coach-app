@@ -3,7 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClientPageWrapper } from "./client-page-wrapper";
-import type { Client, Goal, Photo, Routine, RoutineProduct, CoachNote } from "../types";
+import type { Client, Photo, CoachNote } from "../types";
+import {
+  makeClient,
+  makePhoto,
+  makeRoutine,
+  makeRoutineProduct,
+} from "@/test/factories";
 
 // Mock toast notifications
 vi.mock("sonner", () => ({
@@ -15,19 +21,12 @@ vi.mock("sonner", () => ({
 
 // Mock server actions at network boundary
 vi.mock("../profile-header-actions/actions");
-vi.mock("../goal-actions/actions");
 vi.mock("../routine-info-actions/actions");
 vi.mock("../routine-actions/actions");
 vi.mock("../coach-notes-actions/actions");
 vi.mock("../progress-photos-actions/actions");
 vi.mock("@/app/(dashboard)/routine-management/template-actions/copy-template");
 
-import { updateUserProfile } from "../profile-header-actions/actions";
-import {
-  createGoal,
-  updateGoal,
-  deleteGoal,
-} from "../goal-actions/actions";
 import {
   createRoutine as createRoutineAction,
   updateRoutine,
@@ -55,7 +54,7 @@ function renderWithQueryClient(ui: React.ReactElement) {
     },
   });
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
   );
 }
 
@@ -73,7 +72,7 @@ function renderWithQueryClient(ui: React.ReactElement) {
  */
 
 describe("ClientPageWrapper - Integration Tests", () => {
-  const mockClient: Client = {
+  const mockClient: Client = makeClient({
     id: "user-1",
     name: "John Doe",
     age: 35,
@@ -87,213 +86,31 @@ describe("ClientPageWrapper - Integration Tests", () => {
     currentWeek: 3,
     startDate: "2025-01-01",
     hasRoutine: false,
-  };
+  });
 
-  const mockPhoto: Photo = {
+  const mockPhoto: Photo = makePhoto({
     id: "photo-1",
     weekNumber: 1,
     imageUrl: "/uploads/photo1.jpg",
-    feedback: null,
     uploadedAt: new Date("2025-01-10"),
-  };
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe("Optimistic Updates - Success Path", () => {
-
-    it("Goal Toggle Success - checkbox updates immediately, server called, state persists", async () => {
-      const user = userEvent.setup();
-      const goal: Goal = {
-        id: "goal-1",
-        userProfileId: "user-1",
-        name: "Clear skin",
-        description: "Reduce acne",
-        timeframe: "12 weeks",
-        complete: false,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock successful server response
-      vi.mocked(updateGoal).mockResolvedValueOnce({
-        success: true,
-        data: undefined,
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[goal]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      // Find and click toggle button (it's a button with aria-label, not a checkbox)
-      const toggleButton = screen.getByLabelText("Mark as complete");
-      await user.click(toggleButton);
-
-      // Verify server action called
-      await waitFor(() => {
-        expect(updateGoal).toHaveBeenCalledWith("goal-1", { complete: true });
-      });
-
-      // Verify state persists - button label changes to "Mark as incomplete"
-      await waitFor(() => {
-        expect(screen.getByLabelText("Mark as incomplete")).toBeInTheDocument();
-      });
-    });
-
-    it("Goal Update Success - changes show immediately, server called, state persists", async () => {
-      const user = userEvent.setup();
-      const goal: Goal = {
-        id: "goal-1",
-        userProfileId: "user-1",
-        name: "Clear skin",
-        description: "Reduce acne",
-        timeframe: "12 weeks",
-        complete: false,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock successful update
-      vi.mocked(updateGoal).mockResolvedValueOnce({
-        success: true,
-        data: undefined,
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[goal]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      // Verify goal renders
-      expect(screen.getByText("Clear skin")).toBeInTheDocument();
-      expect(screen.getByText("Reduce acne")).toBeInTheDocument();
-
-      // Click on goal to enter edit mode (clicking the description area)
-      const goalDescription = screen.getByText("Reduce acne");
-      await user.click(goalDescription);
-
-      // Find input fields in edit mode
-      const nameInput = screen.getByPlaceholderText("Goal name");
-      const descInput = screen.getByPlaceholderText("Description");
-
-      // Clear and type new values
-      await user.clear(nameInput);
-      await user.type(nameInput, "Ultra clear skin");
-      await user.clear(descInput);
-      await user.type(descInput, "Completely remove acne");
-
-      // Click Save button
-      const saveButtons = screen.getAllByRole("button", { name: /save/i });
-      await user.click(saveButtons[0]);
-
-      // Verify optimistic update - new text appears immediately
-      await waitFor(() => {
-        expect(screen.getByText("Ultra clear skin")).toBeInTheDocument();
-        expect(screen.getByText("Completely remove acne")).toBeInTheDocument();
-      });
-
-      // Verify server action called
-      await waitFor(() => {
-        expect(updateGoal).toHaveBeenCalledWith("goal-1", {
-          name: "Ultra clear skin",
-          description: "Completely remove acne",
-          timeframe: "12 weeks",
-        });
-      });
-
-      // Verify state persists
-      expect(screen.getByText("Ultra clear skin")).toBeInTheDocument();
-      expect(screen.getByText("Completely remove acne")).toBeInTheDocument();
-    });
-
-    it("Goal Delete Success - goal disappears immediately, server called, state persists", async () => {
-      const user = userEvent.setup();
-      const goal: Goal = {
-        id: "goal-1",
-        userProfileId: "user-1",
-        name: "Clear skin",
-        description: "Reduce acne",
-        timeframe: "12 weeks",
-        complete: false,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock successful delete
-      vi.mocked(deleteGoal).mockResolvedValueOnce({
-        success: true,
-        data: undefined,
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[goal]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      // Verify goal renders
-      expect(screen.getByText("Clear skin")).toBeInTheDocument();
-
-      // Click delete button
-      const deleteButton = screen.getByLabelText("Delete goal");
-      await user.click(deleteButton);
-
-      // Verify optimistic delete - goal disappears immediately
-      await waitFor(() => {
-        expect(screen.queryByText("Clear skin")).not.toBeInTheDocument();
-      });
-
-      // Verify server action called
-      await waitFor(() => {
-        expect(deleteGoal).toHaveBeenCalledWith("goal-1");
-      });
-
-      // Verify state persists (goal stays deleted)
-      expect(screen.queryByText("Clear skin")).not.toBeInTheDocument();
-    });
-
     it("Routine Product Delete Success - product disappears immediately, server called", async () => {
       const user = userEvent.setup();
-      const routine: Routine = {
+      const routine = makeRoutine({
         id: "routine-1",
         name: "Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
         status: "draft",
-      };
+      });
 
-      const product: RoutineProduct = {
+      const product = makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "cleanse",
@@ -304,9 +121,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       // Mock successful delete
       vi.mocked(deleteRoutineProduct).mockResolvedValueOnce({
@@ -319,13 +134,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={routine}
           initialRoutineProducts={[product]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Verify product renders
@@ -371,17 +187,24 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
+      // Open coach notes panel
+      const openPanelButton = screen.getByLabelText("Open coach notes");
+      await user.click(openPanelButton);
+
       // Click add note button
-      const addButton = screen.getByLabelText("Add note");
+      const addButton = await screen.findByRole("button", {
+        name: /add note/i,
+      });
       await user.click(addButton);
 
       // Type note content
@@ -389,8 +212,8 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await user.type(textarea, "New coach note");
 
       // Save
-      const saveButtons = screen.getAllByRole("button", { name: /save/i });
-      await user.click(saveButtons[0]);
+      const saveButton = screen.getByRole("button", { name: /^save$/i });
+      await user.click(saveButton);
 
       // Verify note appears
       await waitFor(() => {
@@ -399,7 +222,11 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify server action called
       await waitFor(() => {
-        expect(createCoachNote).toHaveBeenCalledWith("user-1", "admin-1", "New coach note");
+        expect(createCoachNote).toHaveBeenCalledWith(
+          "user-1",
+          "admin-1",
+          "New coach note",
+        );
       });
     });
 
@@ -430,17 +257,24 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[note]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
-      // Verify note renders
-      expect(screen.getByText("Original note")).toBeInTheDocument();
+      // Open coach notes panel
+      const openPanelButton = screen.getByLabelText("Open coach notes");
+      await user.click(openPanelButton);
+
+      // Wait for panel to open and verify note renders
+      await waitFor(() => {
+        expect(screen.getByText("Original note")).toBeInTheDocument();
+      });
 
       // Click on note to edit
       const noteText = screen.getByText("Original note");
@@ -452,8 +286,8 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await user.type(textarea, "Updated note content");
 
       // Save
-      const saveButtons = screen.getAllByRole("button", { name: /save/i });
-      await user.click(saveButtons[0]);
+      const saveButton = screen.getByRole("button", { name: /^save$/i });
+      await user.click(saveButton);
 
       // Verify optimistic update
       await waitFor(() => {
@@ -462,7 +296,10 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify server action called
       await waitFor(() => {
-        expect(updateCoachNote).toHaveBeenCalledWith("note-1", "Updated note content");
+        expect(updateCoachNote).toHaveBeenCalledWith(
+          "note-1",
+          "Updated note content",
+        );
       });
     });
 
@@ -488,16 +325,24 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[note]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
-      expect(screen.getByText("Note to delete")).toBeInTheDocument();
+      // Open coach notes panel
+      const openPanelButton = screen.getByLabelText("Open coach notes");
+      await user.click(openPanelButton);
+
+      // Wait for panel to open and verify note renders
+      await waitFor(() => {
+        expect(screen.getByText("Note to delete")).toBeInTheDocument();
+      });
 
       // Click delete button
       const deleteButton = screen.getByLabelText("Delete note");
@@ -517,252 +362,6 @@ describe("ClientPageWrapper - Integration Tests", () => {
       expect(screen.queryByText("Note to delete")).not.toBeInTheDocument();
     });
 
-    it("Profile Update Success - changes show immediately, server called", async () => {
-      const user = userEvent.setup();
-
-      // Mock successful update
-      vi.mocked(updateUserProfile).mockResolvedValueOnce({
-        success: true,
-        data: undefined,
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      // Verify initial data
-      expect(screen.getByText("Engineer")).toBeInTheDocument();
-      expect(screen.getByText("Software developer")).toBeInTheDocument();
-
-      // Click edit button (get all since desktop + mobile versions exist, click first)
-      const editButtons = screen.getAllByRole("button", { name: "Edit" });
-      await user.click(editButtons[0]);
-
-      // Edit occupation and bio
-      const occupationInput = screen.getByPlaceholderText("Occupation");
-      const bioTextarea = screen.getByPlaceholderText("Bio");
-
-      await user.clear(occupationInput);
-      await user.type(occupationInput, "Senior Engineer");
-      await user.clear(bioTextarea);
-      await user.type(bioTextarea, "Lead developer");
-
-      // Save
-      const saveButtons = screen.getAllByRole("button", { name: /save/i });
-      await user.click(saveButtons[0]);
-
-      // Verify optimistic update
-      await waitFor(() => {
-        expect(screen.getByText("Senior Engineer")).toBeInTheDocument();
-        expect(screen.getByText("Lead developer")).toBeInTheDocument();
-      });
-
-      // Verify server action called
-      await waitFor(() => {
-        expect(updateUserProfile).toHaveBeenCalledWith("user-1", {
-          occupation: "Senior Engineer",
-          bio: "Lead developer",
-        });
-      });
-    });
-
-    it("Profile Update Failure - changes show, server fails, reverts, toast shown", async () => {
-      const user = userEvent.setup();
-
-      // Mock server failure
-      vi.mocked(updateUserProfile).mockResolvedValueOnce({
-        success: false,
-        error: "Failed to update profile",
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      // Verify initial data
-      expect(screen.getByText("Engineer")).toBeInTheDocument();
-      expect(screen.getByText("Software developer")).toBeInTheDocument();
-
-      // Click edit button (get all since desktop + mobile versions exist, click first)
-      const editButtons = screen.getAllByRole("button", { name: "Edit" });
-      await user.click(editButtons[0]);
-
-      // Edit occupation and bio
-      const occupationInput = screen.getByPlaceholderText("Occupation");
-      const bioTextarea = screen.getByPlaceholderText("Bio");
-
-      await user.clear(occupationInput);
-      await user.type(occupationInput, "Senior Engineer");
-      await user.clear(bioTextarea);
-      await user.type(bioTextarea, "Lead developer");
-
-      // Save
-      const saveButtons = screen.getAllByRole("button", { name: /save/i });
-      await user.click(saveButtons[0]);
-
-      // Wait for server response - changes should revert to original
-      await waitFor(() => {
-        expect(screen.getByText("Engineer")).toBeInTheDocument();
-        expect(screen.getByText("Software developer")).toBeInTheDocument();
-      });
-
-      // Verify error toast shown
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to update profile");
-      });
-
-      // Verify server was called
-      expect(updateUserProfile).toHaveBeenCalledWith("user-1", {
-        occupation: "Senior Engineer",
-        bio: "Lead developer",
-      });
-    });
-
-    it("Add Goal Success - goal appears, server called", async () => {
-      const user = userEvent.setup();
-      const newGoal: Goal = {
-        id: "goal-1",
-        userProfileId: "user-1",
-        name: "Clear skin",
-        description: "Reduce acne",
-        timeframe: "12 weeks",
-        complete: false,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock successful create
-      vi.mocked(createGoal).mockResolvedValueOnce({
-        success: true,
-        data: newGoal,
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      // Click add goal button
-      const addButton = screen.getByRole("button", { name: /add goal/i });
-      await user.click(addButton);
-
-      // Fill form
-      const nameInput = screen.getByPlaceholderText("Goal name");
-      const descInput = screen.getByPlaceholderText("Description");
-      const timeframeInput = screen.getByPlaceholderText(/timeframe/i);
-
-      await user.type(nameInput, "Clear skin");
-      await user.type(descInput, "Reduce acne");
-      await user.type(timeframeInput, "12 weeks");
-
-      // Click the "Add Goal" button in the form (there are now 2 "Add Goal" buttons, get the last one which is in the form)
-      const addGoalButtons = screen.getAllByRole("button", { name: "Add Goal" });
-      await user.click(addGoalButtons[addGoalButtons.length - 1]);
-
-      // Verify goal appears
-      await waitFor(() => {
-        expect(screen.getByText("Clear skin")).toBeInTheDocument();
-        expect(screen.getByText("Reduce acne")).toBeInTheDocument();
-      });
-
-      // Verify server action called
-      await waitFor(() => {
-        expect(createGoal).toHaveBeenCalledWith("user-1", {
-          name: "Clear skin",
-          description: "Reduce acne",
-          timeframe: "12 weeks",
-        });
-      });
-    });
-
-    it("Add Goal Failure - form filled, server fails, goal doesn't appear, toast shown", async () => {
-      const user = userEvent.setup();
-
-      // Mock server failure
-      vi.mocked(createGoal).mockResolvedValueOnce({
-        success: false,
-        error: "Failed to create goal",
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      // Click add goal button
-      const addButton = screen.getByRole("button", { name: /add goal/i });
-      await user.click(addButton);
-
-      // Fill form
-      const nameInput = screen.getByPlaceholderText("Goal name");
-      const descInput = screen.getByPlaceholderText("Description");
-      const timeframeInput = screen.getByPlaceholderText(/timeframe/i);
-
-      await user.type(nameInput, "Clear skin");
-      await user.type(descInput, "Reduce acne");
-      await user.type(timeframeInput, "12 weeks");
-
-      // Click the "Add Goal" button in the form (there are now 2 "Add Goal" buttons, get the last one which is in the form)
-      const addGoalButtons = screen.getAllByRole("button", { name: "Add Goal" });
-      await user.click(addGoalButtons[addGoalButtons.length - 1]);
-
-      // Wait for server response - goal should NOT appear
-      await waitFor(() => {
-        expect(screen.queryByText("Clear skin")).not.toBeInTheDocument();
-      });
-
-      // Verify error toast shown
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to create goal");
-      });
-
-      // Verify server was called
-      expect(createGoal).toHaveBeenCalledWith("user-1", {
-        name: "Clear skin",
-        description: "Reduce acne",
-        timeframe: "12 weeks",
-      });
-    });
-
     it("Photo Feedback Update Success - feedback shows immediately, server called", async () => {
       const user = userEvent.setup();
 
@@ -777,13 +376,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Click on photo to view/edit
@@ -791,7 +391,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await user.click(photo);
 
       // Add feedback
-      const feedbackTextarea = screen.getByPlaceholderText("Add your observations and feedback...");
+      const feedbackTextarea = screen.getByPlaceholderText(
+        "Add your observations and feedback...",
+      );
       await user.type(feedbackTextarea, "Great progress!");
 
       // Save (get all since multiple Save buttons exist, click first)
@@ -800,7 +402,10 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify server action called
       await waitFor(() => {
-        expect(updatePhotoFeedback).toHaveBeenCalledWith("photo-1", "Great progress!");
+        expect(updatePhotoFeedback).toHaveBeenCalledWith(
+          "photo-1",
+          "Great progress!",
+        );
       });
 
       // Modal closes after successful save, feedback is stored but not displayed in grid
@@ -820,13 +425,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Click on photo to view/edit
@@ -834,7 +440,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await user.click(photo);
 
       // Add feedback
-      const feedbackTextarea = screen.getByPlaceholderText("Add your observations and feedback...");
+      const feedbackTextarea = screen.getByPlaceholderText(
+        "Add your observations and feedback...",
+      );
       await user.type(feedbackTextarea, "Great progress!");
 
       // Save (get all since multiple Save buttons exist, click first)
@@ -843,24 +451,29 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify error toast shown
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to update photo feedback");
+        expect(toast.error).toHaveBeenCalledWith(
+          "Failed to update photo feedback",
+        );
       });
 
       // Verify server was called
-      expect(updatePhotoFeedback).toHaveBeenCalledWith("photo-1", "Great progress!");
+      expect(updatePhotoFeedback).toHaveBeenCalledWith(
+        "photo-1",
+        "Great progress!",
+      );
 
       // Modal stays open after failure (doesn't close)
     });
 
     it("Routine Update Success - changes show immediately, server called", async () => {
       const user = userEvent.setup();
-      const routine: Routine = {
+      const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
         status: "draft",
-      };
+      });
 
       const updatedRoutine = {
         ...routine,
@@ -881,13 +494,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={routine}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Verify initial routine name
@@ -913,209 +527,28 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify server action called
       await waitFor(() => {
-        expect(updateRoutine).toHaveBeenCalledWith("routine-1", expect.objectContaining({
-          name: "Updated Morning Routine",
-        }));
+        expect(updateRoutine).toHaveBeenCalledWith(
+          "routine-1",
+          expect.objectContaining({
+            name: "Updated Morning Routine",
+          }),
+        );
       });
     });
-
   });
 
   describe("Optimistic Updates - Failure & Revert", () => {
-
-    it("Goal Toggle Failure - checkbox updates, server fails, reverts, toast shown", async () => {
-      const user = userEvent.setup();
-      const goal: Goal = {
-        id: "goal-1",
-        userProfileId: "user-1",
-        name: "Clear skin",
-        description: "Reduce acne",
-        timeframe: "12 weeks",
-        complete: false,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock server failure
-      vi.mocked(updateGoal).mockResolvedValueOnce({
-        success: false,
-        error: "Network error",
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[goal]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      // Find toggle button (initially "Mark as complete")
-      const toggleButton = screen.getByLabelText("Mark as complete");
-
-      // Click to toggle
-      await user.click(toggleButton);
-
-      // Wait for server response and revert - label should still be "Mark as complete"
-      // (The optimistic update happens too fast to reliably test in this scenario)
-      await waitFor(() => {
-        expect(screen.getByLabelText("Mark as complete")).toBeInTheDocument();
-      });
-
-      // Verify error toast shown
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to toggle goal");
-      });
-
-      // Verify server was called
-      expect(updateGoal).toHaveBeenCalledWith("goal-1", { complete: true });
-    });
-
-    it("Goal Update Failure - changes show, server fails, reverts, toast shown", async () => {
-      const user = userEvent.setup();
-      const goal: Goal = {
-        id: "goal-1",
-        userProfileId: "user-1",
-        name: "Clear skin",
-        description: "Reduce acne",
-        timeframe: "12 weeks",
-        complete: false,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock server failure
-      vi.mocked(updateGoal).mockResolvedValueOnce({
-        success: false,
-        error: "Database error",
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[goal]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      expect(screen.getByText("Clear skin")).toBeInTheDocument();
-
-      // Click on goal to enter edit mode
-      const goalDescription = screen.getByText("Reduce acne");
-      await user.click(goalDescription);
-
-      // Edit the goal
-      const nameInput = screen.getByPlaceholderText("Goal name");
-      const descInput = screen.getByPlaceholderText("Description");
-      await user.clear(nameInput);
-      await user.type(nameInput, "Ultra clear skin");
-      await user.clear(descInput);
-      await user.type(descInput, "Completely remove acne");
-
-      // Save
-      const saveButtons = screen.getAllByRole("button", { name: /save/i });
-      await user.click(saveButtons[0]);
-
-      // Wait for server response and revert - original text should be back
-      // (Optimistic update happens too fast to reliably test)
-      await waitFor(() => {
-        expect(screen.getByText("Clear skin")).toBeInTheDocument();
-        expect(screen.getByText("Reduce acne")).toBeInTheDocument();
-      });
-
-      // Verify error toast shown
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to update goal");
-      });
-
-      // Verify server was called with new values
-      expect(updateGoal).toHaveBeenCalledWith("goal-1", {
-        name: "Ultra clear skin",
-        description: "Completely remove acne",
-        timeframe: "12 weeks",
-      });
-    });
-
-    it("Goal Delete Failure - goal disappears, server fails, reappears, toast shown", async () => {
-      const user = userEvent.setup();
-      const goal: Goal = {
-        id: "goal-1",
-        userProfileId: "user-1",
-        name: "Clear skin",
-        description: "Reduce acne",
-        timeframe: "12 weeks",
-        complete: false,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mock server failure
-      vi.mocked(deleteGoal).mockResolvedValueOnce({
-        success: false,
-        error: "Database error",
-      });
-
-      renderWithQueryClient(
-        <ClientPageWrapper
-          initialClient={mockClient}
-          initialPhotos={[mockPhoto]}
-          initialGoals={[goal]}
-          initialRoutine={null}
-          initialRoutineProducts={[]}
-          initialCoachNotes={[]}
-          initialTemplates={[]}
-          userId="user-1"
-          adminId="admin-1"
-        />
-      );
-
-      expect(screen.getByText("Clear skin")).toBeInTheDocument();
-
-      // Click delete button
-      const deleteButton = screen.getByLabelText("Delete goal");
-      await user.click(deleteButton);
-
-      // Wait for server response - goal should still be there (delete failed and reverted)
-      // (Optimistic delete happens too fast to reliably test)
-      await waitFor(() => {
-        expect(screen.getByText("Clear skin")).toBeInTheDocument();
-      });
-
-      // Verify error toast shown
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to delete goal");
-      });
-
-      // Verify server was called
-      expect(deleteGoal).toHaveBeenCalledWith("goal-1");
-    });
-
     it("Routine Product Delete Failure - product disappears, server fails, reappears, toast shown", async () => {
       const user = userEvent.setup();
-      const routine: Routine = {
+      const routine = makeRoutine({
         id: "routine-1",
         name: "Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
         status: "draft",
-      };
+      });
 
-      const product: RoutineProduct = {
+      const product = makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "cleanse",
@@ -1126,9 +559,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       // Mock server failure
       vi.mocked(deleteRoutineProduct).mockResolvedValueOnce({
@@ -1141,13 +572,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={routine}
           initialRoutineProducts={[product]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       expect(screen.getByText("Morning Cleanser")).toBeInTheDocument();
@@ -1163,7 +595,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify error toast shown
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to delete routine product");
+        expect(toast.error).toHaveBeenCalledWith(
+          "Failed to delete routine product",
+        );
       });
 
       // Verify server was called
@@ -1192,16 +626,24 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[note]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
-      expect(screen.getByText("Original note")).toBeInTheDocument();
+      // Open coach notes panel
+      const openPanelButton = screen.getByLabelText("Open coach notes");
+      await user.click(openPanelButton);
+
+      // Wait for panel to open and verify note renders
+      await waitFor(() => {
+        expect(screen.getByText("Original note")).toBeInTheDocument();
+      });
 
       // Click on note to edit
       const noteText = screen.getByText("Original note");
@@ -1213,8 +655,8 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await user.type(textarea, "Updated note content");
 
       // Save
-      const saveButtons = screen.getAllByRole("button", { name: /save/i });
-      await user.click(saveButtons[0]);
+      const saveButton = screen.getByRole("button", { name: /^save$/i });
+      await user.click(saveButton);
 
       // Wait for server response - original text should be back
       await waitFor(() => {
@@ -1227,7 +669,10 @@ describe("ClientPageWrapper - Integration Tests", () => {
       });
 
       // Verify server was called
-      expect(updateCoachNote).toHaveBeenCalledWith("note-1", "Updated note content");
+      expect(updateCoachNote).toHaveBeenCalledWith(
+        "note-1",
+        "Updated note content",
+      );
     });
 
     it("Coach Note Delete Failure - note disappears, server fails, reappears, toast shown", async () => {
@@ -1252,16 +697,24 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[note]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
-      expect(screen.getByText("Note to delete")).toBeInTheDocument();
+      // Open coach notes panel
+      const openPanelButton = screen.getByLabelText("Open coach notes");
+      await user.click(openPanelButton);
+
+      // Wait for panel to open and verify note renders
+      await waitFor(() => {
+        expect(screen.getByText("Note to delete")).toBeInTheDocument();
+      });
 
       // Click delete button
       const deleteButton = screen.getByLabelText("Delete note");
@@ -1284,18 +737,17 @@ describe("ClientPageWrapper - Integration Tests", () => {
   });
 
   describe("Cross-Cutting State Synchronization", () => {
-
     it("Delete Routine Success - routine cleared, products cleared, hasRoutine becomes false", async () => {
       const user = userEvent.setup();
-      const routine: Routine = {
+      const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
         status: "draft",
-      };
+      });
 
-      const product: RoutineProduct = {
+      const product = makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "cleanse",
@@ -1306,9 +758,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       // Mock successful deletion
       vi.mocked(deleteRoutine).mockResolvedValueOnce({
@@ -1321,13 +771,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={routine}
           initialRoutineProducts={[product]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Initially shows routine and product
@@ -1345,7 +796,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
       // Verify ALL state cleared - routine, products, AND hasRoutine flag
       await waitFor(() => {
         expect(screen.queryByText("Morning Routine")).not.toBeInTheDocument();
-        expect(screen.queryByText("Morning Cleanser Product")).not.toBeInTheDocument();
+        expect(
+          screen.queryByText("Morning Cleanser Product"),
+        ).not.toBeInTheDocument();
         // When hasRoutine is false, "Create a routine" option should be available
         expect(screen.getByText(/Create a routine/i)).toBeInTheDocument();
       });
@@ -1356,15 +809,15 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
     it("Delete Routine Failure - ALL state reverts (routine + products + hasRoutine)", async () => {
       const user = userEvent.setup();
-      const routine: Routine = {
+      const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
         status: "draft",
-      };
+      });
 
-      const product: RoutineProduct = {
+      const product = makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "cleanse",
@@ -1375,9 +828,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       // Mock deletion failure
       vi.mocked(deleteRoutine).mockResolvedValueOnce({
@@ -1390,13 +841,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={routine}
           initialRoutineProducts={[product]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       expect(screen.getByText("Morning Routine")).toBeInTheDocument();
@@ -1414,7 +866,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
       // Routine, products, and hasRoutine should all be back to original state
       await waitFor(() => {
         expect(screen.getByText("Morning Routine")).toBeInTheDocument();
-        expect(screen.getByText("Morning Cleanser Product")).toBeInTheDocument();
+        expect(
+          screen.getByText("Morning Cleanser Product"),
+        ).toBeInTheDocument();
         // hasRoutine should still be true (no "Create a routine" message)
         expect(screen.queryByText(/Create a routine/i)).not.toBeInTheDocument();
       });
@@ -1430,7 +884,6 @@ describe("ClientPageWrapper - Integration Tests", () => {
   });
 
   describe("Routine Creation Workflows", () => {
-
     it("Create Routine From Template - Failure - template selected, server fails, routine not created, toast shown", async () => {
       const user = userEvent.setup();
       const template = {
@@ -1450,13 +903,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[template]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // User sees empty state message
@@ -1480,12 +934,16 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await user.type(startDateInput, "2025-01-15");
 
       // User clicks "Create routine" button to submit
-      const createRoutineButton = screen.getByRole("button", { name: /create routine/i });
+      const createRoutineButton = screen.getByRole("button", {
+        name: /create routine/i,
+      });
       await user.click(createRoutineButton);
 
       // Wait for server response - routine should NOT appear
       await waitFor(() => {
-        expect(screen.queryByText("Anti-Aging Template")).not.toBeInTheDocument();
+        expect(
+          screen.queryByText("Anti-Aging Template"),
+        ).not.toBeInTheDocument();
       });
 
       // Verify error toast shown
@@ -1499,7 +957,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         "user-1",
         expect.objectContaining({
           name: "Anti-Aging Template", // Pre-filled from template
-        })
+        }),
       );
     });
 
@@ -1527,13 +985,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Initially no routine exists
@@ -1557,7 +1016,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await user.type(startDateInput, "2025-01-15");
 
       // User clicks "Create routine" button to submit
-      const createRoutineButton = screen.getByRole("button", { name: /create routine/i });
+      const createRoutineButton = screen.getByRole("button", {
+        name: /create routine/i,
+      });
       await user.click(createRoutineButton);
 
       // Verify routine appears
@@ -1567,7 +1028,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify success toast shown
       await waitFor(() => {
-        expect(toast.success).toHaveBeenCalledWith("Routine created successfully");
+        expect(toast.success).toHaveBeenCalledWith(
+          "Routine created successfully",
+        );
       });
 
       // Verify server action called
@@ -1575,12 +1038,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
         "user-1",
         expect.objectContaining({
           name: "My Blank Routine",
-        })
+        }),
       );
 
       // Verify hasRoutine flag updated (no more "Create a routine" message in empty state)
       await waitFor(() => {
-        expect(screen.queryByText(/create a routine to track skincare products/i)).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/create a routine to track skincare products/i),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -1598,13 +1063,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // User clicks "Add Routine" button
@@ -1624,7 +1090,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await user.type(startDateInput, "2025-01-15");
 
       // User clicks "Create routine" button to submit
-      const createRoutineButton = screen.getByRole("button", { name: /create routine/i });
+      const createRoutineButton = screen.getByRole("button", {
+        name: /create routine/i,
+      });
       await user.click(createRoutineButton);
 
       // Wait for server response - routine should NOT appear
@@ -1642,29 +1110,31 @@ describe("ClientPageWrapper - Integration Tests", () => {
         "user-1",
         expect.objectContaining({
           name: "My Blank Routine",
-        })
+        }),
       );
 
       // Still shows "Create a routine" empty state message (hasRoutine still false)
-      expect(screen.getByText(/create a routine to track skincare products/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/create a routine to track skincare products/i),
+      ).toBeInTheDocument();
     });
   });
 
   describe("Routine Product Management - Missing Coverage", () => {
-
     it("Add Product Without Routine - user tries to add product, sees error toast, product not added", async () => {
       renderWithQueryClient(
         <ClientPageWrapper
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Note: When no routine exists, the "Add Step" button should not be visible
@@ -1677,20 +1147,22 @@ describe("ClientPageWrapper - Integration Tests", () => {
       expect(screen.getByText(/create a routine/i)).toBeInTheDocument();
 
       // Verify no "Add Step" buttons are visible (routine section shows empty state)
-      expect(screen.queryByRole("button", { name: /add step/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /add step/i }),
+      ).not.toBeInTheDocument();
     });
 
     it("Update Routine Product - Success - changes show immediately, server called, state persists", async () => {
       const user = userEvent.setup();
-      const routine: Routine = {
+      const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
         status: "draft",
-      };
+      });
 
-      const product: RoutineProduct = {
+      const product = makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "Cleanser",
@@ -1701,9 +1173,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       // Mock successful update
       vi.mocked(updateRoutineProduct).mockResolvedValueOnce({
@@ -1716,13 +1186,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={routine}
           initialRoutineProducts={[product]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Verify initial product
@@ -1735,7 +1206,8 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Edit product details
       const nameInput = screen.getByPlaceholderText(/product name/i);
-      const instructionsInput = screen.getByPlaceholderText(/instructions/i);
+      const instructionsInput =
+        screen.getByPlaceholderText(/apply to damp skin/i);
 
       await user.clear(nameInput);
       await user.type(nameInput, "Updated Cleanser");
@@ -1749,7 +1221,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
       // Verify optimistic update
       await waitFor(() => {
         expect(screen.getByText("Updated Cleanser")).toBeInTheDocument();
-        expect(screen.getByText("Massage gently for 60 seconds")).toBeInTheDocument();
+        expect(
+          screen.getByText("Massage gently for 60 seconds"),
+        ).toBeInTheDocument();
       });
 
       // Verify server action called
@@ -1759,26 +1233,28 @@ describe("ClientPageWrapper - Integration Tests", () => {
           expect.objectContaining({
             productName: "Updated Cleanser",
             instructions: "Massage gently for 60 seconds",
-          })
+          }),
         );
       });
 
       // Verify state persists
       expect(screen.getByText("Updated Cleanser")).toBeInTheDocument();
-      expect(screen.getByText("Massage gently for 60 seconds")).toBeInTheDocument();
+      expect(
+        screen.getByText("Massage gently for 60 seconds"),
+      ).toBeInTheDocument();
     });
 
     it("Update Routine Product - Failure - changes show, server fails, reverts, toast shown", async () => {
       const user = userEvent.setup();
-      const routine: Routine = {
+      const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
         startDate: new Date("2025-01-01"),
         endDate: null,
         status: "draft",
-      };
+      });
 
-      const product: RoutineProduct = {
+      const product = makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
         routineStep: "Cleanser",
@@ -1789,9 +1265,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         days: null,
         timeOfDay: "morning",
         order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       // Mock server failure
       vi.mocked(updateRoutineProduct).mockResolvedValueOnce({
@@ -1804,13 +1278,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={{ ...mockClient, hasRoutine: true }}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={routine}
           initialRoutineProducts={[product]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
       // Verify initial product
@@ -1837,7 +1312,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify error toast shown
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Failed to update routine product");
+        expect(toast.error).toHaveBeenCalledWith(
+          "Failed to update routine product",
+        );
       });
 
       // Verify server was called
@@ -1845,14 +1322,12 @@ describe("ClientPageWrapper - Integration Tests", () => {
         "product-1",
         expect.objectContaining({
           productName: "Updated Cleanser",
-        })
+        }),
       );
     });
-
   });
 
   describe("Coach Notes - Missing Coverage", () => {
-
     it("Add Coach Note - Failure - note typed, server fails, note not added, toast shown", async () => {
       const user = userEvent.setup();
 
@@ -1867,30 +1342,39 @@ describe("ClientPageWrapper - Integration Tests", () => {
           initialClient={mockClient}
           initialPhotos={[mockPhoto]}
           initialGoals={[]}
+          initialGoalsTemplate={null}
           initialRoutine={null}
           initialRoutineProducts={[]}
           initialCoachNotes={[]}
           initialTemplates={[]}
           userId="user-1"
           adminId="admin-1"
-        />
+        />,
       );
 
-      // Click add note button
-      const addButton = screen.getByLabelText("Add note");
-      await user.click(addButton);
+      // Open coach notes panel via floating action button
+      const openPanelButton = screen.getByLabelText("Open coach notes");
+      await user.click(openPanelButton);
+
+      // Wait for panel to open and click "Add Note" button
+      const addNoteButton = await screen.findByRole("button", {
+        name: /add note/i,
+      });
+      await user.click(addNoteButton);
 
       // Type note content
       const textarea = screen.getByPlaceholderText("Add a note...");
       await user.type(textarea, "This note will fail to save");
 
       // Save
-      const saveButtons = screen.getAllByRole("button", { name: /save/i });
-      await user.click(saveButtons[0]);
+      const saveButton = screen.getByRole("button", { name: /^save$/i });
+      await user.click(saveButton);
 
       // Wait for server response - note should NOT appear
       await waitFor(() => {
-        expect(screen.queryByText("This note will fail to save")).not.toBeInTheDocument();
+        expect(
+          screen.queryByText("This note will fail to save"),
+        ).not.toBeInTheDocument();
       });
 
       // Verify error toast shown
@@ -1902,7 +1386,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
       expect(createCoachNote).toHaveBeenCalledWith(
         "user-1",
         "admin-1",
-        "This note will fail to save"
+        "This note will fail to save",
       );
     });
   });

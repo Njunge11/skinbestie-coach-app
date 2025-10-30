@@ -43,7 +43,11 @@ export default function DashboardShell({
           onMenuClick={() => setIsMobileOpen(!isMobileOpen)}
         />
 
-        <main className="bg-gray-50 min-h-[calc(100vh-4rem)] px-4 py-4 md:px-6 md:py-6 lg:px-32 lg:py-8">{children}</main>
+        <main className="bg-gray-50 min-h-[calc(100vh-4rem)]">
+          <div className="max-w-6xl mx-auto px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

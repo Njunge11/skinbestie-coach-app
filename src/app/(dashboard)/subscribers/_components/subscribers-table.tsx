@@ -6,8 +6,16 @@ import { useDebounce } from "use-debounce";
 import { type ColumnDef, type PaginationState } from "@tanstack/react-table";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { DataTable } from "@/components/ui/data-table";
-import { TableFilters, type FilterConfig } from "@/components/ui/table-filters";
-import type { UserProfile } from "@/lib/db/schema";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import type { SubscriberTableRow } from "@/lib/db/types";
 import type { UserProfileFilters } from "../schemas";
 import { getUserProfiles } from "../actions";
 
@@ -20,9 +28,12 @@ export function SubscribersTable() {
   const page = parseInt(searchParams.get("page") || "0", 10);
   const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
   const urlSearchQuery = searchParams.get("search") || "";
-  const completionStatus = (searchParams.get("status") || "all") as UserProfileFilters["completionStatus"];
-  const subscriptionStatus = (searchParams.get("subscription") || "all") as UserProfileFilters["subscriptionStatus"];
-  const dateRange = (searchParams.get("dateRange") || "all") as UserProfileFilters["dateRange"];
+  const completionStatus = (searchParams.get("status") ||
+    "all") as UserProfileFilters["completionStatus"];
+  const subscriptionStatus = (searchParams.get("subscription") ||
+    "all") as UserProfileFilters["subscriptionStatus"];
+  const dateRange = (searchParams.get("dateRange") ||
+    "all") as UserProfileFilters["dateRange"];
 
   // Update URL query params (defined early so useEffect can use it)
   const updateQueryParams = useCallback(
@@ -39,7 +50,7 @@ export function SubscribersTable() {
 
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams],
   );
 
   // CANONICAL PATTERN: Local state for instant input feedback
@@ -78,17 +89,13 @@ export function SubscribersTable() {
   };
 
   // Fetch user profiles with server-side filtering and pagination
-  const {
-    data,
-    isLoading,
-    isRefetching,
-  } = useQuery({
+  const { data, isLoading, isRefetching } = useQuery({
     queryKey: ["user-profiles", filters, pagination],
     queryFn: async () => {
       const result = await getUserProfiles(
         filters,
         { page: pagination.pageIndex, pageSize: pagination.pageSize },
-        { sortBy: "createdAt", sortOrder: "desc" }
+        { sortBy: "createdAt", sortOrder: "desc" },
       );
       return result.success ? result.data : null;
     },
@@ -114,7 +121,7 @@ export function SubscribersTable() {
   };
 
   // Define table columns
-  const columns: ColumnDef<UserProfile>[] = [
+  const columns: ColumnDef<SubscriberTableRow>[] = [
     {
       accessorKey: "firstName",
       header: "Name",
@@ -190,72 +197,55 @@ export function SubscribersTable() {
         </span>
       ),
     },
-  ];
-
-  // Define filter configuration
-  const filterConfig: FilterConfig[] = [
     {
-      id: "searchQuery",
-      label: "Search",
-      type: "text",
-      placeholder: "Search by name or email...",
-      columnSpan: 2,
-    },
-    {
-      id: "completionStatus",
-      label: "Completion Status",
-      type: "select",
-      options: [
-        { value: "all", label: "All" },
-        { value: "completed", label: "Completed" },
-        { value: "incomplete", label: "Incomplete" },
-      ],
-    },
-    {
-      id: "subscriptionStatus",
-      label: "Subscription",
-      type: "select",
-      options: [
-        { value: "all", label: "All" },
-        { value: "subscribed", label: "Subscribed" },
-        { value: "not_subscribed", label: "Not Subscribed" },
-      ],
-    },
-    {
-      id: "dateRange",
-      label: "Date Range",
-      type: "select",
-      options: [
-        { value: "all", label: "All time" },
-        { value: "recent", label: "Last 7 days" },
-        { value: "this_month", label: "This month" },
-        { value: "last_30_days", label: "Last 30 days" },
-      ],
+      id: "actions",
+      header: () => <div className="text-center">Actions</div>,
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center">
+          <Button
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/subscribers/${row.original.id}`);
+            }}
+          >
+            View
+          </Button>
+        </div>
+      ),
     },
   ];
 
-  const handleFilterChange = (id: string, value: string) => {
-    // CANONICAL PATTERN: Search updates local state (instant feedback)
-    if (id === "searchQuery") {
-      setLocalSearchQuery(value); // Instant update, debounce handles the rest
-      return;
-    }
+  const handleSearchChange = (value: string) => {
+    setLocalSearchQuery(value); // Instant update, debounce handles the rest
+  };
 
-    // Other filters update URL directly
-    const paramMap: Record<string, string> = {
-      completionStatus: "status",
-      subscriptionStatus: "subscription",
-      dateRange: "dateRange",
-    };
-
+  const handleCompletionStatusChange = (value: string) => {
     updateQueryParams({
-      [paramMap[id] || id]: value,
-      page: 0, // Reset to first page when filtering
+      status: value,
+      page: 0,
     });
   };
 
-  const handlePaginationChange = (updater: PaginationState | ((old: PaginationState) => PaginationState)) => {
-    const newPagination = typeof updater === "function" ? updater(pagination) : updater;
+  const handleSubscriptionStatusChange = (value: string) => {
+    updateQueryParams({
+      subscription: value,
+      page: 0,
+    });
+  };
+
+  const handleDateRangeChange = (value: string) => {
+    updateQueryParams({
+      dateRange: value,
+      page: 0,
+    });
+  };
+
+  const handlePaginationChange = (
+    updater: PaginationState | ((old: PaginationState) => PaginationState),
+  ) => {
+    const newPagination =
+      typeof updater === "function" ? updater(pagination) : updater;
 
     updateQueryParams({
       page: newPagination.pageIndex,
@@ -263,25 +253,83 @@ export function SubscribersTable() {
     });
   };
 
-  const handleRowClick = (profile: UserProfile) => {
-    console.log("🔍 Row clicked:", profile.id);
-    console.log("🔍 Navigating to:", `/subscribers/${profile.id}`);
+  const handleRowClick = (profile: SubscriberTableRow) => {
     router.push(`/subscribers/${profile.id}`);
   };
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <TableFilters
-        filters={filterConfig}
-        values={{
-          searchQuery: localSearchQuery, // ← Use local state for instant feedback
-          completionStatus,
-          subscriptionStatus,
-          dateRange,
-        } as unknown as Record<string, string>}
-        onChange={handleFilterChange}
-      />
+      {/* Custom Filters */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              Search
+            </label>
+            <Input
+              placeholder="Search by name or email..."
+              value={localSearchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              Completion Status
+            </label>
+            <Select
+              value={completionStatus}
+              onValueChange={handleCompletionStatusChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="incomplete">Incomplete</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              Subscription
+            </label>
+            <Select
+              value={subscriptionStatus}
+              onValueChange={handleSubscriptionStatusChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="subscribed">Subscribed</SelectItem>
+                <SelectItem value="not_subscribed">Not Subscribed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              Date Range
+            </label>
+            <Select value={dateRange} onValueChange={handleDateRangeChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All time</SelectItem>
+                <SelectItem value="recent">Last 7 days</SelectItem>
+                <SelectItem value="this_month">This month</SelectItem>
+                <SelectItem value="last_30_days">Last 30 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
 
       {/* Table */}
       <DataTable

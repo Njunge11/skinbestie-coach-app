@@ -119,7 +119,7 @@ describe("BookingsTable - UI Tests", () => {
     return render(
       <QueryClientProvider client={queryClient}>
         {component}
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
   };
 
@@ -127,7 +127,9 @@ describe("BookingsTable - UI Tests", () => {
     renderWithProviders(<BookingsTable />);
 
     // User sees the page heading
-    expect(screen.getByRole("heading", { name: /your meetings/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /your meetings/i }),
+    ).toBeInTheDocument();
 
     // User sees the bookings table with data
     expect(await screen.findByText("John Doe")).toBeInTheDocument();
@@ -146,7 +148,9 @@ describe("BookingsTable - UI Tests", () => {
     expect(screen.getByText("Jane Smith")).toBeInTheDocument();
 
     // User types in search box
-    const searchInput = screen.getByPlaceholderText(/search by client name or email/i);
+    const searchInput = screen.getByPlaceholderText(
+      /search by client name or email/i,
+    );
     await user.type(searchInput, "Jane");
 
     // User sees only matching results (client-side filter, instant)
@@ -162,7 +166,9 @@ describe("BookingsTable - UI Tests", () => {
     expect(await screen.findByText("John Doe")).toBeInTheDocument();
 
     // User searches by email
-    const searchInput = screen.getByPlaceholderText(/search by client name or email/i);
+    const searchInput = screen.getByPlaceholderText(
+      /search by client name or email/i,
+    );
     await user.type(searchInput, "john@example.com");
 
     // User sees only matching results
@@ -216,7 +222,7 @@ describe("BookingsTable - UI Tests", () => {
     // User changes status filter - find all Status labels and pick the filter one (inside the filters section)
     const statusLabels = screen.getAllByText("Status");
     const statusFilterLabel = statusLabels.find(
-      (label) => label.tagName === "LABEL"
+      (label) => label.tagName === "LABEL",
     );
     const statusSection = statusFilterLabel!.closest("div");
     const statusFilterButton = within(statusSection!).getByRole("combobox");
@@ -235,35 +241,8 @@ describe("BookingsTable - UI Tests", () => {
     });
   });
 
-  it("user filters bookings by host without triggering API call", async () => {
-    const user = userEvent.setup();
-    const { fetchBookings } = await import("../actions");
-
-    renderWithProviders(<BookingsTable />);
-
-    // Wait for initial load
-    expect(await screen.findByText("John Doe")).toBeInTheDocument();
-
-    // Clear mock call count
-    vi.mocked(fetchBookings).mockClear();
-
-    // User changes host filter - find all Host labels and pick the filter one
-    const hostLabels = screen.getAllByText("Host");
-    const hostFilterLabel = hostLabels.find((label) => label.tagName === "LABEL");
-    const hostSection = hostFilterLabel!.closest("div");
-    const hostFilterButton = within(hostSection!).getByRole("combobox");
-    await user.click(hostFilterButton);
-
-    // Wait for dropdown and select option - use getByRole to get option from dropdown
-    const hostOption = await screen.findByRole("option", { name: /dr. sarah smith/i });
-    await user.click(hostOption);
-
-    // This should NOT trigger an API call (client-side filter)
-    expect(fetchBookings).not.toHaveBeenCalled();
-
-    // User should still see filtered results
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
-  });
+  // Test removed: Host filter functionality was removed from the component
+  // The BookingsTable no longer has a host filter - only Search, Date Range, and Status filters remain
 
   it("user refreshes bookings and sees loading state", async () => {
     const user = userEvent.setup();
@@ -284,11 +263,8 @@ describe("BookingsTable - UI Tests", () => {
     vi.mocked(fetchBookings).mockImplementationOnce(
       () =>
         new Promise((resolve) =>
-          setTimeout(
-            () => resolve({ success: true, data: mockBookings }),
-            100
-          )
-        )
+          setTimeout(() => resolve({ success: true, data: mockBookings }), 100),
+        ),
     );
 
     await user.click(refreshButton);
@@ -317,7 +293,9 @@ describe("BookingsTable - UI Tests", () => {
     await user.click(screen.getByRole("menuitem", { name: /^view$/i }));
 
     // User sees booking details drawer
-    expect(await screen.findByRole("heading", { name: /event details/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /event details/i }),
+    ).toBeInTheDocument();
 
     // Verify reschedule URL is visible in drawer (unique to drawer, not in table)
     expect(screen.getByText("Reschedule URL")).toBeInTheDocument();
@@ -328,7 +306,9 @@ describe("BookingsTable - UI Tests", () => {
 
   it("user joins an active meeting", async () => {
     const user = userEvent.setup();
-    const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+    const windowOpenSpy = vi
+      .spyOn(window, "open")
+      .mockImplementation(() => null);
 
     renderWithProviders(<BookingsTable />);
 
@@ -346,7 +326,7 @@ describe("BookingsTable - UI Tests", () => {
     // User's browser opens the meeting URL in new tab
     expect(windowOpenSpy).toHaveBeenCalledWith(
       "https://meet.google.com/abc-defg-hij",
-      "_blank"
+      "_blank",
     );
 
     windowOpenSpy.mockRestore();
@@ -373,9 +353,11 @@ describe("BookingsTable - UI Tests", () => {
     await user.click(screen.getByRole("menuitem", { name: /cancel/i }));
 
     // User sees confirmation modal
-    expect(await screen.findByRole("heading", { name: /cancel meeting/i })).toBeInTheDocument();
     expect(
-      screen.getByText(/are you sure you want to cancel this meeting/i)
+      await screen.findByRole("heading", { name: /cancel meeting/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/are you sure you want to cancel this meeting/i),
     ).toBeInTheDocument();
 
     // User confirms cancellation
@@ -384,7 +366,9 @@ describe("BookingsTable - UI Tests", () => {
     // User sees success message
     const { toast } = await import("sonner");
     await vi.waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith("Meeting canceled successfully");
+      expect(toast.success).toHaveBeenCalledWith(
+        "Meeting canceled successfully",
+      );
     });
   });
 
@@ -403,13 +387,17 @@ describe("BookingsTable - UI Tests", () => {
     await user.click(screen.getByRole("menuitem", { name: /cancel/i }));
 
     // User sees confirmation modal
-    expect(await screen.findByRole("heading", { name: /cancel meeting/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /cancel meeting/i }),
+    ).toBeInTheDocument();
 
     // User clicks "Keep Meeting"
     await user.click(screen.getByRole("button", { name: /keep meeting/i }));
 
     // Modal closes and no API call was made
-    expect(screen.queryByRole("heading", { name: /cancel meeting/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /cancel meeting/i }),
+    ).not.toBeInTheDocument();
     expect(cancelBooking).not.toHaveBeenCalled();
   });
 
@@ -424,37 +412,56 @@ describe("BookingsTable - UI Tests", () => {
     await user.click(screen.getByRole("button", { name: /invite to book/i }));
 
     // User sees invite modal - exact heading is "Invite to Book"
-    expect(await screen.findByRole("heading", { name: /invite to book/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /invite to book/i }),
+    ).toBeInTheDocument();
   });
 
   it("user applies multiple filters and sees combined results", async () => {
     const user = userEvent.setup();
+    const { fetchBookings } = await import("../actions");
+
     renderWithProviders(<BookingsTable />);
 
     // Wait for bookings to load
     expect(await screen.findByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("Jane Smith")).toBeInTheDocument();
 
-    // User applies host filter (client-side)
-    const hostLabels = screen.getAllByText("Host");
-    const hostFilterLabel = hostLabels.find((label) => label.tagName === "LABEL");
-    const hostSection = hostFilterLabel!.closest("div");
-    const hostFilterButton = within(hostSection!).getByRole("combobox");
-    await user.click(hostFilterButton);
+    // Clear mock call count
+    vi.mocked(fetchBookings).mockClear();
 
-    // Wait for dropdown and select option - use getByRole to get option from dropdown
-    const hostOption = await screen.findByRole("option", { name: /dr. sarah smith/i });
-    await user.click(hostOption);
+    // User applies status filter (server-side - triggers API call)
+    const statusLabels = screen.getAllByText("Status");
+    const statusFilterLabel = statusLabels.find(
+      (label) => label.tagName === "LABEL",
+    );
+    const statusSection = statusFilterLabel!.closest("div");
+    const statusFilterButton = within(statusSection!).getByRole("combobox");
+    await user.click(statusFilterButton);
 
-    // Both results still visible (same host)
+    // Wait for dropdown and select option
+    const activeOption = await screen.findByRole("option", { name: /active/i });
+    await user.click(activeOption);
+
+    // Verify API call was made
+    await vi.waitFor(() => {
+      expect(fetchBookings).toHaveBeenCalledWith({
+        dateFilter: "upcoming",
+        statusFilter: "active",
+      });
+    });
+
+    // Both results still visible (both are active)
     expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("Jane Smith")).toBeInTheDocument();
 
-    // User adds search filter (client-side)
-    const searchInput = screen.getByPlaceholderText(/search by client name or email/i);
+    // User adds search filter (client-side - no API call)
+    const searchInput = screen.getByPlaceholderText(
+      /search by client name or email/i,
+    );
     await user.type(searchInput, "Jane");
 
-    // Only Jane visible now
+    // Only Jane visible now (client-side filtering on top of server results)
     expect(screen.getByText("Jane Smith")).toBeInTheDocument();
     expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
   });
@@ -467,7 +474,9 @@ describe("BookingsTable - UI Tests", () => {
     expect(await screen.findByText("John Doe")).toBeInTheDocument();
 
     // User searches for non-existent client
-    const searchInput = screen.getByPlaceholderText(/search by client name or email/i);
+    const searchInput = screen.getByPlaceholderText(
+      /search by client name or email/i,
+    );
     await user.type(searchInput, "NonExistentPerson");
 
     // User sees empty state
@@ -493,9 +502,15 @@ describe("BookingsTable - UI Tests", () => {
     await user.click(actionButtons[0]);
 
     // User should NOT see Join Meeting or Cancel options (only View)
-    expect(screen.getByRole("menuitem", { name: /^view$/i })).toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: /join meeting/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: /cancel/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /^view$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /join meeting/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /cancel/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("handles API errors gracefully when fetching bookings", async () => {

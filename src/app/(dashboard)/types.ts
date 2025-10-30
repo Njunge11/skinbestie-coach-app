@@ -28,7 +28,6 @@ export interface Booking {
 export interface BookingFilters {
   dateFilter: "all" | "upcoming" | "today" | "next7days";
   statusFilter: "all" | "active" | "canceled";
-  hostFilter?: string; // Client-side filter only
   searchQuery?: string; // Client-side filter only
 }
 

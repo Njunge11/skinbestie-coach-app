@@ -1,6 +1,11 @@
 import { db } from "@/lib/db";
 import { userProfiles } from "@/lib/db/schema";
+import { type UserProfileRow, type UserProfileInsert } from "@/lib/db/types";
 import { eq, or, and, ilike, sql, desc, asc, gte } from "drizzle-orm";
+
+// Repository-specific types derived from centralized types (TYPE_SYSTEM_GUIDE.md)
+export type UserProfile = UserProfileRow;
+export type NewUserProfile = UserProfileInsert;
 
 // Real repository implementation using Drizzle ORM
 export function makeUserProfilesRepo(database: typeof db) {
@@ -93,7 +98,12 @@ export function makeUserProfilesRepo(database: typeof db) {
           updatedAt: userProfiles.updatedAt,
         })
         .from(userProfiles)
-        .where(and(eq(userProfiles.email, email), eq(userProfiles.phoneNumber, phoneNumber)))
+        .where(
+          and(
+            eq(userProfiles.email, email),
+            eq(userProfiles.phoneNumber, phoneNumber),
+          ),
+        )
         .limit(1);
       return result[0] || null;
     },
@@ -124,17 +134,25 @@ export function makeUserProfilesRepo(database: typeof db) {
           updatedAt: userProfiles.updatedAt,
         })
         .from(userProfiles)
-        .where(or(eq(userProfiles.email, email), eq(userProfiles.phoneNumber, phoneNumber)))
+        .where(
+          or(
+            eq(userProfiles.email, email),
+            eq(userProfiles.phoneNumber, phoneNumber),
+          ),
+        )
         .limit(1);
       return result[0] || null;
     },
 
-    async create(data: typeof userProfiles.$inferInsert) {
-      const [row] = await database.insert(userProfiles).values(data).returning();
+    async create(data: NewUserProfile) {
+      const [row] = await database
+        .insert(userProfiles)
+        .values(data)
+        .returning();
       return row || null;
     },
 
-    async update(id: string, data: Partial<typeof userProfiles.$inferInsert>) {
+    async update(id: string, data: Partial<NewUserProfile>) {
       const [updated] = await database
         .update(userProfiles)
         .set(data)
@@ -153,7 +171,7 @@ export function makeUserProfilesRepo(database: typeof db) {
       limit?: number;
       offset?: number;
     }) {
-      const whereConditions: Parameters<typeof and>= [];
+      const whereConditions: Parameters<typeof and> = [];
 
       // Search filter (name or email)
       if (filters.searchQuery && filters.searchQuery.trim()) {
@@ -162,8 +180,8 @@ export function makeUserProfilesRepo(database: typeof db) {
           or(
             ilike(userProfiles.firstName, searchTerm),
             ilike(userProfiles.lastName, searchTerm),
-            ilike(userProfiles.email, searchTerm)
-          )!
+            ilike(userProfiles.email, searchTerm),
+          )!,
         );
       }
 
@@ -181,18 +199,21 @@ export function makeUserProfilesRepo(database: typeof db) {
         whereConditions.push(
           or(
             eq(userProfiles.isSubscribed, false),
-            sql`${userProfiles.isSubscribed} IS NULL`
-          )!
+            sql`${userProfiles.isSubscribed} IS NULL`,
+          )!,
         );
       }
 
       // Date range filter
       if (filters.dateRangeStart) {
-        whereConditions.push(gte(userProfiles.createdAt, filters.dateRangeStart));
+        whereConditions.push(
+          gte(userProfiles.createdAt, filters.dateRangeStart),
+        );
       }
 
       // Combine WHERE conditions
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+      const whereClause =
+        whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
       // Build ORDER BY clause
       const orderByClause =
@@ -224,6 +245,7 @@ export function makeUserProfilesRepo(database: typeof db) {
           allergyDetails: userProfiles.allergyDetails,
           isSubscribed: userProfiles.isSubscribed,
           hasCompletedBooking: userProfiles.hasCompletedBooking,
+          hasCompletedSkinTest: userProfiles.hasCompletedSkinTest,
           occupation: userProfiles.occupation,
           bio: userProfiles.bio,
           timezone: userProfiles.timezone,

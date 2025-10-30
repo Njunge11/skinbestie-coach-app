@@ -48,22 +48,29 @@ interface TemplateListProps {
   onCreateClick: () => void;
 }
 
-export function TemplateList({ templates, templateDetails: initialTemplateDetails, onCreateClick }: TemplateListProps) {
+export function TemplateList({
+  templates,
+  templateDetails: initialTemplateDetails,
+  onCreateClick,
+}: TemplateListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
-  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(
+    null,
+  );
   const router = useRouter();
 
   // Optimistic updates - use prop directly as source of truth
-  const [optimisticTemplateDetails, setOptimisticTemplateDetails] = useOptimistic(
-    initialTemplateDetails,
-    (_state, newDetails: Record<string, TemplateDetails>) => newDetails
-  );
+  const [optimisticTemplateDetails, setOptimisticTemplateDetails] =
+    useOptimistic(
+      initialTemplateDetails,
+      (_state, newDetails: Record<string, TemplateDetails>) => newDetails,
+    );
 
   const formatDate = (date: Date) => {
     const now = new Date();
     const diffInDays = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (diffInDays === 0) return "Today";
@@ -86,7 +93,10 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
     setEditingTemplate(template);
   };
 
-  const handleUpdateTemplate = async (data: { name: string; description: string | null }) => {
+  const handleUpdateTemplate = async (data: {
+    name: string;
+    description: string | null;
+  }) => {
     if (!editingTemplate) return;
 
     const result = await updateTemplate(editingTemplate.id, data);
@@ -135,7 +145,8 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
       {templates.map((template) => {
         const isExpanded = expandedId === template.id;
         const details = optimisticTemplateDetails[template.id];
-        const totalProducts = template.morningProducts + template.eveningProducts;
+        const totalProducts =
+          template.morningProducts + template.eveningProducts;
 
         return (
           <Card key={template.id} className="overflow-hidden">
@@ -160,7 +171,8 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
                   )}
                   <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                     <span>
-                      {template.morningProducts} morning · {template.eveningProducts} evening
+                      {template.morningProducts} morning ·{" "}
+                      {template.eveningProducts} evening
                       {totalProducts === 1 ? " product" : " products"}
                     </span>
                     <span>·</span>
@@ -241,8 +253,10 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
                         ...initialTemplateDetails,
                         [template.id]: {
                           ...initialTemplateDetails[template.id],
-                          morning: details.morning.map(p =>
-                            p.id === id ? { ...p, ...data, days: data.days || null } : p
+                          morning: details.morning.map((p) =>
+                            p.id === id
+                              ? { ...p, ...data, days: data.days || null }
+                              : p,
                           ),
                         },
                       };
@@ -265,7 +279,7 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
                         ...initialTemplateDetails,
                         [template.id]: {
                           ...initialTemplateDetails[template.id],
-                          morning: details.morning.filter(p => p.id !== id),
+                          morning: details.morning.filter((p) => p.id !== id),
                         },
                       };
 
@@ -282,8 +296,6 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
                       }
                     }}
                     onReorder={async (reorderedProducts: Product[]) => {
-                      console.log(`🎯 TEMPLATE REORDER (${template.id}, morning)`);
-
                       // Update optimistically
                       const newDetails = {
                         ...initialTemplateDetails,
@@ -295,19 +307,17 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
 
                       startTransition(() => {
                         setOptimisticTemplateDetails(newDetails);
-                        console.log("🟢 Optimistic update applied");
                       });
 
                       const productIds = reorderedProducts.map((p) => p.id);
                       const result = await reorderTemplateProducts(
                         template.id,
                         "morning",
-                        productIds
+                        productIds,
                       );
 
                       if (result.success) {
                         router.refresh();
-                        console.log("✅ Server synced");
                       } else {
                         toast.error(result.error);
                       }
@@ -362,8 +372,10 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
                         ...initialTemplateDetails,
                         [template.id]: {
                           ...initialTemplateDetails[template.id],
-                          evening: details.evening.map(p =>
-                            p.id === id ? { ...p, ...data, days: data.days || null } : p
+                          evening: details.evening.map((p) =>
+                            p.id === id
+                              ? { ...p, ...data, days: data.days || null }
+                              : p,
                           ),
                         },
                       };
@@ -386,7 +398,7 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
                         ...initialTemplateDetails,
                         [template.id]: {
                           ...initialTemplateDetails[template.id],
-                          evening: details.evening.filter(p => p.id !== id),
+                          evening: details.evening.filter((p) => p.id !== id),
                         },
                       };
 
@@ -403,8 +415,6 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
                       }
                     }}
                     onReorder={async (reorderedProducts: Product[]) => {
-                      console.log(`🎯 TEMPLATE REORDER (${template.id}, evening)`);
-
                       // Update optimistically
                       const newDetails = {
                         ...initialTemplateDetails,
@@ -416,19 +426,17 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
 
                       startTransition(() => {
                         setOptimisticTemplateDetails(newDetails);
-                        console.log("🟢 Optimistic update applied");
                       });
 
                       const productIds = reorderedProducts.map((p) => p.id);
                       const result = await reorderTemplateProducts(
                         template.id,
                         "evening",
-                        productIds
+                        productIds,
                       );
 
                       if (result.success) {
                         router.refresh();
-                        console.log("✅ Server synced");
                       } else {
                         toast.error(result.error);
                       }
@@ -450,13 +458,16 @@ export function TemplateList({ templates, templateDetails: initialTemplateDetail
       />
 
       {/* Delete Template Confirmation Dialog */}
-      <Dialog open={!!deletingTemplateId} onOpenChange={(open) => !open && setDeletingTemplateId(null)}>
+      <Dialog
+        open={!!deletingTemplateId}
+        onOpenChange={(open) => !open && setDeletingTemplateId(null)}
+      >
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>Delete Template?</DialogTitle>
             <DialogDescription>
-              This will permanently delete the template and all associated products.
-              This action cannot be undone.
+              This will permanently delete the template and all associated
+              products. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

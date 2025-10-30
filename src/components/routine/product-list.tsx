@@ -49,10 +49,14 @@ export function ProductList({
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleAdd = () => {
@@ -105,9 +109,11 @@ export function ProductList({
   return (
     <div>
       <div className="flex items-center gap-2 mb-3">
-        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-          timeOfDay === "morning" ? "bg-amber-100" : "bg-indigo-100"
-        }`}>
+        <div
+          className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+            timeOfDay === "morning" ? "bg-amber-100" : "bg-indigo-100"
+          }`}
+        >
           {timeOfDay === "morning" ? "☀️" : "🌙"}
         </div>
         <span className="text-sm font-medium text-gray-900">

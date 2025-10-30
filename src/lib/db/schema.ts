@@ -1,523 +1,649 @@
-import { pgTable, text, timestamp, boolean, uuid, varchar, date, uniqueIndex, index, integer, pgEnum, primaryKey } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
-import type { AdapterAccountType } from 'next-auth/adapters';
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  uuid,
+  varchar,
+  date,
+  uniqueIndex,
+  index,
+  integer,
+  pgEnum,
+  primaryKey,
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import type { AdapterAccountType } from "next-auth/adapters";
 
 // PostgreSQL Enums for type safety
-export const adminRoleEnum = pgEnum('admin_role', ['admin', 'superadmin']);
-export const routineStatusEnum = pgEnum('routine_status', ['draft', 'published']);
-export const frequencyEnum = pgEnum('frequency', ['daily', '2x per week', '3x per week', 'specific_days']);
-export const timeOfDayEnum = pgEnum('time_of_day', ['morning', 'evening']);
-export const completionStatusEnum = pgEnum('completion_status', ['pending', 'on-time', 'late', 'missed']);
+export const adminRoleEnum = pgEnum("admin_role", ["admin", "superadmin"]);
+export const routineStatusEnum = pgEnum("routine_status", [
+  "draft",
+  "published",
+]);
+export const frequencyEnum = pgEnum("frequency", [
+  "daily",
+  "2x per week",
+  "3x per week",
+  "specific_days",
+]);
+export const timeOfDayEnum = pgEnum("time_of_day", ["morning", "evening"]);
+export const completionStatusEnum = pgEnum("completion_status", [
+  "pending",
+  "on-time",
+  "late",
+  "missed",
+]);
+export const goalTemplateStatusEnum = pgEnum("goal_template_status", [
+  "published",
+  "unpublished",
+]);
+export const goalPriorityEnum = pgEnum("goal_priority", [
+  "none",
+  "low",
+  "medium",
+  "high",
+]);
 
 // ============================================
 // NextAuth.js Tables (for email magic link authentication)
 // ============================================
 
-export const users = pgTable('user', {
-  id: text('id')
+export const users = pgTable("user", {
+  id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  name: text('name'),
-  email: text('email').notNull().unique(),
-  emailVerified: timestamp('emailVerified', { mode: 'date' }),
-  image: text('image'),
+  name: text("name"),
+  email: text("email").notNull().unique(),
+  emailVerified: timestamp("emailVerified", { mode: "date" }),
+  image: text("image"),
 });
 
 export const accounts = pgTable(
-  'account',
+  "account",
   {
-    userId: text('userId')
+    userId: text("userId")
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    type: text('type').$type<AdapterAccountType>().notNull(),
-    provider: text('provider').notNull(),
-    providerAccountId: text('providerAccountId').notNull(),
-    refresh_token: text('refresh_token'),
-    access_token: text('access_token'),
-    expires_at: integer('expires_at'),
-    token_type: text('token_type'),
-    scope: text('scope'),
-    id_token: text('id_token'),
-    session_state: text('session_state'),
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").$type<AdapterAccountType>().notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("providerAccountId").notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    session_state: text("session_state"),
   },
   (account) => ({
     compoundKey: primaryKey({
       columns: [account.provider, account.providerAccountId],
     }),
-  })
+  }),
 );
 
 export const verificationTokens = pgTable(
-  'verificationToken',
+  "verificationToken",
   {
-    identifier: text('identifier').notNull(),
-    token: text('token').notNull(),
-    expires: timestamp('expires', { mode: 'date' }).notNull(),
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (verificationToken) => ({
     compositePk: primaryKey({
       columns: [verificationToken.identifier, verificationToken.token],
     }),
-  })
+  }),
 );
 
 // ============================================
 // Admin Tables
 // ============================================
 
-export const admins = pgTable('admins', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  email: text('email').notNull().unique(),
-  name: text('name'),
-  passwordHash: text('password_hash'),
-  passwordSet: boolean('password_set').notNull().default(false),
-  role: adminRoleEnum('role').notNull().default('admin'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+export const admins = pgTable("admins", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  passwordHash: text("password_hash"),
+  passwordSet: boolean("password_set").notNull().default(false),
+  role: adminRoleEnum("role").notNull().default("admin"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const verificationCodes = pgTable(
-  'verification_codes',
+  "verification_codes",
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    adminId: uuid('admin_id')
+    id: uuid("id").defaultRandom().primaryKey(),
+    adminId: uuid("admin_id")
       .notNull()
-      .references(() => admins.id, { onDelete: 'cascade' }),
-    codeHash: text('code_hash').notNull().unique(),
-    expiresAt: timestamp('expires_at').notNull(),
-    used: boolean('used').notNull().default(false),
-    usedAt: timestamp('used_at'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+      .references(() => admins.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    used: boolean("used").notNull().default(false),
+    usedAt: timestamp("used_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({
     // Index for efficient queries by admin
-    adminIdx: index('verification_codes_admin_idx').on(table.adminId),
-  })
+    adminIdx: index("verification_codes_admin_idx").on(table.adminId),
+  }),
 );
 
 export const userProfiles = pgTable(
-  'user_profiles',
+  "user_profiles",
   {
     // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom(),
 
     // Foreign Key to auth user (1:1 mapping)
-    userId: text('user_id')
+    userId: text("user_id")
       .unique()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => users.id, { onDelete: "cascade" }),
 
     // Step 1 - Always required
-    firstName: varchar('first_name', { length: 120 }).notNull(),
-    lastName: varchar('last_name', { length: 120 }).notNull(),
-    email: varchar('email', { length: 255 }).notNull(),
-    phoneNumber: varchar('phone_number', { length: 32 }).notNull(),
-    dateOfBirth: date('date_of_birth', { mode: 'date' }).notNull(),
+    firstName: varchar("first_name", { length: 120 }).notNull(),
+    lastName: varchar("last_name", { length: 120 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    phoneNumber: varchar("phone_number", { length: 32 }).notNull(),
+    dateOfBirth: date("date_of_birth", { mode: "date" }).notNull(),
 
     // Step 2 - Nullable until completed
-    skinType: text('skin_type').array().$type<string[]>(),
+    skinType: text("skin_type").array().$type<string[]>(),
 
     // Step 3 - Nullable until completed
-    concerns: text('concerns').array().$type<string[]>(),
+    concerns: text("concerns").array().$type<string[]>(),
 
     // Step 4 - Nullable until completed
-    hasAllergies: boolean('has_allergies'),
-    allergyDetails: text('allergy_details'),
+    hasAllergies: boolean("has_allergies"),
+    allergyDetails: text("allergy_details"),
 
     // Step 5 - Nullable until completed
-    isSubscribed: boolean('is_subscribed'),
+    isSubscribed: boolean("is_subscribed"),
 
     // Step 6 - Nullable until completed
-    hasCompletedBooking: boolean('has_completed_booking'),
+    hasCompletedBooking: boolean("has_completed_booking"),
+
+    // Skin test completion tracking
+    hasCompletedSkinTest: boolean("has_completed_skin_test"),
 
     // Additional profile fields
-    occupation: text('occupation'),
-    bio: text('bio'),
+    nickname: text("nickname"),
+    occupation: text("occupation"),
+    bio: text("bio"),
 
     // Timezone for compliance tracking
-    timezone: text('timezone').notNull().default('Europe/London'), // IANA timezone
+    timezone: text("timezone").notNull().default("Europe/London"), // IANA timezone
 
     // Tracking fields
-    completedSteps: text('completed_steps')
+    completedSteps: text("completed_steps")
       .array()
       .$type<string[]>()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
-    isCompleted: boolean('is_completed').notNull().default(false),
-    completedAt: timestamp('completed_at', { withTimezone: true }),
+    isCompleted: boolean("is_completed").notNull().default(false),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
 
     // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => ({
-    emailIdx: uniqueIndex('user_profiles_email_idx').on(table.email),
-    phoneIdx: uniqueIndex('user_profiles_phone_idx').on(table.phoneNumber),
+    emailIdx: uniqueIndex("user_profiles_email_idx").on(table.email),
+    phoneIdx: uniqueIndex("user_profiles_phone_idx").on(table.phoneNumber),
     // Index for name-based searches and sorting
-    nameIdx: index('user_profiles_name_idx').on(table.firstName, table.lastName),
-  })
+    nameIdx: index("user_profiles_name_idx").on(
+      table.firstName,
+      table.lastName,
+    ),
+  }),
+);
+
+export const skinGoalsTemplate = pgTable(
+  "skin_goals_template",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Key to user (one template per user)
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
+
+    // Status
+    status: goalTemplateStatusEnum("status").notNull().default("unpublished"),
+
+    // Client acknowledgement
+    goalsAcknowledgedByClient: boolean("goals_acknowledged_by_client")
+      .notNull()
+      .default(false),
+
+    // Admin tracking
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => admins.id, { onDelete: "restrict" }),
+    updatedBy: uuid("updated_by")
+      .notNull()
+      .references(() => admins.id, { onDelete: "restrict" }),
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Unique index for user_id (enforces one template per user)
+    userIdIdx: uniqueIndex("skin_goals_template_user_id_idx").on(table.userId),
+    // Index for filtering by status
+    statusIdx: index("skin_goals_template_status_idx").on(table.status),
+    // Index for tracking who created templates
+    createdByIdx: index("skin_goals_template_created_by_idx").on(
+      table.createdBy,
+    ),
+  }),
 );
 
 export const skincareGoals = pgTable(
-  'skincare_goals',
+  "skincare_goals",
   {
     // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
-
-    // Foreign Key to user
-    userProfileId: uuid('user_profile_id')
-      .notNull()
-      .references(() => userProfiles.id, { onDelete: 'cascade' }),
-
-    // Goal fields (all required)
-    name: text('name').notNull(),
-    description: text('description').notNull(),
-    timeframe: text('timeframe').notNull(),
-
-    // Status
-    complete: boolean('complete').notNull().default(false),
-
-    // Ordering/Priority (for drag-and-drop reordering)
-    order: integer('order').notNull(),
-
-    // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    // Index for efficient queries by user
-    userProfileIdx: index('skincare_goals_user_profile_idx').on(table.userProfileId),
-    // Index for ordering/drag-drop operations
-    orderIdx: index('skincare_goals_order_idx').on(table.order),
-  })
-);
-
-export const skincareRoutines = pgTable(
-  'skincare_routines',
-  {
-    // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
-
-    // Foreign Key to user
-    userProfileId: uuid('user_profile_id')
-      .notNull()
-      .references(() => userProfiles.id, { onDelete: 'cascade' }),
-
-    // Routine details
-    name: text('name').notNull(),
-    startDate: date('start_date', { mode: 'date' }).notNull(),
-    endDate: date('end_date', { mode: 'date' }), // Optional - null means ongoing
-    status: routineStatusEnum('status').notNull().default('draft'), // "draft" or "published"
-
-    // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    // Index for efficient queries by user
-    userProfileIdx: index('skincare_routines_user_profile_idx').on(table.userProfileId),
-    // Index for filtering by status (draft vs published)
-    statusIdx: index('skincare_routines_status_idx').on(table.status),
-  })
-);
-
-export const skincareRoutineProducts = pgTable(
-  'skincare_routine_products',
-  {
-    // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
-
-    // Foreign Keys
-    routineId: uuid('routine_id')
-      .notNull()
-      .references(() => skincareRoutines.id, { onDelete: 'cascade' }),
-    userProfileId: uuid('user_profile_id')
-      .notNull()
-      .references(() => userProfiles.id, { onDelete: 'cascade' }),
-
-    // Product details (all required except productUrl)
-    routineStep: text('routine_step').notNull(),
-    productName: text('product_name').notNull(),
-    productUrl: text('product_url'), // Optional link to product
-    instructions: text('instructions').notNull(),
-
-    // Frequency and scheduling
-    frequency: frequencyEnum('frequency').notNull(), // "daily", "2x per week", "3x per week", "specific_days"
-    days: text('days').array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
-
-    // Timing and ordering
-    timeOfDay: timeOfDayEnum('time_of_day').notNull(), // "morning" or "evening"
-    order: integer('order').notNull(), // Sequence within the time of day
-
-    // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    // Index for efficient queries by routine
-    routineIdx: index('skincare_routine_products_routine_idx').on(table.routineId),
-    // Index for efficient queries by user
-    userProfileIdx: index('skincare_routine_products_user_profile_idx').on(table.userProfileId),
-    // Index for ordering by time of day
-    timeOrderIdx: index('skincare_routine_products_time_order_idx').on(table.timeOfDay, table.order),
-
-    // Unique constraint to prevent duplicate order values per routine per time of day
-    uniqueOrderPerRoutineAndTime: uniqueIndex('skincare_routine_products_routine_time_order_idx').on(
-      table.routineId,
-      table.timeOfDay,
-      table.order
-    ),
-  })
-);
-
-export const routineTemplates = pgTable(
-  'routine_templates',
-  {
-    // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
-
-    // Template details
-    name: text('name').notNull(),
-    description: text('description'), // Optional: what this routine is for (e.g., "Acne treatment routine", "Anti-aging routine")
-
-    // Track who created this template
-    createdBy: uuid('created_by').references(() => admins.id, { onDelete: 'set null' }),
-
-    // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    // Index for efficient queries by creator
-    createdByIdx: index('routine_templates_created_by_idx').on(table.createdBy),
-    // Index for searching/filtering templates by name
-    nameIdx: index('routine_templates_name_idx').on(table.name),
-  })
-);
-
-export const routineTemplateProducts = pgTable(
-  'routine_template_products',
-  {
-    // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom(),
 
     // Foreign Key to template
-    templateId: uuid('template_id')
+    templateId: uuid("template_id")
       .notNull()
-      .references(() => routineTemplates.id, { onDelete: 'cascade' }),
+      .references(() => skinGoalsTemplate.id, { onDelete: "cascade" }),
 
-    // Product details (same as skincareRoutineProducts)
-    routineStep: text('routine_step').notNull(),
-    productName: text('product_name').notNull(),
-    productUrl: text('product_url'), // Optional link to product
-    instructions: text('instructions').notNull(),
+    // Goal content - only description now
+    description: text("description").notNull(),
 
-    // Frequency and scheduling
-    frequency: frequencyEnum('frequency').notNull(), // "daily", "2x per week", "3x per week", "specific_days"
-    days: text('days').array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
+    // Primary goal flag - only one goal per user can be primary
+    isPrimaryGoal: boolean("is_primary_goal").notNull().default(false),
 
-    // Timing and ordering
-    timeOfDay: timeOfDayEnum('time_of_day').notNull(), // "morning" or "evening"
-    order: integer('order').notNull(), // Sequence within the time of day
+    // Completion tracking
+    complete: boolean("complete").notNull().default(false),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+
+    // Ordering/Priority (for drag-and-drop reordering)
+    order: integer("order").notNull(),
 
     // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => ({
     // Index for efficient queries by template
-    templateIdx: index('routine_template_products_template_idx').on(table.templateId),
+    templateIdx: index("skincare_goals_template_idx").on(table.templateId),
     // Index for ordering/drag-drop operations
-    orderIdx: index('routine_template_products_order_idx').on(table.order),
+    orderIdx: index("skincare_goals_order_idx").on(table.order),
+    // Note: Unique constraint on (templateId, order) is handled by a deferrable constraint
+    // created via custom migration 0021_fix-goals-deferrable-constraint.sql
+    // This allows for atomic reordering operations within transactions
+  }),
+);
+
+export const skincareRoutines = pgTable(
+  "skincare_routines",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Key to user
+    userProfileId: uuid("user_profile_id")
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
+
+    // Routine details
+    name: text("name").notNull(),
+    startDate: date("start_date", { mode: "date" }).notNull(),
+    endDate: date("end_date", { mode: "date" }), // Optional - null means ongoing
+    status: routineStatusEnum("status").notNull().default("draft"), // "draft" or "published"
+    productPurchaseInstructions: text("product_purchase_instructions"), // Optional instructions for purchasing products
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user
+    userProfileIdx: index("skincare_routines_user_profile_idx").on(
+      table.userProfileId,
+    ),
+    // Index for filtering by status (draft vs published)
+    statusIdx: index("skincare_routines_status_idx").on(table.status),
+  }),
+);
+
+export const skincareRoutineProducts = pgTable(
+  "skincare_routine_products",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Keys
+    routineId: uuid("routine_id")
+      .notNull()
+      .references(() => skincareRoutines.id, { onDelete: "cascade" }),
+    userProfileId: uuid("user_profile_id")
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
+
+    // Product details (all required except productUrl and productPurchaseInstructions)
+    routineStep: text("routine_step").notNull(),
+    productName: text("product_name").notNull(),
+    productUrl: text("product_url"), // Optional link to product
+    instructions: text("instructions").notNull(),
+    productPurchaseInstructions: text("product_purchase_instructions"), // Optional instructions for purchasing this product
+
+    // Frequency and scheduling
+    frequency: frequencyEnum("frequency").notNull(), // "daily", "2x per week", "3x per week", "specific_days"
+    days: text("days").array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
+
+    // Timing and ordering
+    timeOfDay: timeOfDayEnum("time_of_day").notNull(), // "morning" or "evening"
+    order: integer("order").notNull(), // Sequence within the time of day
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by routine
+    routineIdx: index("skincare_routine_products_routine_idx").on(
+      table.routineId,
+    ),
+    // Index for efficient queries by user
+    userProfileIdx: index("skincare_routine_products_user_profile_idx").on(
+      table.userProfileId,
+    ),
+    // Index for ordering by time of day
+    timeOrderIdx: index("skincare_routine_products_time_order_idx").on(
+      table.timeOfDay,
+      table.order,
+    ),
+
+    // Unique constraint to prevent duplicate order values per routine per time of day
+    uniqueOrderPerRoutineAndTime: uniqueIndex(
+      "skincare_routine_products_routine_time_order_idx",
+    ).on(table.routineId, table.timeOfDay, table.order),
+  }),
+);
+
+export const routineTemplates = pgTable(
+  "routine_templates",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Template details
+    name: text("name").notNull(),
+    description: text("description"), // Optional: what this routine is for (e.g., "Acne treatment routine", "Anti-aging routine")
+
+    // Track who created this template
+    createdBy: uuid("created_by").references(() => admins.id, {
+      onDelete: "set null",
+    }),
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by creator
+    createdByIdx: index("routine_templates_created_by_idx").on(table.createdBy),
+    // Index for searching/filtering templates by name
+    nameIdx: index("routine_templates_name_idx").on(table.name),
+  }),
+);
+
+export const routineTemplateProducts = pgTable(
+  "routine_template_products",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Key to template
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => routineTemplates.id, { onDelete: "cascade" }),
+
+    // Product details (same as skincareRoutineProducts)
+    routineStep: text("routine_step").notNull(),
+    productName: text("product_name").notNull(),
+    productUrl: text("product_url"), // Optional link to product
+    instructions: text("instructions").notNull(),
+
+    // Frequency and scheduling
+    frequency: frequencyEnum("frequency").notNull(), // "daily", "2x per week", "3x per week", "specific_days"
+    days: text("days").array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
+
+    // Timing and ordering
+    timeOfDay: timeOfDayEnum("time_of_day").notNull(), // "morning" or "evening"
+    order: integer("order").notNull(), // Sequence within the time of day
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by template
+    templateIdx: index("routine_template_products_template_idx").on(
+      table.templateId,
+    ),
+    // Index for ordering/drag-drop operations
+    orderIdx: index("routine_template_products_order_idx").on(table.order),
 
     // Unique constraint to prevent duplicate order values per template per time of day
-    uniqueOrderPerTemplateAndTime: uniqueIndex('routine_template_products_template_time_order_idx').on(
-      table.templateId,
-      table.timeOfDay,
-      table.order
-    ),
-  })
+    uniqueOrderPerTemplateAndTime: uniqueIndex(
+      "routine_template_products_template_time_order_idx",
+    ).on(table.templateId, table.timeOfDay, table.order),
+  }),
 );
 
 export const coachNotes = pgTable(
-  'coach_notes',
+  "coach_notes",
   {
     // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom(),
 
     // Foreign Keys
-    userProfileId: uuid('user_profile_id')
+    userProfileId: uuid("user_profile_id")
       .notNull()
-      .references(() => userProfiles.id, { onDelete: 'cascade' }),
-    adminId: uuid('admin_id')
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
+    adminId: uuid("admin_id")
       .notNull()
-      .references(() => admins.id, { onDelete: 'cascade' }),
+      .references(() => admins.id, { onDelete: "cascade" }),
 
     // Note content
-    content: text('content').notNull(),
+    content: text("content").notNull(),
 
     // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => ({
     // Index for efficient queries by user profile
-    userProfileIdx: index('coach_notes_user_profile_idx').on(table.userProfileId),
+    userProfileIdx: index("coach_notes_user_profile_idx").on(
+      table.userProfileId,
+    ),
     // Index for efficient queries by admin
-    adminIdx: index('coach_notes_admin_idx').on(table.adminId),
+    adminIdx: index("coach_notes_admin_idx").on(table.adminId),
     // Composite index for user profile + created_at DESC (optimized for ORDER BY query)
-    byUserCreatedAt: index('coach_notes_user_profile_id_created_at_idx')
-      .on(table.userProfileId, table.createdAt.desc()),
-  })
+    byUserCreatedAt: index("coach_notes_user_profile_id_created_at_idx").on(
+      table.userProfileId,
+      table.createdAt.desc(),
+    ),
+  }),
 );
 
 export const progressPhotos = pgTable(
-  'progress_photos',
+  "progress_photos",
   {
     // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom(),
 
     // Foreign Key to user
-    userProfileId: uuid('user_profile_id')
+    userProfileId: uuid("user_profile_id")
       .notNull()
-      .references(() => userProfiles.id, { onDelete: 'cascade' }),
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
 
     // Image storage
-    imageUrl: text('image_url').notNull(),
+    imageUrl: text("image_url").notNull(),
 
     // Metadata
-    weekNumber: integer('week_number').notNull(),
-    uploadedAt: timestamp('uploaded_at', { withTimezone: true })
+    weekNumber: integer("week_number").notNull(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
 
     // Coach feedback
-    feedback: text('feedback'), // Nullable - can be added later
+    feedback: text("feedback"), // Nullable - can be added later
 
     // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => ({
     // Index for efficient queries by user
-    userProfileIdx: index('progress_photos_user_profile_idx').on(table.userProfileId),
+    userProfileIdx: index("progress_photos_user_profile_idx").on(
+      table.userProfileId,
+    ),
 
     // Index for chronological ordering
-    uploadedAtIdx: index('progress_photos_uploaded_at_idx').on(table.uploadedAt),
+    uploadedAtIdx: index("progress_photos_uploaded_at_idx").on(
+      table.uploadedAt,
+    ),
 
     // Composite index for user + week queries
-    userWeekIdx: index('progress_photos_user_week_idx').on(
+    userWeekIdx: index("progress_photos_user_week_idx").on(
       table.userProfileId,
-      table.weekNumber
+      table.weekNumber,
     ),
 
     // Composite index for user profile + uploaded_at DESC (optimized for ORDER BY query)
-    byUserUploadedAt: index('progress_photos_user_profile_id_uploaded_at_idx')
-      .on(table.userProfileId, table.uploadedAt.desc()),
-  })
+    byUserUploadedAt: index(
+      "progress_photos_user_profile_id_uploaded_at_idx",
+    ).on(table.userProfileId, table.uploadedAt.desc()),
+  }),
 );
 
 export const routineStepCompletions = pgTable(
-  'routine_step_completions',
+  "routine_step_completions",
   {
     // Primary Key
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom(),
 
     // Foreign Keys
-    routineProductId: uuid('routine_product_id')
+    routineProductId: uuid("routine_product_id")
       .notNull()
-      .references(() => skincareRoutineProducts.id, { onDelete: 'cascade' }),
-    userProfileId: uuid('user_profile_id')
+      .references(() => skincareRoutineProducts.id, { onDelete: "cascade" }),
+    userProfileId: uuid("user_profile_id")
       .notNull()
-      .references(() => userProfiles.id, { onDelete: 'cascade' }),
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
 
     // Scheduling information
-    scheduledDate: date('scheduled_date', { mode: 'date' }).notNull(),
-    scheduledTimeOfDay: timeOfDayEnum('scheduled_time_of_day').notNull(), // 'morning' | 'evening'
+    scheduledDate: date("scheduled_date", { mode: "date" }).notNull(),
+    scheduledTimeOfDay: timeOfDayEnum("scheduled_time_of_day").notNull(), // 'morning' | 'evening'
 
     // Precomputed deadlines (makes queries fast and simple)
     // These are calculated based on scheduledDate + user's timezone
-    onTimeDeadline: timestamp('on_time_deadline', { withTimezone: true }).notNull(),
-    gracePeriodEnd: timestamp('grace_period_end', { withTimezone: true }).notNull(),
+    onTimeDeadline: timestamp("on_time_deadline", {
+      withTimezone: true,
+    }).notNull(),
+    gracePeriodEnd: timestamp("grace_period_end", {
+      withTimezone: true,
+    }).notNull(),
 
     // Completion information
-    completedAt: timestamp('completed_at', { withTimezone: true }), // null = not completed yet
-    status: completionStatusEnum('status').notNull().default('pending'), // 'pending' | 'on-time' | 'late' | 'missed'
+    completedAt: timestamp("completed_at", { withTimezone: true }), // null = not completed yet
+    status: completionStatusEnum("status").notNull().default("pending"), // 'pending' | 'on-time' | 'late' | 'missed'
 
     // Timestamps
-    createdAt: timestamp('created_at', { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => ({
     // Index for efficient queries by user
-    userProfileIdx: index('routine_step_completions_user_idx').on(table.userProfileId),
+    userProfileIdx: index("routine_step_completions_user_idx").on(
+      table.userProfileId,
+    ),
 
     // Index for efficient queries by routine product
-    routineProductIdx: index('routine_step_completions_product_idx').on(table.routineProductId),
+    routineProductIdx: index("routine_step_completions_product_idx").on(
+      table.routineProductId,
+    ),
 
     // Index for date-based queries
-    scheduledDateIdx: index('routine_step_completions_date_idx').on(table.scheduledDate),
+    scheduledDateIdx: index("routine_step_completions_date_idx").on(
+      table.scheduledDate,
+    ),
 
     // Composite index for getting user's daily routine
-    userDateIdx: index('routine_step_completions_user_date_idx').on(
+    userDateIdx: index("routine_step_completions_user_date_idx").on(
       table.userProfileId,
-      table.scheduledDate
+      table.scheduledDate,
     ),
 
     // Composite index for lazy marking missed steps
-    statusGracePeriodIdx: index('routine_step_completions_status_grace_idx').on(
+    statusGracePeriodIdx: index("routine_step_completions_status_grace_idx").on(
       table.status,
-      table.gracePeriodEnd
+      table.gracePeriodEnd,
     ),
 
     // Composite index for compliance date range queries
-    userDateRangeIdx: index('routine_step_completions_user_date_range_idx').on(
+    userDateRangeIdx: index("routine_step_completions_user_date_range_idx").on(
       table.userProfileId,
       table.scheduledDate,
-      table.status
+      table.status,
     ),
 
     // Prevent duplicate scheduled steps for same product on same date
-    uniqueSchedule: uniqueIndex('routine_step_completions_unique_schedule').on(
+    uniqueSchedule: uniqueIndex("routine_step_completions_unique_schedule").on(
       table.routineProductId,
-      table.scheduledDate
+      table.scheduledDate,
     ),
-  })
+  }),
 );
 
 // Type exports for TypeScript
@@ -537,19 +663,26 @@ export type VerificationCode = typeof verificationCodes.$inferSelect;
 export type NewVerificationCode = typeof verificationCodes.$inferInsert;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type NewUserProfile = typeof userProfiles.$inferInsert;
+export type SkinGoalsTemplate = typeof skinGoalsTemplate.$inferSelect;
+export type NewSkinGoalsTemplate = typeof skinGoalsTemplate.$inferInsert;
 export type SkincareGoal = typeof skincareGoals.$inferSelect;
 export type NewSkincareGoal = typeof skincareGoals.$inferInsert;
 export type SkincareRoutine = typeof skincareRoutines.$inferSelect;
 export type NewSkincareRoutine = typeof skincareRoutines.$inferInsert;
-export type SkincareRoutineProduct = typeof skincareRoutineProducts.$inferSelect;
-export type NewSkincareRoutineProduct = typeof skincareRoutineProducts.$inferInsert;
+export type SkincareRoutineProduct =
+  typeof skincareRoutineProducts.$inferSelect;
+export type NewSkincareRoutineProduct =
+  typeof skincareRoutineProducts.$inferInsert;
 export type RoutineTemplate = typeof routineTemplates.$inferSelect;
 export type NewRoutineTemplate = typeof routineTemplates.$inferInsert;
-export type RoutineTemplateProduct = typeof routineTemplateProducts.$inferSelect;
-export type NewRoutineTemplateProduct = typeof routineTemplateProducts.$inferInsert;
+export type RoutineTemplateProduct =
+  typeof routineTemplateProducts.$inferSelect;
+export type NewRoutineTemplateProduct =
+  typeof routineTemplateProducts.$inferInsert;
 export type CoachNote = typeof coachNotes.$inferSelect;
 export type NewCoachNote = typeof coachNotes.$inferInsert;
 export type ProgressPhoto = typeof progressPhotos.$inferSelect;
 export type NewProgressPhoto = typeof progressPhotos.$inferInsert;
 export type RoutineStepCompletion = typeof routineStepCompletions.$inferSelect;
-export type NewRoutineStepCompletion = typeof routineStepCompletions.$inferInsert;
+export type NewRoutineStepCompletion =
+  typeof routineStepCompletions.$inferInsert;

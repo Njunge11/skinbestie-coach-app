@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import { GET } from "./route";
+import { makeUserProfile } from "@/test/factories";
 
 // Mock the server actions module
 vi.mock("@/app/(dashboard)/subscribers/actions", () => ({
@@ -19,28 +20,22 @@ describe("GET /api/user-profiles/check", () => {
   const validApiKey = "test-api-key-123";
   const baseUrl = "http://localhost:3000";
 
-  const mockUserProfile = {
+  const mockUserProfile = makeUserProfile({
     id: "user-123",
+    userId: "auth-user-123",
     firstName: "John",
     lastName: "Doe",
     email: "john@example.com",
-    phoneNumber: "+1234567890",
-    dateOfBirth: new Date("1990-01-01"),
     skinType: ["oily"],
     concerns: ["acne"],
     hasAllergies: false,
-    allergyDetails: null,
-    occupation: null,
-    bio: null,
-    timezone: "UTC",
     isSubscribed: true,
     hasCompletedBooking: true,
+    hasCompletedSkinTest: true,
     completedSteps: ["PERSONAL"],
-    isCompleted: false,
-    completedAt: null,
     createdAt: new Date("2025-01-01"),
     updatedAt: new Date("2025-01-01"),
-  };
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,7 +47,7 @@ describe("GET /api/user-profiles/check", () => {
       // Given: request without API key
       const mockAuthError = NextResponse.json(
         { error: "Unauthorized - Invalid or missing API key" },
-        { status: 401 }
+        { status: 401 },
       );
       vi.mocked(validateApiKey).mockReturnValue(mockAuthError);
 
@@ -60,7 +55,7 @@ describe("GET /api/user-profiles/check", () => {
         `${baseUrl}/api/user-profiles/check?email=john@example.com`,
         {
           method: "GET",
-        }
+        },
       );
 
       // When: calling GET handler
@@ -90,7 +85,7 @@ describe("GET /api/user-profiles/check", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -121,7 +116,7 @@ describe("GET /api/user-profiles/check", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -148,7 +143,7 @@ describe("GET /api/user-profiles/check", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -179,7 +174,7 @@ describe("GET /api/user-profiles/check", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -199,15 +194,12 @@ describe("GET /api/user-profiles/check", () => {
       // Given: request without email or phoneNumber
       vi.mocked(validateApiKey).mockReturnValue(null);
 
-      const request = new NextRequest(
-        `${baseUrl}/api/user-profiles/check`,
-        {
-          method: "GET",
-          headers: {
-            "x-api-key": validApiKey,
-          },
-        }
-      );
+      const request = new NextRequest(`${baseUrl}/api/user-profiles/check`, {
+        method: "GET",
+        headers: {
+          "x-api-key": validApiKey,
+        },
+      });
 
       // When: calling GET handler
       const response = await GET(request);
@@ -215,7 +207,9 @@ describe("GET /api/user-profiles/check", () => {
       // Then: returns 400
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toBe("Either email or phoneNumber parameter is required");
+      expect(data.error).toBe(
+        "Either email or phoneNumber parameter is required",
+      );
       expect(checkUserProfileExists).not.toHaveBeenCalled();
     });
 
@@ -234,7 +228,7 @@ describe("GET /api/user-profiles/check", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -250,7 +244,7 @@ describe("GET /api/user-profiles/check", () => {
       // Given: request throws unexpected error
       vi.mocked(validateApiKey).mockReturnValue(null);
       vi.mocked(checkUserProfileExists).mockRejectedValue(
-        new Error("Database connection failed")
+        new Error("Database connection failed"),
       );
 
       const request = new NextRequest(
@@ -260,7 +254,7 @@ describe("GET /api/user-profiles/check", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler
@@ -288,7 +282,7 @@ describe("GET /api/user-profiles/check", () => {
           headers: {
             "x-api-key": validApiKey,
           },
-        }
+        },
       );
 
       // When: calling GET handler

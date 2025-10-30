@@ -1,52 +1,83 @@
 // Real repository using Drizzle ORM (production)
 
-import { eq, asc, sql } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { skincareGoals } from "@/lib/db/schema";
+import { type SkincareGoalRow } from "@/lib/db/types";
 
-// Type definitions
-export type Goal = {
-  id: string;
-  userProfileId: string;
-  name: string;
-  description: string;
-  timeframe: string;
-  complete: boolean;
-  order: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
+// Type definitions derived from schema
+export type Goal = Pick<
+  SkincareGoalRow,
+  | "id"
+  | "templateId"
+  | "description"
+  | "isPrimaryGoal"
+  | "complete"
+  | "completedAt"
+  | "order"
+  | "createdAt"
+  | "updatedAt"
+>;
 
-export type NewGoal = Omit<Goal, "id" | "createdAt" | "updatedAt">;
+export type NewGoal = Omit<
+  Goal,
+  "id" | "createdAt" | "updatedAt" | "completedAt"
+>;
 
 export function makeGoalsRepo() {
   return {
-    async findByUserId(userId: string): Promise<Goal[]> {
+    /**
+     * Find goals by template ID
+     */
+    async findByTemplateId(templateId: string): Promise<Goal[]> {
       const goals = await db
         .select({
           id: skincareGoals.id,
-          userProfileId: skincareGoals.userProfileId,
-          name: skincareGoals.name,
+          templateId: skincareGoals.templateId,
           description: skincareGoals.description,
-          timeframe: skincareGoals.timeframe,
+          isPrimaryGoal: skincareGoals.isPrimaryGoal,
           complete: skincareGoals.complete,
+          completedAt: skincareGoals.completedAt,
           order: skincareGoals.order,
           createdAt: skincareGoals.createdAt,
           updatedAt: skincareGoals.updatedAt,
         })
         .from(skincareGoals)
-        .where(eq(skincareGoals.userProfileId, userId))
-        .orderBy(asc(skincareGoals.order))
-        .execute();
+        .where(eq(skincareGoals.templateId, templateId))
+        .orderBy(asc(skincareGoals.order));
 
       return goals as Goal[];
     },
 
+    async findById(goalId: string): Promise<Goal | null> {
+      const [goal] = await db
+        .select({
+          id: skincareGoals.id,
+          templateId: skincareGoals.templateId,
+          description: skincareGoals.description,
+          isPrimaryGoal: skincareGoals.isPrimaryGoal,
+          complete: skincareGoals.complete,
+          completedAt: skincareGoals.completedAt,
+          order: skincareGoals.order,
+          createdAt: skincareGoals.createdAt,
+          updatedAt: skincareGoals.updatedAt,
+        })
+        .from(skincareGoals)
+        .where(eq(skincareGoals.id, goalId))
+        .limit(1);
+
+      return goal ? (goal as Goal) : null;
+    },
+
+    async unmarkAllPrimary(templateId: string): Promise<void> {
+      await db
+        .update(skincareGoals)
+        .set({ isPrimaryGoal: false })
+        .where(eq(skincareGoals.templateId, templateId));
+    },
+
     async create(goal: NewGoal): Promise<Goal> {
-      const [newGoal] = await db
-        .insert(skincareGoals)
-        .values(goal)
-        .returning();
+      const [newGoal] = await db.insert(skincareGoals).values(goal).returning();
 
       return newGoal as Goal;
     },
@@ -55,6 +86,26 @@ export function makeGoalsRepo() {
       const [updatedGoal] = await db
         .update(skincareGoals)
         .set(updates)
+        .where(eq(skincareGoals.id, goalId))
+        .returning();
+
+      return updatedGoal ? (updatedGoal as Goal) : null;
+    },
+
+    /**
+     * Toggle goal completion status
+     */
+    async toggleComplete(
+      goalId: string,
+      complete: boolean,
+    ): Promise<Goal | null> {
+      const [updatedGoal] = await db
+        .update(skincareGoals)
+        .set({
+          complete,
+          completedAt: complete ? new Date() : null,
+          updatedAt: new Date(),
+        })
         .where(eq(skincareGoals.id, goalId))
         .returning();
 
@@ -70,31 +121,38 @@ export function makeGoalsRepo() {
       return deletedGoal ? (deletedGoal as Goal) : null;
     },
 
-    async updateMany(updates: Array<{ id: string; data: Partial<Goal> }>): Promise<void> {
+    async updateMany(
+      updates: Array<{ id: string; data: Partial<Goal> }>,
+    ): Promise<void> {
       if (updates.length === 0) return;
 
-      // Use transaction to avoid unique constraint violations
-      await db.transaction(async (tx) => {
-        // Build CASE statements for batch update
-        const ids = updates.map((u) => `'${u.id}'`).join(", ");
-
-        const orderCases = updates
-          .map((u) => `WHEN '${u.id}' THEN ${u.data.order}`)
-          .join(" ");
-
-        const updatedAtCases = updates
-          .map((u) => `WHEN '${u.id}' THEN '${u.data.updatedAt?.toISOString()}'`)
-          .join(" ");
-
-        // Single batch UPDATE query (2N queries → 1 query)
-        await tx.execute(sql.raw(`
-          UPDATE skincare_goals
-          SET
-            "order" = (CASE id ${orderCases} END),
-            updated_at = (CASE id ${updatedAtCases} END)::timestamp
-          WHERE id IN (${ids})
-        `));
-      });
+      try {
+        // Use transaction to update each goal
+        // Simple and working approach
+        await db.transaction(async (tx) => {
+          for (const update of updates) {
+            try {
+              await tx
+                .update(skincareGoals)
+                .set({
+                  order: update.data.order,
+                  updatedAt: update.data.updatedAt,
+                })
+                .where(eq(skincareGoals.id, update.id));
+            } catch (innerError) {
+              console.error(`❌ Error updating goal ${update.id}:`, innerError);
+              throw innerError; // Re-throw to rollback transaction
+            }
+          }
+        });
+      } catch (error) {
+        console.error("❌ Transaction failed:", error);
+        console.error("Error details:", {
+          message: error instanceof Error ? error.message : "Unknown error",
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error; // Re-throw for the action to handle
+      }
     },
   };
 }
