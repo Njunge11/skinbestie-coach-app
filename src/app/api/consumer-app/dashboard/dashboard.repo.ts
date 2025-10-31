@@ -105,13 +105,17 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
      * Get today's routine steps with completion status
      * Only returns steps for published routines
      * @param userId - The auth user ID (from users table)
+     * @param date - Current date/time (used to calculate "today" in user's timezone)
      *
      * Type is inferred from the query - follows TYPE_SYSTEM_GUIDE principles
      */
     async getTodayRoutineSteps(userId: string, date: Date) {
-      // First get the user profile ID from auth user ID
+      // First get the user profile with timezone
       const userProfile = await database
-        .select({ id: schema.userProfiles.id })
+        .select({
+          id: schema.userProfiles.id,
+          timezone: schema.userProfiles.timezone,
+        })
         .from(schema.userProfiles)
         .where(eq(schema.userProfiles.userId, userId))
         .limit(1);
@@ -120,8 +124,13 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         return [];
       }
 
-      // Format date as YYYY-MM-DD for PostgreSQL date comparison
-      const dateStr = date.toISOString().split("T")[0];
+      // Calculate "today" in the user's timezone
+      const { toZonedTime, format } = await import("date-fns-tz");
+      const userTimezone = userProfile[0].timezone;
+      const nowInUserTz = toZonedTime(date, userTimezone);
+      const todayInUserTz = format(nowInUserTz, "yyyy-MM-dd", {
+        timeZone: userTimezone,
+      });
 
       const result = await database
         .select({
@@ -156,7 +165,7 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         .where(
           and(
             eq(schema.routineStepCompletions.userProfileId, userProfile[0].id),
-            sql`${schema.routineStepCompletions.scheduledDate} = ${dateStr}::date`,
+            sql`${schema.routineStepCompletions.scheduledDate} = ${todayInUserTz}::date`,
           ),
         )
         .orderBy(

@@ -8,6 +8,7 @@ import {
 import { makeDashboardRepo } from "./dashboard.repo";
 import * as schema from "@/lib/db/schema";
 import type { PGlite } from "@electric-sql/pglite";
+import { eq } from "drizzle-orm";
 
 describe("DashboardRepo", () => {
   let db: TestDatabase;
@@ -20,6 +21,8 @@ describe("DashboardRepo", () => {
   const adminId = "450e8400-e29b-41d4-a716-446655440001";
   const templateId = "650e8400-e29b-41d4-a716-446655440002";
   const routineId = "750e8400-e29b-41d4-a716-446655440003";
+  const productId1 = "850e8400-e29b-41d4-a716-446655440001";
+  const productId2 = "850e8400-e29b-41d4-a716-446655440002";
 
   beforeEach(async () => {
     // Create fresh in-memory database for each test
@@ -691,6 +694,194 @@ describe("DashboardRepo", () => {
           updatedBy: adminId,
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe("getTodayRoutineSteps - Timezone Awareness", () => {
+    beforeEach(async () => {
+      // Setup user with Nairobi timezone (UTC+3)
+      await db.insert(schema.userProfiles).values({
+        id: profileId,
+        userId: authUserId,
+        email: "user@test.com",
+        firstName: "Jane",
+        lastName: "Doe",
+        phoneNumber: "+254123456789",
+        dateOfBirth: new Date("1995-05-15"),
+        timezone: "Africa/Nairobi",
+      });
+
+      // Create published routine
+      await db.insert(schema.skincareRoutines).values({
+        id: routineId,
+        userProfileId: profileId,
+        name: "Daily Routine",
+        startDate: new Date("2025-10-30"),
+        endDate: new Date("2025-12-31"),
+        status: "published",
+      });
+
+      // Create routine products
+      await db.insert(schema.skincareRoutineProducts).values([
+        {
+          id: productId1,
+          routineId,
+          userProfileId: profileId,
+          routineStep: "Cleanser",
+          productName: "Morning Cleanser",
+          instructions: "Apply to wet face and massage gently",
+          timeOfDay: "morning",
+          frequency: "daily",
+          order: 1,
+        },
+        {
+          id: productId2,
+          routineId,
+          userProfileId: profileId,
+          routineStep: "Moisturizer",
+          productName: "Evening Moisturizer",
+          instructions: "Apply to clean dry face",
+          timeOfDay: "evening",
+          frequency: "daily",
+          order: 1,
+        },
+      ]);
+    });
+
+    it("returns routine steps for user's today when server UTC is ahead (at 3am Nairobi time)", async () => {
+      // Problem: User in Nairobi (UTC+3) at 3:00 AM local time
+      // Server UTC time: 2025-10-31 00:03:00 UTC (just after midnight UTC)
+      // User's local time: 2025-10-31 03:03:00 EAT (same day)
+      // Expected: User should see Oct 31 routine (their "today")
+
+      const serverUTC = new Date("2025-10-31T00:03:00Z"); // UTC midnight + 3 min
+
+      // Create completions for Oct 31 (user's today in their timezone)
+      await db.insert(schema.routineStepCompletions).values([
+        {
+          routineProductId: productId1,
+          userProfileId: profileId,
+          scheduledDate: new Date("2025-10-31"),
+          scheduledTimeOfDay: "morning",
+          onTimeDeadline: new Date("2025-10-31T09:00:00Z"), // 12pm Nairobi
+          gracePeriodEnd: new Date("2025-11-01T09:00:00Z"),
+          status: "pending",
+        },
+        {
+          routineProductId: productId2,
+          userProfileId: profileId,
+          scheduledDate: new Date("2025-10-31"),
+          scheduledTimeOfDay: "evening",
+          onTimeDeadline: new Date("2025-10-31T20:59:59Z"), // 11:59pm Nairobi
+          gracePeriodEnd: new Date("2025-11-01T20:59:59Z"),
+          status: "pending",
+        },
+      ]);
+
+      // When: Query using server UTC time but user's timezone to calculate "today"
+      const result = await repo.getTodayRoutineSteps(authUserId, serverUTC);
+
+      // Then: Should return Oct 31 steps (user's today in Nairobi time)
+      expect(result).toHaveLength(2);
+      expect(result[0].productName).toBe("Morning Cleanser");
+      expect(result[1].productName).toBe("Evening Moisturizer");
+    });
+
+    it("returns routine steps for user's today when UTC date rolls over at same time", async () => {
+      // Given: London user (UTC+0 in winter, no DST offset)
+      await db
+        .update(schema.userProfiles)
+        .set({ timezone: "Europe/London" })
+        .where(eq(schema.userProfiles.id, profileId));
+
+      // Server time: 2025-11-01 00:30 UTC = 00:30 GMT (Nov 1 in London)
+      const serverUTC = new Date("2025-11-01T00:30:00Z");
+
+      // Create completion for Nov 1 (London's "today")
+      await db.insert(schema.routineStepCompletions).values({
+        routineProductId: productId2,
+        userProfileId: profileId,
+        scheduledDate: new Date("2025-11-01"),
+        scheduledTimeOfDay: "morning",
+        onTimeDeadline: new Date("2025-11-01T11:00:00Z"),
+        gracePeriodEnd: new Date("2025-11-02T11:00:00Z"),
+        status: "pending",
+      });
+
+      // When: Query for today's routine
+      const result = await repo.getTodayRoutineSteps(authUserId, serverUTC);
+
+      // Then: Should return Nov 1 completion (it's Nov 1 in London at 00:30)
+      expect(result).toHaveLength(1);
+      expect(result[0].productName).toBe("Evening Moisturizer");
+    });
+
+    it("returns empty array when user has no routine steps for their timezone's today", async () => {
+      // Setup: It's Oct 30 in user's timezone, but routine starts Oct 31
+      const serverUTC = new Date("2025-10-30T21:00:00Z"); // Oct 30 in UTC
+      // In Nairobi (UTC+3): 2025-10-31 00:00:00 (just past midnight, start of Oct 31)
+
+      // No completions for Oct 30 (routine starts Oct 31)
+
+      const result = await repo.getTodayRoutineSteps(authUserId, serverUTC);
+
+      expect(result).toEqual([]);
+    });
+
+    it("calculates today correctly for New York timezone", async () => {
+      // Update user to NYC timezone
+      await db
+        .update(schema.userProfiles)
+        .set({ timezone: "America/New_York" })
+        .where(eq(schema.userProfiles.id, profileId));
+
+      const serverUTC = new Date("2025-10-31T04:00:00Z"); // 4am UTC = midnight NYC
+
+      // Create completion for Oct 31 (NYC's today)
+      const completionId = "950e8400-e29b-41d4-a716-446655440001";
+      await db.insert(schema.routineStepCompletions).values({
+        id: completionId,
+        routineProductId: productId1,
+        userProfileId: profileId,
+        scheduledDate: new Date("2025-10-31"),
+        scheduledTimeOfDay: "morning",
+        onTimeDeadline: new Date("2025-10-31T12:00:00Z"),
+        gracePeriodEnd: new Date("2025-11-01T12:00:00Z"),
+        status: "pending",
+      });
+
+      const result = await repo.getTodayRoutineSteps(authUserId, serverUTC);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(completionId);
+    });
+
+    it("calculates today correctly for Tokyo timezone", async () => {
+      // Update user to Tokyo timezone
+      await db
+        .update(schema.userProfiles)
+        .set({ timezone: "Asia/Tokyo" })
+        .where(eq(schema.userProfiles.id, profileId));
+
+      const serverUTC = new Date("2025-10-31T15:00:00Z"); // 3pm UTC = midnight Nov 1 in Tokyo
+
+      // Create completion for Nov 1 (Tokyo's today)
+      const completionId = "950e8400-e29b-41d4-a716-446655440002";
+      await db.insert(schema.routineStepCompletions).values({
+        id: completionId,
+        routineProductId: productId1,
+        userProfileId: profileId,
+        scheduledDate: new Date("2025-11-01"),
+        scheduledTimeOfDay: "morning",
+        onTimeDeadline: new Date("2025-11-01T03:00:00Z"),
+        gracePeriodEnd: new Date("2025-11-02T03:00:00Z"),
+        status: "pending",
+      });
+
+      const result = await repo.getTodayRoutineSteps(authUserId, serverUTC);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(completionId);
     });
   });
 });
