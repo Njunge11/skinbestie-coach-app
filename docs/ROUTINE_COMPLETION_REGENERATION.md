@@ -253,3 +253,119 @@ For very large date ranges (e.g., extending by 2 years), split INSERT into chunk
 **NOT IMPLEMENTED** - Documented for future implementation.
 
 Current workaround: Unpublish and republish routine to regenerate all completions (loses completion history).
+
+---
+
+## IMPORTANT: Scalability Concern - Rolling Window Approach
+
+### Current Problem
+
+Pre-generating ALL completions creates scalability issues:
+
+```typescript
+// Current implementation (publishRoutine):
+const endDate = routine.endDate ?? addMonths(routine.startDate, 6);
+
+// Results in:
+// 6 months × 7 products × 2 times/day = 2,520 rows per user
+// 1,000 users = 2.5 million rows
+// Product change = Delete + regenerate 2,520 rows per user
+```
+
+**Issues:**
+- Database size explodes at scale
+- Mass rewrites on product/frequency changes
+- Indefinite routines (no end date) run out after 6 months
+- Wasted storage for completions months in the future
+
+### Recommended Solution: Rolling Window Pattern
+
+**Concept:** Only maintain a 30-60 day window of completions, not the entire routine lifespan.
+
+#### Implementation Changes:
+
+##### 1. On Publish: Generate 60-day window only
+```typescript
+publishRoutine(routineId) {
+  const windowEnd = addDays(routine.startDate, 60); // Instead of 6 months
+
+  // Generate completions: startDate → windowEnd (60 days)
+  // Result: 60 days × 7 products = 420 rows (vs 2,520)
+}
+```
+
+##### 2. Daily Cron: Extend window forward
+```typescript
+// Runs at midnight daily
+async function extendCompletionWindows() {
+  const routines = await getPublishedRoutines();
+
+  for (const routine of routines) {
+    const latestDate = await getLatestCompletionDate(routine.id);
+    const daysRemaining = differenceInDays(latestDate, new Date());
+
+    // If less than 30 days remaining, extend by 30 more days
+    if (daysRemaining < 30) {
+      const newWindowEnd = addDays(latestDate, 30);
+      await generateCompletions(routine, latestDate, newWindowEnd);
+    }
+  }
+}
+```
+
+##### 3. On Product Update: Regenerate 60-day window only
+```typescript
+updateRoutineProduct(productId, updates) {
+  const today = new Date();
+  const windowEnd = addDays(today, 60);
+
+  // Delete future completions (60 days instead of 6 months)
+  // Regenerate with new frequency (60 days instead of 6 months)
+}
+```
+
+##### 4. On Date Change: Fill gaps within window only
+```typescript
+regenerateMissingCompletions(routineId, newStartDate, newEndDate) {
+  const today = new Date();
+  const windowEnd = addDays(today, 60);
+
+  // Only fill gaps within the current 60-day window
+  // Don't backfill historical data beyond window
+  const effectiveStartDate = max(newStartDate, addDays(today, -30));
+  const effectiveEndDate = min(newEndDate ?? windowEnd, windowEnd);
+
+  // Fill gaps: effectiveStartDate → effectiveEndDate
+}
+```
+
+#### Benefits:
+
+✅ **Constant database size per user** (~420 rows vs 2,520+)
+✅ **Faster product updates** (60 days of rewrites vs 6 months)
+✅ **Supports indefinite routines** (window keeps extending)
+✅ **Lighter database load** (no mass deletes/inserts)
+
+#### Trade-offs:
+
+⚠️ **No historical backfill** - If admin backdates routine start, only fills within window
+⚠️ **Requires cron job** - Need scheduled task to extend windows
+⚠️ **Complexity** - More moving parts than simple "generate everything upfront"
+
+### Decision Required
+
+**Two implementation paths:**
+
+**Path A: Full Backfill (Current Doc)**
+- Fill ALL gaps when dates change (months of data)
+- Simpler logic, no cron needed
+- Works for small scale (< 10,000 users)
+
+**Path B: Rolling Window (Recommended for Scale)**
+- Fill gaps only within 60-day window
+- Requires cron to extend forward
+- Better for growth beyond 10,000 users
+
+**Recommendation:** Start with Path A (simpler), migrate to Path B if/when scale demands it.
+
+**Date:** 2025-10-31
