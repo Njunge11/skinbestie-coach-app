@@ -64,13 +64,14 @@ describe("createUserProfile", () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.id).toBe("existing-id");
-        expect(result.data.completedSteps).toEqual(["PERSONAL", "SKIN_TYPE"]);
+        expect(result.data).toBeDefined();
+        expect(result.data!.id).toBe("existing-id");
+        expect(result.data!.completedSteps).toEqual(["PERSONAL", "SKIN_TYPE"]);
         // Personal info should be hidden
-        expect(result.data.firstName).toBe("");
-        expect(result.data.lastName).toBe("");
-        expect(result.data.email).toBe("");
-        expect(result.data.phoneNumber).toBe("");
+        expect(result.data!.firstName).toBe("");
+        expect(result.data!.lastName).toBe("");
+        expect(result.data!.email).toBe("");
+        expect(result.data!.phoneNumber).toBe("");
       }
     });
 
