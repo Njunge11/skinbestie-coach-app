@@ -10,12 +10,12 @@
  */
 
 import {
-  type UserProfileRow,
-  type AdminRow,
-  type RoutineTemplateRow,
-  type RoutineTemplateProductRow,
-  type SkinGoalsTemplateRow,
-} from "@/lib/db/types";
+  type UserProfile,
+  type Admin,
+  type RoutineTemplate,
+  type RoutineTemplateProduct,
+  type SkinGoalsTemplate,
+} from "@/lib/db/schema";
 import type {
   Client,
   Photo,
@@ -30,8 +30,8 @@ import type {
  * Override any fields by passing them in the overrides object
  */
 export function makeUserProfile(
-  overrides: Partial<UserProfileRow> = {},
-): UserProfileRow {
+  overrides: Partial<UserProfile> = {},
+): UserProfile {
   const now = new Date();
 
   return {
@@ -79,8 +79,8 @@ export function makeUserProfile(
  * Creates a completed user profile (all onboarding done)
  */
 export function makeCompletedUserProfile(
-  overrides: Partial<UserProfileRow> = {},
-): UserProfileRow {
+  overrides: Partial<UserProfile> = {},
+): UserProfile {
   return makeUserProfile({
     hasCompletedSkinTest: true,
     hasCompletedBooking: true,
@@ -95,8 +95,8 @@ export function makeCompletedUserProfile(
  * Creates a user profile with skin data
  */
 export function makeUserProfileWithSkinData(
-  overrides: Partial<UserProfileRow> = {},
-): UserProfileRow {
+  overrides: Partial<UserProfile> = {},
+): UserProfile {
   return makeUserProfile({
     skinType: ["oily", "sensitive"],
     concerns: ["acne", "wrinkles"],
@@ -223,7 +223,7 @@ export function makeGoal(overrides: Partial<Goal> = {}): Goal {
 /**
  * Creates an Admin for tests
  */
-export function makeAdmin(overrides: Partial<AdminRow> = {}): AdminRow {
+export function makeAdmin(overrides: Partial<Admin> = {}): Admin {
   return {
     id: crypto.randomUUID(),
     email: `admin-${Date.now()}@example.com`,
@@ -241,8 +241,8 @@ export function makeAdmin(overrides: Partial<AdminRow> = {}): AdminRow {
  * Creates a RoutineTemplate for tests
  */
 export function makeRoutineTemplate(
-  overrides: Partial<RoutineTemplateRow> = {},
-): RoutineTemplateRow {
+  overrides: Partial<RoutineTemplate> = {},
+): RoutineTemplate {
   return {
     id: crypto.randomUUID(),
     name: "Test Template",
@@ -258,8 +258,8 @@ export function makeRoutineTemplate(
  * Creates a RoutineTemplateProduct for tests
  */
 export function makeRoutineTemplateProduct(
-  overrides: Partial<RoutineTemplateProductRow> = {},
-): RoutineTemplateProductRow {
+  overrides: Partial<RoutineTemplateProduct> = {},
+): RoutineTemplateProduct {
   return {
     id: crypto.randomUUID(),
     templateId: crypto.randomUUID(),
@@ -281,8 +281,8 @@ export function makeRoutineTemplateProduct(
  * Creates a SkinGoalsTemplate for tests
  */
 export function makeGoalsTemplate(
-  overrides: Partial<SkinGoalsTemplateRow> = {},
-): SkinGoalsTemplateRow {
+  overrides: Partial<SkinGoalsTemplate> = {},
+): SkinGoalsTemplate {
   return {
     id: crypto.randomUUID(),
     userId: crypto.randomUUID(),

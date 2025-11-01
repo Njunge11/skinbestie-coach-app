@@ -2,8 +2,12 @@
 
 import { z } from "zod";
 import { makeTemplateRepo } from "./template.repo";
-import { makeRoutineRepo, type Routine } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/routine.repo";
-import { db, skincareRoutineProducts, skincareRoutines } from "@/lib/db";
+import {
+  makeRoutineRepo,
+  type Routine,
+} from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/routine.repo";
+import { db } from "@/lib/db";
+import { skincareRoutineProducts, skincareRoutines } from "@/lib/db/schema";
 
 // Type for routine product
 type RoutineProduct = {
@@ -71,7 +75,7 @@ export async function copyTemplateToUser(
   templateId: string,
   userId: string,
   input: CopyTemplateInput,
-  deps: CopyTemplateDeps = defaultDeps
+  deps: CopyTemplateDeps = defaultDeps,
 ): Promise<Result<{ routine: Routine; products: RoutineProduct[] }>> {
   const { templateRepo, routineRepo, now } = deps;
 
@@ -97,13 +101,17 @@ export async function copyTemplateToUser(
     }
 
     // Check if user already has a routine BEFORE transaction
-    const existingRoutine = await routineRepo.findByUserId(validation.data.userId);
+    const existingRoutine = await routineRepo.findByUserId(
+      validation.data.userId,
+    );
     if (existingRoutine) {
       return { success: false, error: "User already has a routine" };
     }
 
     // Fetch all template products BEFORE transaction
-    const templateProducts = await templateRepo.findProductsByTemplateId(validation.data.templateId);
+    const templateProducts = await templateRepo.findProductsByTemplateId(
+      validation.data.templateId,
+    );
 
     // Wrap ONLY write operations in transaction for atomicity
     const result = await db.transaction(async (tx) => {
@@ -130,7 +138,7 @@ export async function copyTemplateToUser(
 
       // Batch insert all products atomically using tx
       // This is more efficient than N individual INSERTs
-      const productValues = templateProducts.map(templateProduct => ({
+      const productValues = templateProducts.map((templateProduct) => ({
         routineId: newRoutine.id,
         userProfileId: validation.data.userId,
         routineStep: templateProduct.routineStep,
@@ -163,7 +171,8 @@ export async function copyTemplateToUser(
     };
   } catch (error) {
     console.error("Error copying template:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to copy template";
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to copy template";
     return { success: false, error: errorMessage };
   }
 }

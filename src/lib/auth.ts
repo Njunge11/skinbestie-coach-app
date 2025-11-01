@@ -1,7 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { getAdminByEmail } from "./db/queries";
+import { makeAdminsRepo } from "@/app/api/admins/admins.repo";
 import { verifyPassword } from "./password";
+
+const adminsRepo = makeAdminsRepo();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -20,7 +22,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials.password as string;
 
         // Get admin from database
-        const admin = await getAdminByEmail(email);
+        const admin = await adminsRepo.findByEmail(email);
 
         // Check if admin exists and password is set
         if (!admin || !admin.passwordSet || !admin.passwordHash) {

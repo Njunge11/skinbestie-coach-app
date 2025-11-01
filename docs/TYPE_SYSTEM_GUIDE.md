@@ -8,6 +8,83 @@ This guide explains how to work with types in this codebase to avoid breaking ch
 
 ---
 
+## CRITICAL: Database Types - Single Source of Truth
+
+**ALL database types are defined in `lib/db/schema.ts` using Drizzle's `$inferSelect` / `$inferInsert` pattern.**
+
+There is NO separate `lib/db/types.ts` file - that would be duplication!
+
+### ✅ CORRECT Pattern - Types in schema.ts
+
+```typescript
+// lib/db/schema.ts
+export const userProfiles = pgTable("user_profiles", {
+  id: uuid("id").primaryKey(),
+  firstName: text("first_name").notNull(),
+  // ... other fields
+});
+
+// Auto-derive types using Drizzle's shorthand
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type NewUserProfile = typeof userProfiles.$inferInsert;
+```
+
+### lib/db/index.ts - Re-exports + DrizzleDB Type
+
+```typescript
+// lib/db/index.ts
+export const db = drizzle(client, { schema });
+
+// Database instance type for dependency injection
+export type DrizzleDB = typeof db;
+
+// Re-export all schema types
+export * from "./schema";
+
+// Backward compatibility aliases (Row suffix)
+export type {
+  UserProfile as UserProfileRow,
+  SkincareGoal as SkincareGoalRow,
+  // ... etc
+} from "./schema";
+```
+
+### ❌ WRONG - Creating a Separate types.ts File
+
+```typescript
+// ❌ DON'T CREATE lib/db/types.ts - This duplicates schema.ts!
+import { type InferSelectModel } from "drizzle-orm";
+import * as schema from "./schema";
+
+// ❌ This is duplication - schema.ts already has these!
+export type UserProfileRow = InferSelectModel<typeof schema.userProfiles>;
+```
+
+### ❌ WRONG - Derived Types in lib/db/
+
+```typescript
+// ❌ DON'T PUT THIS IN lib/db/ - belongs in repository!
+export type SubscriberTableRow = Pick<
+  UserProfileRow,
+  "id" | "email" | "firstName"
+>;
+```
+
+**WHY NO SEPARATE types.ts?**
+- Drizzle's `$inferSelect` is the recommended pattern
+- `schema.ts` is already the single source of truth
+- Duplication = maintenance nightmare
+- `lib/db/index.ts` re-exports everything from schema
+
+**WHERE TO PUT DERIVED TYPES (Pick/Omit)?**
+- Repository types → In the repository file
+- Component types → In the component/feature directory
+- API DTOs → In the API route file
+
+This keeps types colocated with their usage and follows the single responsibility principle.
+
+---
+
 ## The Problem We Solved
 
 **Before**: Adding a single optional field (`nickname`) to the database broke 12+ files across tests, components, and APIs.
@@ -22,7 +99,7 @@ This guide explains how to work with types in this codebase to avoid breaking ch
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ src/lib/db/schema.ts                                        │
+│ src/lib/db/schema.ts (ONLY SOURCE OF TRUTH)                 │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │  export const userProfiles = pgTable("user_profiles", {│ │
 │ │    id: uuid("id").primaryKey(),                         │ │
@@ -33,13 +110,27 @@ This guide explains how to work with types in this codebase to avoid breaking ch
 │ └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                              │
-                             │ InferSelectModel
+                             │ InferSelectModel (auto-derive)
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ src/lib/db/types.ts                                         │
+│ src/lib/db/types.ts (BASE TYPES ONLY)                       │
 │ ┌─────────────────────────────────────────────────────────┐ │
+│ │  // ✅ ONLY this - auto-derived from schema             │ │
 │ │  export type UserProfileRow =                           │ │
 │ │    InferSelectModel<typeof schema.userProfiles>         │ │
+│ │                                                          │ │
+│ │  export type DrizzleDB =                                │ │
+│ │    ReturnType<typeof drizzle<typeof schema>>            │ │
+│ └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                             │
+                             │ Import base row type
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Repositories (DERIVE THEIR OWN TYPES)                       │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │  // repos/subscriber.repo.ts                            │ │
+│ │  import { type UserProfileRow } from "@/lib/db/types";  │ │
 │ │                                                          │ │
 │ │  export type SubscriberTableRow = Pick<                 │ │
 │ │    UserProfileRow,                                       │ │
@@ -48,12 +139,12 @@ This guide explains how to work with types in this codebase to avoid breaking ch
 │ └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                              │
-                             │ Pick/Omit
+                             │ Import from repo
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ Repositories, Components, Tests                             │
-│ - All derive from centralized types                         │
-│ - Changes propagate automatically                           │
+│ Components, Tests (USE REPO TYPES)                          │
+│ - Import from repositories where types are defined          │
+│ - Types are colocated with their usage                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -125,15 +216,16 @@ export function makeUserProfile(
 
 ## How to Create a New Repository
 
-### 1. Define Repository Types Using Pick
+### 1. Define Repository Types Using Pick/Omit (IN THE REPO FILE)
 
 ```typescript
 // src/app/(dashboard)/subscribers/[id]/goal-actions/goals.repo.ts
-import { type SkincareGoalRow } from "@/lib/db/types";
+import { type InferSelectModel } from "drizzle-orm";
+import { skincareGoals } from "@/lib/db/schema";
 
-// ✅ CORRECT: Derive from schema using Pick
+// ✅ CORRECT OPTION 1: Derive directly from schema in the repo file
 export type Goal = Pick<
-  SkincareGoalRow,
+  InferSelectModel<typeof skincareGoals>,
   | "id"
   | "templateId"
   | "description"
@@ -145,14 +237,31 @@ export type Goal = Pick<
   | "updatedAt"
 >;
 
-// ❌ WRONG: Manual type duplication
+// ✅ CORRECT OPTION 2: Import base row type, then Pick
+import { type SkincareGoalRow } from "@/lib/db/types";
+
+export type Goal = Pick<
+  SkincareGoalRow,
+  | "id"
+  | "templateId"
+  | "description"
+  // ...
+>;
+
+// ❌ WRONG: Manual type duplication (hardcoded fields)
 export type Goal = {
   id: string;
   templateId: string;
   description: string;
-  // ... manually typing fields
+  // ... manually typing fields - NO! Schema is source of truth!
 };
+
+// ❌ WRONG: Importing from lib/db/types where this Pick is defined
+// That would mean the type is in the wrong place - it belongs HERE in the repo
+import { type Goal } from "@/lib/db/types"; // NO!
 ```
+
+**KEY POINT**: The Pick/Omit happens IN THE REPOSITORY FILE, not in lib/db/types.ts. This keeps types colocated with their usage.
 
 ### 2. Create Repository Functions
 
@@ -437,34 +546,149 @@ describe("GoalsService", () => {
 
 ---
 
+## Return Type Inference
+
+**CRITICAL RULE**: Let TypeScript infer return types. Don't explicitly type them!
+
+### ✅ CORRECT - Inferred Return Types
+
+```typescript
+// admins.repo.ts
+export function makeAdminsRepo() {
+  return {
+    async create(data: NewAdmin) {
+      const [admin] = await db.insert(admins).values(data).returning();
+      return admin;
+    },
+
+    async findByEmail(email: string) {
+      const [admin] = await db
+        .select()
+        .from(admins)
+        .where(eq(admins.email, email))
+        .limit(1);
+      return admin;
+    },
+  };
+}
+
+// TypeScript infers the return types automatically from the implementation!
+// Usage:
+const adminsRepo = makeAdminsRepo();
+const admin = await adminsRepo.findByEmail('test@example.com');
+// TypeScript knows admin is Admin | undefined
+```
+
+### ❌ WRONG - Explicit Return Types
+
+```typescript
+// ❌ DON'T DO THIS - explicit return types are maintenance burden
+export function makeAdminsRepo() {
+  return {
+    async create(data: NewAdmin): Promise<Admin> {  // ❌ Remove this
+      const [admin] = await db.insert(admins).values(data).returning();
+      return admin;
+    },
+
+    async findByEmail(email: string): Promise<Admin | undefined> {  // ❌ Remove this
+      const [admin] = await db
+        .select()
+        .from(admins)
+        .where(eq(admins.email, email))
+        .limit(1);
+      return admin;
+    },
+  };
+}
+```
+
+**Why Infer?**
+1. **Less code** - no duplicate type annotations
+2. **Always accurate** - return type matches implementation automatically
+3. **Easier refactoring** - change implementation, type updates automatically
+4. **TypeScript is smart** - it knows the types from your code
+
+**When to use explicit return types:**
+- Public API functions that are part of your library's interface
+- When you want to intentionally widen a narrow type
+- Never in internal repositories/helpers
+
+---
+
 ## Rules to Never Break
 
 ### ❌ DON'T
 
-1. **Don't manually duplicate types**
+1. **Don't manually duplicate types (hardcode fields)**
    ```typescript
-   // ❌ WRONG
-   type User = { id: string; name: string; email: string };
+   // ❌ WRONG - manually typing fields instead of deriving from schema
+   type User = {
+     id: string;
+     name: string;
+     email: string;
+     // What happens when you add a field to the schema? This breaks!
+   };
    ```
 
 2. **Don't create test objects manually**
    ```typescript
    // ❌ WRONG
-   const user = { id: "1", firstName: "John", lastName: "Doe", ... };
+   const user = {
+     id: "1",
+     firstName: "John",
+     lastName: "Doe",
+     // ... 30 more fields you have to type manually
+   };
    ```
 
 3. **Don't import from schema in components**
    ```typescript
-   // ❌ WRONG
+   // ❌ WRONG - components should use repository types
    import type { UserProfile } from "@/lib/db/schema";
+   ```
+
+4. **Don't put derived types (Pick/Omit) in lib/db/types.ts**
+   ```typescript
+   // ❌ WRONG LOCATION - this belongs in the repository/component file
+   // File: src/lib/db/types.ts
+   export type SubscriberTableRow = Pick<
+     UserProfileRow,
+     "id" | "email" | "firstName"
+   >;
+   ```
+
+5. **Don't use eslint-disable for `any` types - create proper types instead**
+   ```typescript
+   // ❌ WRONG - lazy workaround
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   db: typeof db | any;
+
+   // ✅ CORRECT - proper type
+   db: DrizzleDB;
+   ```
+
+6. **Don't explicitly type return types in repositories - let TypeScript infer**
+   ```typescript
+   // ❌ WRONG - explicit return types
+   async findByEmail(email: string): Promise<Admin | undefined> {
+     // ...
+   }
+
+   // ✅ CORRECT - inferred return type
+   async findByEmail(email: string) {
+     // TypeScript infers Promise<Admin | undefined> automatically
+   }
    ```
 
 ### ✅ DO
 
-1. **Always derive types from schema**
+1. **Always derive types from schema using InferSelectModel**
    ```typescript
-   // ✅ CORRECT
-   type User = InferSelectModel<typeof schema.users>;
+   // ✅ CORRECT - in repository file
+   import { type InferSelectModel } from "drizzle-orm";
+   import { users } from "@/lib/db/schema";
+
+   type User = InferSelectModel<typeof users>;
    type UserCard = Pick<User, "id" | "name" | "email">;
    ```
 
@@ -474,11 +698,39 @@ describe("GoalsService", () => {
    const user = makeUserProfile({ firstName: "John" });
    ```
 
-3. **Always import from centralized types**
+3. **Always import base row types from lib/db/types, derive in your file**
    ```typescript
    // ✅ CORRECT
-   import type { UserProfileRow } from "@/lib/db/types";
-   import type { Goal } from "../goal-actions/goals.repo";
+   import { type UserProfileRow } from "@/lib/db/types";
+
+   // Then derive in THIS file (repo/component)
+   export type SubscriberTableRow = Pick<
+     UserProfileRow,
+     "id" | "email" | "firstName"
+   >;
+   ```
+
+4. **Always colocate types with their usage**
+   ```typescript
+   // ✅ CORRECT - repository types defined in repository file
+   // File: goals.repo.ts
+   export type Goal = Pick<SkincareGoalRow, "id" | "description">;
+
+   // ✅ CORRECT - component types defined with component
+   // File: subscriber-table.tsx
+   import { type UserProfileRow } from "@/lib/db/types";
+   type TableRow = Pick<UserProfileRow, "id" | "email">;
+   ```
+
+5. **Always use proper types - never `any` or eslint-disable**
+   ```typescript
+   // ✅ CORRECT
+   import { type DrizzleDB } from "@/lib/db/types";
+
+   export type RoutineDeps = {
+     db: DrizzleDB;  // Proper type for dependency injection
+     now: () => Date;
+   };
    ```
 
 ---

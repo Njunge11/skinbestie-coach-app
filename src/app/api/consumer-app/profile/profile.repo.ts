@@ -4,12 +4,12 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
-import { type UserProfileRow } from "@/lib/db/types";
+import { type UserProfile } from "@/lib/db/schema";
 
 // Derive types from centralized schema (TYPE_SYSTEM_GUIDE.md)
 export type ProfileUpdateData = Partial<
   Pick<
-    UserProfileRow,
+    UserProfile,
     | "nickname"
     | "firstName"
     | "lastName"
@@ -33,7 +33,7 @@ export type ProfileUpdateData = Partial<
 >;
 
 export type ProfileData = Pick<
-  UserProfileRow,
+  UserProfile,
   | "id"
   | "userId"
   | "firstName"

@@ -1,6 +1,7 @@
 "use server";
 
-import { db, users, userProfiles as userProfilesTable } from "@/lib/db";
+import { db } from "@/lib/db";
+import { users, userProfiles as userProfilesTable } from "@/lib/db/schema";
 import { userProfilesRepo } from "./userProfiles.repo";
 import {
   UserProfileCreateSchema,

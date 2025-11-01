@@ -2,12 +2,11 @@
 
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { skinGoalsTemplate } from "@/lib/db/schema";
-import { type SkinGoalsTemplateRow } from "@/lib/db/types";
+import { skinGoalsTemplate, type SkinGoalsTemplate } from "@/lib/db/schema";
 
 // Type definitions derived from schema
 export type GoalsTemplate = Pick<
-  SkinGoalsTemplateRow,
+  SkinGoalsTemplate,
   | "id"
   | "userId"
   | "status"
