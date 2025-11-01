@@ -1,65 +1,296 @@
-# Routine Completion Regeneration
+# Routine Task Generation & Regeneration
 
-## Problem Statement
+## Purpose
 
-When a published routine's start or end dates are updated, the `routine_step_completions` table is not automatically updated. This creates gaps in the completion records.
+Enable coaches to assign routines to users, and automatically generate daily tasks (e.g., use cleanser) based on each user's routine, so that users know what to do each day, and the system can track progress over time.
 
-### Example Scenario
-1. Routine published with `startDate = 2025-11-03`, generates completions from Nov 3 onwards
-2. Admin updates `startDate = 2025-10-30` via `updateRoutine()`
-3. No completions exist for Oct 30 - Nov 2
-4. `todayRoutine` API returns empty array for dates in the gap
+---
 
-### Current Behavior
-- `publishRoutine()` generates all completion records for the routine date range
-- `updateRoutine()` only updates routine metadata, does NOT regenerate completions
-- Result: Date changes create gaps or orphaned completions
+## Core Flow (Happy Path)
 
-## Proposed Solution: Fill Missing Date Gaps
+### 1. Coach publishes a routine
 
-### Approach: "Only add missing dates (don't delete)"
+Coach sets:
+- A **start date** (when the routine should begin)
+- An optional **end date** (when the routine should stop)
+- A list of **products** the user should use (e.g., cleanser, SPF)
+- For each product:
+  - **Frequency** (e.g., daily, Mon/Wed/Fri, 3x/week)
+  - **Time of day** (morning or evening)
 
-**Philosophy:** Preserve user completion history while filling gaps.
+### 2. System generates routine tasks
+
+When the coach publishes the routine:
+- Tasks are created **only from the routine's start date or today**, whichever is **later**
+- Tasks are created **up to a maximum of 60 days ahead**
+- If an end date is provided, tasks **do not go past it**, even if it's less than 60 days away
+- Each task represents 1 product on 1 day
+- Tasks start as **"pending"**
+
+### 3. User sees and completes tasks
+
+The app shows:
+- Tasks for **today** (calculated in user's timezone)
+- Any **pending** tasks from yesterday that are **still within the allowed grace period** (24 hours after the deadline)
+
+When the user marks a task as done:
+- If it was done before the deadline → status becomes **"on-time"**
+- If done after the deadline but within the 24-hour grace window → status becomes **"late"**
+- If done after the grace period ends → it's **not allowed**
+
+### 4. Daily background job (Future)
+
+This is an automatic system job that:
+- Checks for tasks that are still "pending" but their grace period has passed → marks them as **"missed"**
+- Ensures each routine has tasks scheduled for **today and the next 60 days**
+  - If any future days are missing, it adds them (only if they fall within the 60-day limit and the routine's end date)
+
+**Status:** NOT IMPLEMENTED - Will be added in the future. For now, tasks are generated at publish time and when dates/products are updated.
+
+---
+
+## Edge Cases & Update Handling
+
+### If the routine's start date is in the future
+
+**Behavior:** No tasks are created until that date arrives.
+
+### If the coach sets a start date in the past
+
+**Behavior:** The system ignores the past and starts generating from **today**.
+
+**Philosophy:** The system **never creates tasks in the past**.
+
+### If the coach updates the start date FORWARD (e.g., Oct 31 → Nov 10)
+
+**Behavior:**
+- All **uncompleted** tasks between the old start date and the new one are **deleted**
+- New tasks are generated starting from the new start date (or today, whichever is later), up to the 60-day cap
 
 **Logic:**
-1. When updating a published routine's dates
-2. Find existing completion date range (min/max)
-3. Generate completions ONLY for missing date ranges:
-   - **Gap before:** If new start date < existing min date → generate for [newStart, existingMin - 1]
-   - **Gap after:** If new end date > existing max date → generate for [existingMax + 1, newEnd]
-4. Never delete existing completions (preserves user progress)
+```typescript
+// Delete uncompleted tasks that are now before the new start date
+await db.delete(routineStepCompletions)
+  .where(
+    and(
+      eq(routineStepCompletions.routineId, routineId),
+      lt(routineStepCompletions.scheduledDate, newStartDate),
+      eq(routineStepCompletions.status, 'pending')
+    )
+  );
 
-### Benefits
-- ✅ Preserves completion history
-- ✅ Fills date gaps automatically
-- ✅ No data loss
+// Generate new tasks from newStartDate (or today) → effectiveStartDate + 60 days
+const effectiveStartDate = max(newStartDate, today);
+const windowEnd = addDays(effectiveStartDate, 60);
+await generateCompletions(routineId, effectiveStartDate, windowEnd);
+```
 
-### Trade-offs
-- ⚠️ May have "orphan" completions outside the current routine date range if dates move later
-- ⚠️ Doesn't handle frequency/product changes (only date changes)
+### If the coach updates the start date BACKWARD (e.g., Oct 31 → Oct 13)
+
+**Behavior:**
+- The system does **NOT** generate any new past tasks
+- Already-generated tasks from today onward are kept
+
+**Philosophy:** We preserve the "no tasks in the past" rule. Backfilling historical data is not supported.
+
+### If the coach adds or edits a product
+
+**Behavior:**
+- For the affected product(s):
+  - All **uncompleted** future tasks (from today onward) are deleted
+  - New tasks are generated for those future days, based on the new frequency or time of day
+
+**Logic:**
+```typescript
+// When product frequency/timeOfDay changes
+await db.delete(routineStepCompletions)
+  .where(
+    and(
+      eq(routineStepCompletions.routineProductId, productId),
+      gte(routineStepCompletions.scheduledDate, today),
+      eq(routineStepCompletions.status, 'pending')
+    )
+  );
+
+// Regenerate tasks for this product: today → today + 60 days
+const windowEnd = addDays(today, 60);
+await generateCompletionsForProduct(productId, today, windowEnd);
+```
+
+### If the coach sets or updates the end date
+
+**Behavior:**
+- If the new end date is **earlier** than before:
+  - All future tasks beyond that date are deleted
+- If the new end date is **later**:
+  - Additional days are added **only up to today + 60 days**
+
+**Logic:**
+```typescript
+// If end date moves earlier
+if (newEndDate < oldEndDate) {
+  await db.delete(routineStepCompletions)
+    .where(
+      and(
+        eq(routineStepCompletions.routineId, routineId),
+        gt(routineStepCompletions.scheduledDate, newEndDate),
+        eq(routineStepCompletions.status, 'pending')
+      )
+    );
+}
+
+// If end date moves later
+if (newEndDate > oldEndDate) {
+  const maxExistingDate = await getLatestCompletionDate(routineId);
+  const gapStart = addDays(maxExistingDate, 1);
+  const windowEnd = min(addDays(today, 60), newEndDate);
+
+  if (gapStart <= windowEnd) {
+    await generateCompletions(routineId, gapStart, windowEnd);
+  }
+}
+```
+
+---
 
 ## Implementation Design
 
-### High-Level Flow
+### 60-Day Rolling Window Pattern
+
+**Philosophy:** Only maintain a 60-day forward-looking window of tasks, not the entire routine lifespan.
+
+#### On Publish: Generate 60-day window only
 
 ```typescript
-async function updateRoutine(routineId, updates) {
-  return await db.transaction(async (tx) => {
-    // 1. Update routine metadata
-    const updatedRoutine = await repo.update(routineId, updates);
+async function publishRoutine(routineId: string) {
+  const routine = await getRoutine(routineId);
+  const user = await getUserProfile(routine.userProfileId);
+  const products = await getRoutineProducts(routineId);
 
-    // 2. If published AND dates changed, regenerate missing completions
-    if (updatedRoutine.status === 'published' &&
-        (updates.startDate || updates.endDate)) {
-      await regenerateMissingCompletions(
-        routineId,
-        updatedRoutine.startDate,
-        updatedRoutine.endDate,
-        updatedRoutine.userProfileId
-      );
+  // Calculate effective start date (never in the past)
+  const today = new Date();
+  const effectiveStartDate = max(routine.startDate, today);
+
+  // Calculate window end (60 days from effective start, capped by end date if exists)
+  const defaultWindowEnd = addDays(effectiveStartDate, 60);
+  const windowEnd = routine.endDate
+    ? min(defaultWindowEnd, routine.endDate)
+    : defaultWindowEnd;
+
+  // Generate completions: effectiveStartDate → windowEnd
+  await generateCompletions(
+    routineId,
+    effectiveStartDate,
+    windowEnd,
+    products,
+    user.timezone
+  );
+
+  // Result: Max 60 days × 7 products × 2 times/day = ~840 rows (vs 2,520 for 6 months)
+}
+```
+
+#### On Update: Regenerate affected date ranges
+
+```typescript
+async function updateRoutine(routineId: string, updates: RoutineUpdates) {
+  return await db.transaction(async (tx) => {
+    const oldRoutine = await tx.select().from(routines).where(eq(routines.id, routineId));
+    const updatedRoutine = await tx.update(routines).set(updates).where(eq(routines.id, routineId));
+
+    if (updatedRoutine.status === 'published') {
+      const today = new Date();
+      const effectiveStartDate = max(updatedRoutine.startDate, today);
+      const windowEnd = addDays(effectiveStartDate, 60);
+
+      // Handle start date change FORWARD
+      if (updates.startDate && updates.startDate > oldRoutine.startDate) {
+        // Delete uncompleted tasks before new start date
+        await tx.delete(routineStepCompletions)
+          .where(
+            and(
+              eq(routineStepCompletions.routineId, routineId),
+              lt(routineStepCompletions.scheduledDate, updates.startDate),
+              eq(routineStepCompletions.status, 'pending')
+            )
+          );
+      }
+
+      // Handle start date change BACKWARD
+      if (updates.startDate && updates.startDate < oldRoutine.startDate) {
+        // Do nothing - we don't backfill past dates
+      }
+
+      // Handle end date change EARLIER
+      if (updates.endDate && updates.endDate < oldRoutine.endDate) {
+        await tx.delete(routineStepCompletions)
+          .where(
+            and(
+              eq(routineStepCompletions.routineId, routineId),
+              gt(routineStepCompletions.scheduledDate, updates.endDate),
+              eq(routineStepCompletions.status, 'pending')
+            )
+          );
+      }
+
+      // Handle end date change LATER
+      if (updates.endDate && updates.endDate > oldRoutine.endDate) {
+        const maxExistingDate = await getLatestCompletionDate(tx, routineId);
+        const gapStart = addDays(maxExistingDate, 1);
+        const effectiveWindowEnd = min(windowEnd, updates.endDate);
+
+        if (gapStart <= effectiveWindowEnd) {
+          await generateCompletions(tx, routineId, gapStart, effectiveWindowEnd);
+        }
+      }
     }
 
     return updatedRoutine;
+  });
+}
+```
+
+#### On Product Update: Regenerate future tasks for product
+
+```typescript
+async function updateRoutineProduct(productId: string, updates: ProductUpdates) {
+  return await db.transaction(async (tx) => {
+    const product = await tx.select().from(routineProducts).where(eq(routineProducts.id, productId));
+    const routine = await tx.select().from(routines).where(eq(routines.id, product.routineId));
+
+    // Only regenerate if routine is published AND frequency/timeOfDay changed
+    if (routine.status === 'published' &&
+        (updates.frequency || updates.timeOfDay || updates.days)) {
+      const today = new Date();
+      const effectiveStartDate = max(routine.startDate, today);
+      const windowEnd = addDays(effectiveStartDate, 60);
+
+      // Delete uncompleted future tasks for this product
+      await tx.delete(routineStepCompletions)
+        .where(
+          and(
+            eq(routineStepCompletions.routineProductId, productId),
+            gte(routineStepCompletions.scheduledDate, today),
+            eq(routineStepCompletions.status, 'pending')
+          )
+        );
+
+      // Update product
+      await tx.update(routineProducts).set(updates).where(eq(routineProducts.id, productId));
+
+      // Regenerate tasks for this product: today → windowEnd
+      const updatedProduct = { ...product, ...updates };
+      await generateCompletionsForProduct(
+        tx,
+        productId,
+        today,
+        min(windowEnd, routine.endDate ?? windowEnd),
+        updatedProduct,
+        user.timezone
+      );
+    }
+
+    return await tx.update(routineProducts).set(updates).where(eq(routineProducts.id, productId));
   });
 }
 ```
@@ -68,304 +299,294 @@ async function updateRoutine(routineId, updates) {
 
 **Goal:** Avoid N+1 queries and use batch inserts.
 
-#### Step 1: Single Query to Get All Data
+#### Step 1: Fetch all products and user timezone
 
 ```typescript
-const result = await db
+const products = await db
   .select({
-    // Routine products
-    productId: schema.skincareRoutineProducts.id,
-    frequency: schema.skincareRoutineProducts.frequency,
-    days: schema.skincareRoutineProducts.days,
-    timeOfDay: schema.skincareRoutineProducts.timeOfDay,
-    // Existing completion date range (aggregated via window functions)
-    minExistingDate: sql<Date>`MIN(${schema.routineStepCompletions.scheduledDate}) OVER()`,
-    maxExistingDate: sql<Date>`MAX(${schema.routineStepCompletions.scheduledDate}) OVER()`,
+    id: routineProducts.id,
+    frequency: routineProducts.frequency,
+    days: routineProducts.days,
+    timeOfDay: routineProducts.timeOfDay,
+    order: routineProducts.order,
   })
-  .from(schema.skincareRoutineProducts)
-  .leftJoin(
-    schema.routineStepCompletions,
-    eq(
-      schema.routineStepCompletions.routineProductId,
-      schema.skincareRoutineProducts.id
-    )
-  )
-  .where(eq(schema.skincareRoutineProducts.routineId, routineId))
-  .groupBy(schema.skincareRoutineProducts.id);
+  .from(routineProducts)
+  .where(eq(routineProducts.routineId, routineId));
+
+const user = await db
+  .select({ timezone: userProfiles.timezone })
+  .from(userProfiles)
+  .where(eq(userProfiles.id, userProfileId))
+  .limit(1);
 ```
 
-**Why this works:**
-- **Window functions (`OVER()`)** calculate MIN/MAX across ALL completions without collapsing rows
-- **LEFT JOIN** includes products even if no completions exist yet
-- **GROUP BY** deduplicates products (since JOIN creates multiple rows per product)
-- **Result:** All products + date range in ONE query (no N+1)
-
-#### Step 2: Calculate Missing Date Ranges
-
-```typescript
-const minExistingDate = result[0]?.minExistingDate;
-const maxExistingDate = result[0]?.maxExistingDate;
-
-const gapBefore = minExistingDate && newStartDate < minExistingDate
-  ? { from: newStartDate, to: addDays(minExistingDate, -1) }
-  : null;
-
-const gapAfter = maxExistingDate && newEndDate > maxExistingDate
-  ? { from: addDays(maxExistingDate, 1), to: newEndDate }
-  : null;
-```
-
-#### Step 3: Build Completions Array in Memory
+#### Step 2: Build completions array in memory
 
 ```typescript
 const completionsToInsert: NewRoutineStepCompletion[] = [];
+let currentDate = new Date(startDate);
 
-for (const product of products) {
-  // For gap BEFORE
-  if (gapBefore) {
-    let currentDate = new Date(gapBefore.from);
-    while (currentDate <= gapBefore.to) {
-      if (shouldGenerateForDate(product, currentDate)) {
-        const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
-          currentDate,
-          product.timeOfDay,
-          timezone
-        );
+while (currentDate <= endDate) {
+  for (const product of products) {
+    if (shouldGenerateForDate(
+      { frequency: product.frequency, days: product.days },
+      currentDate
+    )) {
+      const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
+        currentDate,
+        product.timeOfDay,
+        user.timezone
+      );
 
-        completionsToInsert.push({
-          routineProductId: product.productId,
-          userProfileId,
-          scheduledDate: new Date(currentDate),
-          scheduledTimeOfDay: product.timeOfDay,
-          onTimeDeadline,
-          gracePeriodEnd,
-          status: 'pending',
-          completedAt: null,
-        });
-      }
-      currentDate = addDays(currentDate, 1);
+      completionsToInsert.push({
+        routineProductId: product.id,
+        userProfileId,
+        scheduledDate: new Date(currentDate),
+        scheduledTimeOfDay: product.timeOfDay,
+        onTimeDeadline,
+        gracePeriodEnd,
+        status: 'pending',
+        completedAt: null,
+      });
     }
   }
-
-  // For gap AFTER (same logic)
-  if (gapAfter) {
-    // ... similar loop for after gap
-  }
+  currentDate = addDays(currentDate, 1);
 }
 ```
 
 **Key:** All calculations done in-memory, no database calls inside loops.
 
-#### Step 4: Single Batch Insert
+#### Step 3: Single batch insert
 
 ```typescript
 if (completionsToInsert.length > 0) {
   // Drizzle generates: INSERT INTO ... VALUES (...), (...), (...)
-  await db.insert(schema.routineStepCompletions).values(completionsToInsert);
+  await db.insert(routineStepCompletions).values(completionsToInsert);
 }
 ```
 
 **Performance:** One INSERT with multiple VALUES, not N individual INSERTs.
 
-### Complete Function Signature
+---
+
+## Task Tracking Summary
+
+Every routine task has:
+- A specific **date** (e.g., Nov 12)
+- A specific **product** (e.g., "SPF")
+- A **status**:
+  - **pending** = not completed yet
+  - **on-time** = completed before the deadline
+  - **late** = completed after deadline but within grace
+  - **missed** = not completed by the time grace period ends
+- A **deadline** = when the user was supposed to complete it (calculated in user's timezone)
+- A **grace period** = 24 hours after the deadline (timezone-aware)
+
+---
+
+## Timezone Handling
+
+All deadline calculations are done in the **user's timezone**, not server UTC.
+
+### Example: Nairobi User (UTC+3)
 
 ```typescript
-async function regenerateMissingCompletions(
-  routineId: string,
-  newStartDate: Date,
-  newEndDate: Date,
-  userProfileId: string,
-  timezone: string
-): Promise<void>
+// User in Nairobi timezone
+const user = { timezone: "Africa/Nairobi" };
+
+// Task scheduled for Oct 31, morning
+const scheduledDate = new Date("2025-10-31");
+const timeOfDay = "morning";
+
+// calculateDeadlines returns times in user's timezone
+const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
+  scheduledDate,
+  timeOfDay,
+  user.timezone
+);
+
+// onTimeDeadline = 2025-10-31 12:00:00 EAT (09:00:00 UTC)
+// gracePeriodEnd = 2025-11-01 12:00:00 EAT (09:00:00 UTC)
 ```
+
+### getTodayRoutineSteps - Timezone Awareness
+
+When fetching "today's" tasks, the system calculates "today" based on the user's timezone:
+
+```typescript
+// User in Nairobi (UTC+3) at 3:00 AM local time
+// Server UTC time: 2025-10-31 00:03:00 UTC
+// User's local time: 2025-10-31 03:03:00 EAT
+
+// System correctly returns Oct 31 tasks (user's "today")
+const todayTasks = await getTodayRoutineSteps(userId, serverUTC);
+```
+
+See implementation: `src/app/api/consumer-app/dashboard/dashboard.repo.ts:105-175`
+
+---
+
+## System Guarantees
+
+- A routine **never starts before its start date**
+- The system **never creates tasks in the past**
+- Tasks are **only created from today (or start date) → up to 60 days ahead**
+- The **end date (if set)** is a hard stop — no tasks beyond it
+- All status updates are handled automatically over time (through future cron job)
+- All deadlines and "today" calculations are **timezone-aware** based on user's timezone
+
+---
 
 ## Performance Characteristics
 
 ### Query Count
-- **Before optimization:** N+1 queries (1 for products, N for individual inserts)
-- **After optimization:** 3 queries total regardless of date range:
-  1. SELECT (products + date range)
+
+**For publish routine (60-day window):**
+- 3 queries total:
+  1. SELECT (products)
+  2. SELECT (user timezone)
+  3. INSERT (batch all completions - max ~840 rows)
+
+**For update routine with date change:**
+- 4-5 queries total:
+  1. SELECT (old routine data)
   2. UPDATE (routine metadata)
-  3. INSERT (batch all completions)
+  3. DELETE (uncompleted tasks outside new range, if needed)
+  4. SELECT (existing completion date range, if extending)
+  5. INSERT (batch new completions, if extending)
 
-### Example: Fill 4-day gap with 7 products
-- **Naive approach:** 1 + 28 queries = 29 queries
-- **Optimized approach:** 3 queries (96% reduction)
+### Example: 60-day window with 7 products
 
-## Edge Cases to Consider
+- **With 60-day window:** 60 days × 7 products × 2 times/day = ~840 rows per user
+- **Old approach (6 months):** 180 days × 7 products × 2 times/day = ~2,520 rows per user
+- **Reduction:** 66% fewer rows, faster updates
 
-### Case 1: No existing completions
-- `minExistingDate` and `maxExistingDate` will be `null`
-- Generate completions for entire new date range
+---
 
-### Case 2: Start date moves later, end date moves earlier
-- Creates orphan completions outside new range
-- **Decision:** Keep orphans (preserve history)
-- Alternative: Add cleanup logic (loses data)
+## Benefits of 60-Day Rolling Window
 
-### Case 3: Products added/removed after publishing
-- This implementation only handles date changes
-- Product changes require separate logic
+✅ **Constant database size per user** (~840 rows max vs 2,520+)
+✅ **Faster product updates** (60 days of rewrites vs 6 months)
+✅ **Supports indefinite routines** (window can be extended by future cron)
+✅ **Lighter database load** (no mass deletes/inserts)
+✅ **No wasted storage** for tasks months in the future
 
-### Case 4: Frequency changes (daily → specific days)
-- Not handled by this implementation
-- Would require comparing existing vs new schedules
+---
 
-## Testing Considerations
+## Trade-offs
 
-### Unit Tests
-- Mock `db` to verify query structure
-- Test date range calculations:
-  - Start moves earlier
-  - End moves later
-  - Both move
-  - Dates unchanged
-- Test edge cases (no existing completions, etc.)
+⚠️ **No historical backfill** - If admin backdates routine start, system doesn't create past tasks
+⚠️ **Requires future cron job** - Need scheduled task to extend windows and mark missed tasks
+⚠️ **More complexity** - More moving parts than simple "generate everything upfront"
 
-### Integration Tests
-- Publish routine → update dates → verify completions exist for all dates
-- Update dates multiple times → verify no duplicates
-- User completes steps → update dates → verify completion history preserved
-
-## Future Enhancements
-
-### 1. Handle Product Changes
-When products are added/removed from published routines, regenerate completions accordingly.
-
-### 2. Handle Frequency Changes
-When a product's frequency changes, update existing completions to match new schedule.
-
-### 3. Cleanup Orphaned Completions
-Option to delete completions outside the current routine date range (with user confirmation).
-
-### 4. Batch Processing for Large Date Ranges
-For very large date ranges (e.g., extending by 2 years), split INSERT into chunks to avoid memory issues.
+---
 
 ## Related Code
 
 - **Publish routine:** `src/app/(dashboard)/subscribers/[id]/routine-info-actions/actions.ts` (line 256)
 - **Update routine:** `src/app/(dashboard)/subscribers/[id]/routine-info-actions/actions.ts` (line 137)
 - **Compliance utils:** `src/lib/compliance-utils.ts` (`shouldGenerateForDate`, `calculateDeadlines`)
-- **Dashboard API:** `src/app/api/consumer-app/dashboard/dashboard.repo.ts` (`getTodayRoutineSteps`)
-
-## Status
-
-**NOT IMPLEMENTED** - Documented for future implementation.
-
-Current workaround: Unpublish and republish routine to regenerate all completions (loses completion history).
+- **Dashboard API (timezone-aware):** `src/app/api/consumer-app/dashboard/dashboard.repo.ts` (`getTodayRoutineSteps`)
 
 ---
 
-## IMPORTANT: Scalability Concern - Rolling Window Approach
+## Current Implementation Status
 
-### Current Problem
+### ✅ Implemented (2025-11-01)
+- **60-day rolling window** in `publishRoutine()` ✅ (`actions.ts:310-324`)
+  - Changed from 6-month window to 60-day window
+  - Implements `effectiveStartDate = max(routine.startDate, today)`
+  - Never creates tasks in the past (normalizes to UTC midnight)
+  - Respects end date when < 60 days
+  - Caps at 60 days when end date > 60 days
+  - Uses inclusive date ranges for end dates
+- **Database transaction support** ✅ (`actions.ts:363-386`)
+  - Dependency injection pattern for all database operations
+  - Single atomic transaction for status update + task generation
+  - Prevents data corruption if transaction fails mid-operation
+- **Repository testability** ✅
+  - `makeRoutineRepo({ db })` - accepts test database
+  - `makeRoutineProductsRepo({ db })` - accepts test database
+  - `makeUserProfileRepo({ db })` - accepts test database
+- Timezone-aware deadline calculation (`calculateDeadlines`)
+- Timezone-aware "today" calculation (`getTodayRoutineSteps`)
+- Task status tracking (pending, on-time, late, missed)
+- **Test coverage:**
+  - Helper function tests: ✅ 7/7 passing (`compliance-utils.unit.test.ts`)
+  - publishRoutine() integration tests: ✅ 15/15 passing (`actions.test.ts`)
+    - 60-day window scenarios (3 tests)
+    - End date boundary cases (3 tests)
+    - Edge cases with multiple products (3 tests)
+    - Timezone handling (2 tests)
+    - Validation & error handling (4 tests)
 
-Pre-generating ALL completions creates scalability issues:
+### ⚠️ Needs Implementation
+- [ ] Implement regeneration logic in `updateRoutine()` for date changes
+- [ ] Implement regeneration logic in `updateRoutineProduct()` for product changes
+- [ ] Handle end date updates (delete/add tasks)
+- [ ] Write tests for updateRoutine() (12 tests planned)
+- [ ] Write tests for updateRoutineProduct() (15 tests planned)
+
+### 🔮 Future Enhancements
+- [ ] Daily cron job to extend 60-day window forward
+- [ ] Daily cron job to mark expired pending tasks as "missed"
+- [ ] Batch processing for very large date ranges (if needed)
+
+---
+
+**Last Updated:** 2025-11-01
+
+---
+
+## Key Learnings from Implementation
+
+### Date Normalization (Critical!)
+
+When working with date comparisons for task generation, **always normalize to UTC midnight**:
 
 ```typescript
-// Current implementation (publishRoutine):
-const endDate = routine.endDate ?? addMonths(routine.startDate, 6);
-
-// Results in:
-// 6 months × 7 products × 2 times/day = 2,520 rows per user
-// 1,000 users = 2.5 million rows
-// Product change = Delete + regenerate 2,520 rows per user
-```
-
-**Issues:**
-- Database size explodes at scale
-- Mass rewrites on product/frequency changes
-- Indefinite routines (no end date) run out after 6 months
-- Wasted storage for completions months in the future
-
-### Recommended Solution: Rolling Window Pattern
-
-**Concept:** Only maintain a 30-60 day window of completions, not the entire routine lifespan.
-
-#### Implementation Changes:
-
-##### 1. On Publish: Generate 60-day window only
-```typescript
-publishRoutine(routineId) {
-  const windowEnd = addDays(routine.startDate, 60); // Instead of 6 months
-
-  // Generate completions: startDate → windowEnd (60 days)
-  // Result: 60 days × 7 products = 420 rows (vs 2,520)
+/**
+ * Normalize date to midnight UTC (removes time component)
+ * This ensures consistent date comparisons regardless of time zones
+ */
+function toMidnightUTC(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 ```
 
-##### 2. Daily Cron: Extend window forward
+**Why this matters:**
+- Test dates like `new Date("2025-10-31")` create dates at midnight UTC
+- `now()` returns current time with hours/minutes/seconds
+- Without normalization: Oct 31 10:00 AM + 60 days = Dec 30 10:00 AM
+- With `<=` comparison against Dec 30 00:00: You get 59 days instead of 60!
+
+**DO NOT use** `startOfDay()` from date-fns - it converts to local timezone, causing off-by-one errors when tests run in different timezones.
+
+### Inclusive vs Exclusive Ranges
+
+For the 60-day window:
+- **60 days** means day 0 through day 59 (inclusive)
+- Use `addDays(start, 59)` + `while (current <= end)` for inclusive loops
+- For explicit end dates, users expect the end date to be **included**
+
+### Transaction Injection Pattern
+
+From `TESTING.md`:
 ```typescript
-// Runs at midnight daily
-async function extendCompletionWindows() {
-  const routines = await getPublishedRoutines();
+// Add db to deps type
+export type PublishRoutineDeps = {
+  db: typeof db;  // ← Must be injectable
+  // ... other deps
+};
 
-  for (const routine of routines) {
-    const latestDate = await getLatestCompletionDate(routine.id);
-    const daysRemaining = differenceInDays(latestDate, new Date());
-
-    // If less than 30 days remaining, extend by 30 more days
-    if (daysRemaining < 30) {
-      const newWindowEnd = addDays(latestDate, 30);
-      await generateCompletions(routine, latestDate, newWindowEnd);
-    }
-  }
-}
+// Use deps.db for all operations
+const result = await deps.db.transaction(async (tx) => {
+  // Both operations in one transaction
+  await tx.update(routines).set({...});
+  await tx.insert(completions).values([...]);
+});
 ```
 
-##### 3. On Product Update: Regenerate 60-day window only
-```typescript
-updateRoutineProduct(productId, updates) {
-  const today = new Date();
-  const windowEnd = addDays(today, 60);
+This ensures test databases (PGlite) can be injected without modifying production code.
 
-  // Delete future completions (60 days instead of 6 months)
-  // Regenerate with new frequency (60 days instead of 6 months)
-}
-```
-
-##### 4. On Date Change: Fill gaps within window only
-```typescript
-regenerateMissingCompletions(routineId, newStartDate, newEndDate) {
-  const today = new Date();
-  const windowEnd = addDays(today, 60);
-
-  // Only fill gaps within the current 60-day window
-  // Don't backfill historical data beyond window
-  const effectiveStartDate = max(newStartDate, addDays(today, -30));
-  const effectiveEndDate = min(newEndDate ?? windowEnd, windowEnd);
-
-  // Fill gaps: effectiveStartDate → effectiveEndDate
-}
-```
-
-#### Benefits:
-
-✅ **Constant database size per user** (~420 rows vs 2,520+)
-✅ **Faster product updates** (60 days of rewrites vs 6 months)
-✅ **Supports indefinite routines** (window keeps extending)
-✅ **Lighter database load** (no mass deletes/inserts)
-
-#### Trade-offs:
-
-⚠️ **No historical backfill** - If admin backdates routine start, only fills within window
-⚠️ **Requires cron job** - Need scheduled task to extend windows
-⚠️ **Complexity** - More moving parts than simple "generate everything upfront"
-
-### Decision Required
-
-**Two implementation paths:**
-
-**Path A: Full Backfill (Current Doc)**
-- Fill ALL gaps when dates change (months of data)
-- Simpler logic, no cron needed
-- Works for small scale (< 10,000 users)
-
-**Path B: Rolling Window (Recommended for Scale)**
-- Fill gaps only within 60-day window
-- Requires cron to extend forward
-- Better for growth beyond 10,000 users
-
-**Recommendation:** Start with Path A (simpler), migrate to Path B if/when scale demands it.
-
-**Date:** 2025-10-31
+**Last Updated:** 2025-11-01

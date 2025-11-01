@@ -1,14 +1,13 @@
 import { db } from "@/lib/db";
-import { progressPhotos } from "@/lib/db/schema";
 import {
-  type ProgressPhotoRow,
-  type ProgressPhotoInsert,
-} from "@/lib/db/types";
+  progressPhotos,
+  type ProgressPhoto,
+  type NewProgressPhoto,
+} from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 
 // Repository-specific types derived from centralized types (TYPE_SYSTEM_GUIDE.md)
-export type ProgressPhoto = ProgressPhotoRow;
-export type NewProgressPhoto = ProgressPhotoInsert;
+export type { ProgressPhoto, NewProgressPhoto };
 
 export function makeProgressPhotosRepo() {
   return {

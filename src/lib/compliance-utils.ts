@@ -12,7 +12,7 @@ import { format } from "date-fns";
 export function calculateDeadlines(
   scheduledDate: Date,
   timeOfDay: "morning" | "evening",
-  timezone: string
+  timezone: string,
 ): { onTimeDeadline: Date; gracePeriodEnd: Date } {
   // Extract year, month, day from the scheduled date
   const year = scheduledDate.getFullYear();
@@ -34,9 +34,54 @@ export function calculateDeadlines(
   const onTimeDeadline = fromZonedTime(localDateTime, timezone);
 
   // Grace period ends 24 hours after the on-time deadline
-  const gracePeriodEnd = new Date(onTimeDeadline.getTime() + 24 * 60 * 60 * 1000);
+  const gracePeriodEnd = new Date(
+    onTimeDeadline.getTime() + 24 * 60 * 60 * 1000,
+  );
 
   return { onTimeDeadline, gracePeriodEnd };
+}
+
+/**
+ * Create a cached deadline calculator for a specific timezone
+ *
+ * Performance optimization: Avoids redundant timezone calculations when generating
+ * tasks for multiple products on the same day with the same timeOfDay.
+ *
+ * For a routine with 10 products over 60 days:
+ * - Without cache: 600 timezone conversions
+ * - With cache: ~120 timezone conversions (60 days × 2 timeOfDay values)
+ * - **80-90% reduction in timezone math**
+ *
+ * @param timezone - IANA timezone string (e.g., 'America/New_York')
+ * @returns Function that calculates deadlines with caching
+ *
+ * @example
+ * const getDeadlines = makeDeadlineCache(user.timezone);
+ *
+ * // First call: cache miss, calculates deadlines
+ * const d1 = getDeadlines(new Date("2025-10-31"), "morning");
+ *
+ * // Second call (same date/time): cache hit, returns cached result
+ * const d2 = getDeadlines(new Date("2025-10-31"), "morning");
+ */
+export function makeDeadlineCache(timezone: string) {
+  const cache = new Map<
+    string,
+    { onTimeDeadline: Date; gracePeriodEnd: Date }
+  >();
+
+  return (scheduledDate: Date, timeOfDay: "morning" | "evening") => {
+    // Cache key: YYYY-MM-DD:morning or YYYY-MM-DD:evening
+    const key = `${scheduledDate.toISOString().slice(0, 10)}:${timeOfDay}`;
+
+    const hit = cache.get(key);
+    if (hit) return hit;
+
+    // Cache miss - calculate deadlines using the original function
+    const deadlines = calculateDeadlines(scheduledDate, timeOfDay, timezone);
+    cache.set(key, deadlines);
+    return deadlines;
+  };
 }
 
 /**
@@ -50,7 +95,7 @@ export function calculateDeadlines(
 export function determineStatus(
   completedAt: Date,
   onTimeDeadline: Date,
-  gracePeriodEnd: Date
+  gracePeriodEnd: Date,
 ): "on-time" | "late" | "missed" {
   if (completedAt <= onTimeDeadline) {
     return "on-time";
@@ -71,7 +116,7 @@ export function determineStatus(
  */
 export function shouldGenerateForDate(
   product: { frequency: string; days?: string[] },
-  date: Date
+  date: Date,
 ): boolean {
   // Daily frequency: generate for every day
   // Note: Schema now uses PostgreSQL enum with lowercase "daily"

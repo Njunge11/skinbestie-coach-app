@@ -1,11 +1,9 @@
 import { db } from "@/lib/db";
-import { coachNotes } from "@/lib/db/schema";
-import { type CoachNoteRow, type CoachNoteInsert } from "@/lib/db/types";
+import { coachNotes, type CoachNote, type NewCoachNote } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 
-// Repository-specific types derived from centralized types (TYPE_SYSTEM_GUIDE.md)
-export type CoachNote = CoachNoteRow;
-export type NewCoachNote = CoachNoteInsert;
+// Re-export types from schema (single source of truth)
+export type { CoachNote, NewCoachNote };
 
 export function makeCoachNotesRepo() {
   return {

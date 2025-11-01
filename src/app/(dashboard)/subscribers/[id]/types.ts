@@ -3,7 +3,10 @@ import type { Goal as GoalRepo } from "./goal-actions/goals.repo";
 import type { GoalsTemplate as GoalsTemplateRepo } from "./goal-actions/goals-template.repo";
 import type { Routine as RoutineRepo } from "./routine-info-actions/routine.repo";
 import type { RoutineProduct as RoutineProductRepo } from "./routine-actions/routine.repo";
-import type { ProgressPhotoRow, CoachNoteRow } from "@/lib/db/types";
+import type {
+  ProgressPhoto,
+  CoachNote as CoachNoteBase,
+} from "@/lib/db/schema";
 
 // Re-export repository types for component use
 export type Goal = GoalRepo;
@@ -13,7 +16,7 @@ export type RoutineProduct = RoutineProductRepo;
 
 // Photo DTO derived from schema
 export type Photo = Pick<
-  ProgressPhotoRow,
+  ProgressPhoto,
   "id" | "weekNumber" | "uploadedAt" | "feedback" | "imageUrl"
 >;
 
@@ -73,7 +76,7 @@ export interface RoutineProductFormData {
 
 // CoachNote DTO derived from schema
 export type CoachNote = Pick<
-  CoachNoteRow,
+  CoachNoteBase,
   "id" | "userProfileId" | "adminId" | "content" | "createdAt" | "updatedAt"
 >;
 

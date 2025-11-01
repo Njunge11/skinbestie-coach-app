@@ -17,7 +17,7 @@ describe("Compliance Utils - Unit Tests", () => {
 
         // On-time deadline: 12:00 PM (noon) on Jan 15, 2025 in London
         expect(result.onTimeDeadline.toISOString()).toBe(
-          "2025-01-15T12:00:00.000Z"
+          "2025-01-15T12:00:00.000Z",
         );
       });
 
@@ -30,7 +30,7 @@ describe("Compliance Utils - Unit Tests", () => {
 
         // Grace period ends: 12:00 PM (noon) on Jan 16, 2025 in London
         expect(result.gracePeriodEnd.toISOString()).toBe(
-          "2025-01-16T12:00:00.000Z"
+          "2025-01-16T12:00:00.000Z",
         );
       });
 
@@ -43,10 +43,10 @@ describe("Compliance Utils - Unit Tests", () => {
 
         // Noon in New York is 5 hours behind UTC (during standard time)
         expect(result.onTimeDeadline.toISOString()).toBe(
-          "2025-01-15T17:00:00.000Z"
+          "2025-01-15T17:00:00.000Z",
         );
         expect(result.gracePeriodEnd.toISOString()).toBe(
-          "2025-01-16T17:00:00.000Z"
+          "2025-01-16T17:00:00.000Z",
         );
       });
 
@@ -60,7 +60,7 @@ describe("Compliance Utils - Unit Tests", () => {
 
         // During BST (British Summer Time), London is UTC+1
         expect(result.onTimeDeadline.toISOString()).toBe(
-          "2025-03-30T11:00:00.000Z"
+          "2025-03-30T11:00:00.000Z",
         );
       });
     });
@@ -75,7 +75,7 @@ describe("Compliance Utils - Unit Tests", () => {
 
         // On-time deadline: 11:59:59.999 PM on Jan 15, 2025 in London
         expect(result.onTimeDeadline.toISOString()).toBe(
-          "2025-01-15T23:59:59.999Z"
+          "2025-01-15T23:59:59.999Z",
         );
       });
 
@@ -88,7 +88,7 @@ describe("Compliance Utils - Unit Tests", () => {
 
         // Grace period ends: 11:59:59.999 PM on Jan 16, 2025 in London
         expect(result.gracePeriodEnd.toISOString()).toBe(
-          "2025-01-16T23:59:59.999Z"
+          "2025-01-16T23:59:59.999Z",
         );
       });
 
@@ -101,10 +101,10 @@ describe("Compliance Utils - Unit Tests", () => {
 
         // 11:59 PM in New York is 5 hours behind UTC (during standard time)
         expect(result.onTimeDeadline.toISOString()).toBe(
-          "2025-01-16T04:59:59.999Z"
+          "2025-01-16T04:59:59.999Z",
         );
         expect(result.gracePeriodEnd.toISOString()).toBe(
-          "2025-01-17T04:59:59.999Z"
+          "2025-01-17T04:59:59.999Z",
         );
       });
     });
@@ -117,7 +117,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'on-time' when completed exactly at on-time deadline", () => {
       const completedAt = new Date("2025-01-15T12:00:00.000Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("on-time");
     });
@@ -125,7 +129,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'on-time' when completed before on-time deadline", () => {
       const completedAt = new Date("2025-01-15T10:00:00.000Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("on-time");
     });
@@ -133,7 +141,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'on-time' when completed 1 millisecond before on-time deadline", () => {
       const completedAt = new Date("2025-01-15T11:59:59.999Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("on-time");
     });
@@ -141,7 +153,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'late' when completed 1 millisecond after on-time deadline", () => {
       const completedAt = new Date("2025-01-15T12:00:00.001Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("late");
     });
@@ -149,7 +165,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'late' when completed after on-time deadline but before grace period end", () => {
       const completedAt = new Date("2025-01-15T18:00:00.000Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("late");
     });
@@ -157,7 +177,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'late' when completed exactly at grace period end", () => {
       const completedAt = new Date("2025-01-16T12:00:00.000Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("late");
     });
@@ -165,7 +189,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'late' when completed 1 millisecond before grace period end", () => {
       const completedAt = new Date("2025-01-16T11:59:59.999Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("late");
     });
@@ -173,7 +201,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'missed' when completed 1 millisecond after grace period end", () => {
       const completedAt = new Date("2025-01-16T12:00:00.001Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("missed");
     });
@@ -181,7 +213,11 @@ describe("Compliance Utils - Unit Tests", () => {
     it("returns 'missed' when completed days after grace period end", () => {
       const completedAt = new Date("2025-01-20T12:00:00.000Z");
 
-      const status = determineStatus(completedAt, onTimeDeadline, gracePeriodEnd);
+      const status = determineStatus(
+        completedAt,
+        onTimeDeadline,
+        gracePeriodEnd,
+      );
 
       expect(status).toBe("missed");
     });
@@ -316,6 +352,30 @@ describe("Compliance Utils - Unit Tests", () => {
         const wednesday = new Date("2025-01-01"); // Wednesday
 
         expect(shouldGenerateForDate(product, wednesday)).toBe(true);
+      });
+
+      it("returns false when frequency is not daily and no days specified", () => {
+        const product = {
+          frequency: "2x per week",
+          days: undefined,
+        };
+
+        const monday = new Date("2025-01-13"); // Monday
+
+        expect(shouldGenerateForDate(product, monday)).toBe(false);
+      });
+
+      it("handles empty days array", () => {
+        const product = {
+          frequency: "3x per week",
+          days: [],
+        };
+
+        const monday = new Date("2025-01-13"); // Monday
+        const wednesday = new Date("2025-01-15"); // Wednesday
+
+        expect(shouldGenerateForDate(product, monday)).toBe(false);
+        expect(shouldGenerateForDate(product, wednesday)).toBe(false);
       });
     });
   });

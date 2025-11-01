@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import type { SubscriberTableRow } from "@/lib/db/types";
+import type { SubscriberTableRow } from "../userProfiles.repo";
 import type { UserProfileFilters } from "../schemas";
 import { getUserProfiles } from "../actions";
 

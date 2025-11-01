@@ -5,7 +5,11 @@ import { makeRoutineProductsRepo } from "./routine.repo";
 import type { RoutineProduct, NewRoutineProduct } from "./routine.repo";
 import { makeRoutineRepo as makeRoutineInfoRepo } from "../routine-info-actions/routine.repo";
 import { deleteScheduledStepsForProduct } from "../compliance-actions/actions";
-import { db, skincareRoutineProducts, routineStepCompletions } from "@/lib/db";
+import { db } from "@/lib/db";
+import {
+  skincareRoutineProducts,
+  routineStepCompletions,
+} from "@/lib/db/schema";
 import { eq, and, asc, gte, inArray } from "drizzle-orm";
 import { makeUserProfileRepo } from "../compliance-actions/user-profile.repo";
 import {
@@ -483,7 +487,7 @@ export async function updateRoutineProduct(
               inArray(routineStepCompletions.status, ["pending", "missed"]),
             ),
           )
-          .returning({ id: routineStepCompletions.id });
+          .returning();
 
         // Regenerate steps inline in SAME transaction
         const userRepo = makeUserProfileRepo();
@@ -601,7 +605,7 @@ export async function deleteRoutineProduct(
               inArray(routineStepCompletions.status, ["pending", "missed"]),
             ),
           )
-          .returning({ id: routineStepCompletions.id });
+          .returning();
       }
 
       // Delete product using tx (transaction object)

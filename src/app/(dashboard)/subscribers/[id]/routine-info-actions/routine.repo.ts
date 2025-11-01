@@ -1,13 +1,12 @@
 // Real repository using Drizzle ORM (production)
 
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { skincareRoutines } from "@/lib/db/schema";
-import { type SkincareRoutineRow } from "@/lib/db/types";
+import { db as defaultDb, type DrizzleDB } from "@/lib/db";
+import { skincareRoutines, type SkincareRoutine } from "@/lib/db/schema";
 
 // Type definitions derived from schema
 export type Routine = Pick<
-  SkincareRoutineRow,
+  SkincareRoutine,
   | "id"
   | "userProfileId"
   | "name"
@@ -20,9 +19,9 @@ export type Routine = Pick<
 
 export type NewRoutine = Omit<Routine, "id" | "createdAt" | "updatedAt">;
 
-export function makeRoutineRepo() {
+export function makeRoutineRepo({ db = defaultDb }: { db?: DrizzleDB } = {}) {
   return {
-    async findById(routineId: string): Promise<Routine | null> {
+    async findById(routineId: string) {
       const [routine] = await db
         .select({
           id: skincareRoutines.id,
@@ -41,7 +40,7 @@ export function makeRoutineRepo() {
       return routine ? (routine as Routine) : null;
     },
 
-    async findByUserId(userId: string): Promise<Routine | null> {
+    async findByUserId(userId: string) {
       try {
         const [routine] = await db
           .select({
@@ -66,7 +65,7 @@ export function makeRoutineRepo() {
       }
     },
 
-    async create(routine: NewRoutine): Promise<Routine> {
+    async create(routine: NewRoutine) {
       const [newRoutine] = await db
         .insert(skincareRoutines)
         .values(routine)
@@ -75,10 +74,7 @@ export function makeRoutineRepo() {
       return newRoutine as Routine;
     },
 
-    async update(
-      routineId: string,
-      updates: Partial<Routine>,
-    ): Promise<Routine | null> {
+    async update(routineId: string, updates: Partial<Routine>) {
       const [updatedRoutine] = await db
         .update(skincareRoutines)
         .set(updates)
@@ -88,7 +84,7 @@ export function makeRoutineRepo() {
       return updatedRoutine ? (updatedRoutine as Routine) : null;
     },
 
-    async deleteById(routineId: string): Promise<Routine | null> {
+    async deleteById(routineId: string) {
       const [deletedRoutine] = await db
         .delete(skincareRoutines)
         .where(eq(skincareRoutines.id, routineId))

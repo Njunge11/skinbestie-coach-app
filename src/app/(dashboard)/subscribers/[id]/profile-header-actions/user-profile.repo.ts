@@ -2,12 +2,14 @@
 
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
-import { type UserProfileRow } from "@/lib/db/types";
+import {
+  userProfiles,
+  type UserProfile as UserProfileBase,
+} from "@/lib/db/schema";
 
 // Derive type from centralized schema (TYPE_SYSTEM_GUIDE.md)
 export type UserProfile = Pick<
-  UserProfileRow,
+  UserProfileBase,
   | "id"
   | "firstName"
   | "lastName"

@@ -2,20 +2,24 @@
  * Real repository for user profiles using Drizzle ORM
  */
 
-import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
-import { type UserProfileRow } from "@/lib/db/types";
+import { db as defaultDb, type DrizzleDB } from "@/lib/db";
+import {
+  userProfiles,
+  type UserProfile as UserProfileBase,
+} from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 // Derive type from centralized schema (TYPE_SYSTEM_GUIDE.md)
-export type UserProfile = Pick<UserProfileRow, "id" | "timezone">;
+export type UserProfile = Pick<UserProfileBase, "id" | "timezone">;
 
-export function makeUserProfileRepo() {
+export function makeUserProfileRepo({
+  db = defaultDb,
+}: { db?: DrizzleDB } = {}) {
   return {
     /**
      * Find a user profile by ID
      */
-    async findById(id: string): Promise<UserProfile | null> {
+    async findById(id: string) {
       const [result] = await db
         .select({
           id: userProfiles.id,

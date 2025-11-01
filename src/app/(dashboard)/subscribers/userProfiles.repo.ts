@@ -1,11 +1,28 @@
 import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
-import { type UserProfileRow, type UserProfileInsert } from "@/lib/db/types";
+import {
+  userProfiles,
+  type UserProfile,
+  type NewUserProfile,
+} from "@/lib/db/schema";
 import { eq, or, and, ilike, sql, desc, asc, gte } from "drizzle-orm";
 
 // Repository-specific types derived from centralized types (TYPE_SYSTEM_GUIDE.md)
-export type UserProfile = UserProfileRow;
-export type NewUserProfile = UserProfileInsert;
+export type { UserProfile, NewUserProfile };
+
+// Table view type - only fields displayed in subscribers table
+export type SubscriberTableRow = Pick<
+  UserProfile,
+  | "id"
+  | "email"
+  | "firstName"
+  | "lastName"
+  | "isCompleted"
+  | "hasCompletedSkinTest"
+  | "hasCompletedBooking"
+  | "completedSteps"
+  | "createdAt"
+  | "updatedAt"
+>;
 
 // Real repository implementation using Drizzle ORM
 export function makeUserProfilesRepo(database: typeof db) {

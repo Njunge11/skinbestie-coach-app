@@ -2,12 +2,14 @@
 
 import { eq, asc, and, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { skincareRoutineProducts } from "@/lib/db/schema";
-import { type SkincareRoutineProductRow } from "@/lib/db/types";
+import {
+  skincareRoutineProducts,
+  type SkincareRoutineProduct,
+} from "@/lib/db/schema";
 
 // Type definitions derived from schema
 export type RoutineProduct = Pick<
-  SkincareRoutineProductRow,
+  SkincareRoutineProduct,
   | "id"
   | "routineId"
   | "userProfileId"
