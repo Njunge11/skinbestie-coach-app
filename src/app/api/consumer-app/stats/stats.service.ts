@@ -5,7 +5,7 @@ import { makeStatsRepo } from "./stats.repo";
 import type { StatsRepo } from "./stats.repo";
 import type { StatsResponse } from "./stats.types";
 import { formatInTimeZone } from "date-fns-tz";
-import { subDays } from "date-fns";
+import { startOfWeek, format } from "date-fns";
 
 // Result type pattern for error handling
 export type StatsServiceResult =
@@ -42,11 +42,12 @@ export function makeStatsService(deps: StatsServiceDeps = {}) {
 
         // Step 2: Calculate dates in user's timezone
         const todayDate = formatInTimeZone(currentTime, timezone, "yyyy-MM-dd");
-        const weekStartDate = formatInTimeZone(
-          subDays(currentTime, 6), // 6 days ago + today = 7 days
-          timezone,
-          "yyyy-MM-dd",
-        );
+
+        // Calculate start of calendar week (Monday - ISO 8601) in user's timezone
+        // Parse today's date string as a timezone-naive date, then find start of week
+        const todayAsDate = new Date(todayDate + "T12:00:00Z"); // Midday UTC to avoid TZ issues
+        const weekStart = startOfWeek(todayAsDate, { weekStartsOn: 1 }); // 1 = Monday
+        const weekStartDate = format(weekStart, "yyyy-MM-dd"); // Format without timezone conversion
 
         // Step 3: Run all queries in parallel for performance
         const [todayProgress, currentStreak, weeklyCompliance] =

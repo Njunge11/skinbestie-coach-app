@@ -56,9 +56,10 @@ describe("StatsService - Timezone Handling", () => {
       "2025-11-07",
     );
 
+    // Nov 7, 2025 is Friday - ISO week (Mon-Sun) starts on Nov 3 (Monday)
     expect(mockRepo.getWeeklyCompliance).toHaveBeenCalledWith(
       "user-profile-123",
-      "2025-11-01",
+      "2025-11-03",
       "2025-11-07",
     );
   });
@@ -91,9 +92,10 @@ describe("StatsService - Timezone Handling", () => {
       "2025-11-07",
     );
 
+    // Nov 7, 2025 is Friday - ISO week (Mon-Sun) starts on Nov 3 (Monday)
     expect(mockRepo.getWeeklyCompliance).toHaveBeenCalledWith(
       "user-profile-123",
-      "2025-11-01",
+      "2025-11-03",
       "2025-11-07",
     );
   });

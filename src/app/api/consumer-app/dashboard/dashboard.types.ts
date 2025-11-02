@@ -28,6 +28,21 @@ export const routineItemSchema = z.object({
   completedAt: z.date().nullable(),
 });
 
+// Catchup step schema (previous days' pending steps within grace period)
+export const catchupStepSchema = z.object({
+  id: z.string().uuid(),
+  routineStep: z.string(),
+  productName: z.string(),
+  productUrl: z.string().nullable(),
+  instructions: z.string(),
+  timeOfDay: z.enum(["morning", "evening"]),
+  order: z.number(),
+  status: z.enum(["pending", "completed", "missed", "late"]),
+  completedAt: z.date().nullable(),
+  scheduledDate: z.date(),
+  gracePeriodEnd: z.date(),
+});
+
 // Routine product schema (for general routine viewing)
 export const routineProductSchema = z.object({
   id: z.string().uuid(),
@@ -58,8 +73,17 @@ export const dashboardResponseSchema = z.object({
     firstName: z.string(),
     lastName: z.string(),
     email: z.string().email(),
+    phoneNumber: z.string(),
+    dateOfBirth: z.date(),
     nickname: z.string().nullable(),
     skinType: z.array(z.string()).nullable(),
+    concerns: z.array(z.string()).nullable(),
+    hasAllergies: z.boolean().nullable(),
+    allergyDetails: z.string().nullable(),
+    isSubscribed: z.boolean().nullable(),
+    occupation: z.string().nullable(),
+    bio: z.string().nullable(),
+    timezone: z.string(),
   }),
   setupProgress: z.object({
     percentage: z.number().min(0).max(100),
@@ -73,6 +97,7 @@ export const dashboardResponseSchema = z.object({
     }),
   }),
   todayRoutine: z.array(routineItemSchema).nullable(),
+  catchupSteps: z.array(catchupStepSchema).nullable(),
   routine: routineSchema.nullable(),
   goals: z.array(goalSchema).nullable(),
   goalsAcknowledgedByClient: z.boolean(),
@@ -82,6 +107,7 @@ export const dashboardResponseSchema = z.object({
 export type GetDashboardRequest = z.infer<typeof getDashboardRequestSchema>;
 export type Goal = z.infer<typeof goalSchema>;
 export type RoutineItem = z.infer<typeof routineItemSchema>;
+export type CatchupStep = z.infer<typeof catchupStepSchema>;
 export type RoutineProduct = z.infer<typeof routineProductSchema>;
 export type Routine = z.infer<typeof routineSchema>;
 export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;

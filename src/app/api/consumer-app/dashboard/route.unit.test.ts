@@ -42,6 +42,7 @@ describe("Dashboard API Route", () => {
       },
     },
     todayRoutine: null,
+    catchupSteps: null,
     goals: null,
   };
 
@@ -225,11 +226,12 @@ describe("Dashboard API Route", () => {
       expect(data.error.code).toBe("INTERNAL_ERROR");
     });
 
-    it("returns profile with empty routine and goals arrays", async () => {
+    it("returns profile with empty routine, catchup steps, and goals arrays", async () => {
       // Given
       const profileWithEmptyArrays = {
         ...mockProfileData,
         todayRoutine: [],
+        catchupSteps: [],
         goals: [],
       };
 
@@ -251,6 +253,7 @@ describe("Dashboard API Route", () => {
       expect(response.status).toBe(200);
       expect(data).toEqual(profileWithEmptyArrays);
       expect(data.todayRoutine).toEqual([]);
+      expect(data.catchupSteps).toEqual([]);
       expect(data.goals).toEqual([]);
     });
 
@@ -290,6 +293,50 @@ describe("Dashboard API Route", () => {
       expect(data.setupProgress.percentage).toBe(50);
       expect(data.setupProgress.completed).toBe(2);
       expect(data.setupProgress.total).toBe(4);
+    });
+
+    it("returns profile with catchup steps when available", async () => {
+      // Given
+      const mockCatchupSteps = [
+        {
+          id: "step-1",
+          routineStep: "Cleanser",
+          productName: "Morning Cleanser",
+          productUrl: null,
+          instructions: "Apply to face",
+          timeOfDay: "morning" as const,
+          order: 1,
+          status: "pending" as const,
+          completedAt: null,
+          scheduledDate: new Date("2025-11-03"),
+          gracePeriodEnd: new Date("2025-11-04T12:00:00Z"),
+        },
+      ];
+
+      const profileWithCatchupSteps = {
+        ...mockProfileData,
+        catchupSteps: mockCatchupSteps,
+      };
+
+      mockValidateApiKey.mockResolvedValue(true);
+      mockService.getConsumerDashboard.mockResolvedValue({
+        success: true,
+        data: profileWithCatchupSteps,
+      });
+
+      const request = new NextRequest(
+        `http://localhost:3000/api/consumer-app/dashboard?userId=${validUserId}`,
+      );
+
+      // When
+      const response = await GET(request);
+      const data = await response.json();
+
+      // Then
+      expect(response.status).toBe(200);
+      expect(data.catchupSteps).toHaveLength(1);
+      expect(data.catchupSteps[0].productName).toBe("Morning Cleanser");
+      expect(data.catchupSteps[0].status).toBe("pending");
     });
   });
 });

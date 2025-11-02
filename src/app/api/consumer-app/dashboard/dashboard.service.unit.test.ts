@@ -12,6 +12,7 @@ describe("DashboardService", () => {
     getUserDashboardData: ReturnType<typeof vi.fn>;
     getPublishedGoals: ReturnType<typeof vi.fn>;
     getTodayRoutineSteps: ReturnType<typeof vi.fn>;
+    getCatchupSteps: ReturnType<typeof vi.fn>;
     getRoutine: ReturnType<typeof vi.fn>;
   };
   let deps: DashboardServiceDeps;
@@ -26,8 +27,17 @@ describe("DashboardService", () => {
     firstName: "John",
     lastName: "Doe",
     email: "john@example.com",
+    phoneNumber: "+1234567890",
+    dateOfBirth: new Date("1990-01-01"),
     nickname: null,
     skinType: null,
+    concerns: null,
+    hasAllergies: null,
+    allergyDetails: null,
+    isSubscribed: null,
+    occupation: null,
+    bio: null,
+    timezone: "Europe/London",
     hasCompletedSkinTest: false,
     hasCompletedBooking: false,
     goalsTemplateId: null,
@@ -75,6 +85,7 @@ describe("DashboardService", () => {
       getUserDashboardData: vi.fn(),
       getPublishedGoals: vi.fn(),
       getTodayRoutineSteps: vi.fn(),
+      getCatchupSteps: vi.fn().mockResolvedValue([]), // Default to empty catchup steps
       getRoutine: vi.fn().mockResolvedValue(null), // Default to null routine
     };
 
@@ -111,8 +122,17 @@ describe("DashboardService", () => {
           firstName: "John",
           lastName: "Doe",
           email: "john@example.com",
+          phoneNumber: "+1234567890",
+          dateOfBirth: new Date("1990-01-01"),
           nickname: null,
           skinType: null,
+          concerns: null,
+          hasAllergies: null,
+          allergyDetails: null,
+          isSubscribed: null,
+          occupation: null,
+          bio: null,
+          timezone: "Europe/London",
         });
         expect(result.data.setupProgress).toEqual({
           percentage: 100,
@@ -381,8 +401,17 @@ describe("DashboardService", () => {
         firstName: "Jane",
         lastName: "Smith",
         email: "jane@example.com",
+        phoneNumber: "+1234567890",
+        dateOfBirth: new Date("1990-01-01"),
         nickname: null,
         skinType: null,
+        concerns: null,
+        hasAllergies: null,
+        allergyDetails: null,
+        isSubscribed: null,
+        occupation: null,
+        bio: null,
+        timezone: "Europe/London",
         hasCompletedSkinTest: true,
         hasCompletedBooking: false,
         goalsTemplateId: "template-1",
