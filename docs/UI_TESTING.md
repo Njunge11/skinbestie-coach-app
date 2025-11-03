@@ -81,9 +81,10 @@ A **UI test** (also called integration test) verifies that multiple units work t
 
 **Only mock these things:**
 
-1. **External network requests** - Use MSW (Mock Service Worker)
+1. **External network requests** - Use `vi.mock()` for API routes and services
    - Third-party APIs
-   - Your own backend API (in some cases)
+   - Your own backend API routes (when testing components)
+   - Server actions (Next.js server actions)
 
 2. **Browser APIs that don't work in test environment:**
    - `window.matchMedia` (if needed)
@@ -336,29 +337,27 @@ describe('Contact Form', () => {
 
 ---
 
-## Example: Using MSW for External APIs
+## Example: Mocking API Routes and Server Actions
 
 ```typescript
-import { rest } from 'msw';
-import { setupServer } from 'msw/node';
+import { vi } from 'vitest';
 
-// Set up mock API server
-const server = setupServer(
-  rest.get('/api/users', (req, res, ctx) => {
-    return res(ctx.json([
-      { id: 1, name: 'John Doe' },
-      { id: 2, name: 'Jane Smith' }
-    ]));
-  })
-);
+// Mock server action
+vi.mock('@/app/(dashboard)/actions', () => ({
+  getUsers: vi.fn(),
+}));
 
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+import { getUsers } from '@/app/(dashboard)/actions';
 
 describe('User List', () => {
   it('user views and filters the list', async () => {
     const user = userEvent.setup();
+
+    // Mock the API response
+    vi.mocked(getUsers).mockResolvedValue([
+      { id: 1, name: 'John Doe' },
+      { id: 2, name: 'Jane Smith' }
+    ]);
 
     render(<UserList />);
 
@@ -376,6 +375,48 @@ describe('User List', () => {
 });
 ```
 
+**For API route tests:**
+
+```typescript
+import { vi } from 'vitest';
+import { NextRequest } from 'next/server';
+import { GET } from './route';
+
+// Mock dependencies
+vi.mock('../shared/auth', () => ({
+  validateApiKey: vi.fn(),
+}));
+
+vi.mock('./service', () => ({
+  makeService: vi.fn(),
+}));
+
+import { validateApiKey } from '../shared/auth';
+import { makeService } from './service';
+
+describe('GET /api/users', () => {
+  it('returns users when authenticated', async () => {
+    vi.mocked(validateApiKey).mockResolvedValue(true);
+
+    const mockService = {
+      getUsers: vi.fn().mockResolvedValue({
+        success: true,
+        data: [{ id: 1, name: 'John' }]
+      })
+    };
+
+    vi.mocked(makeService).mockReturnValue(mockService);
+
+    const request = new NextRequest('http://localhost:3000/api/users');
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual([{ id: 1, name: 'John' }]);
+  });
+});
+```
+
 ---
 
 ## Quick Decision Tree
@@ -384,7 +425,7 @@ describe('User List', () => {
 
 ```
 Is it outside my application boundary (external API)?
-  YES → Mock with MSW
+  YES → Mock with vi.mock()
   NO  ↓
 
 Is it a browser API that doesn't work in tests?

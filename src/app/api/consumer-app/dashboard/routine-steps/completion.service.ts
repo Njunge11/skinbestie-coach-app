@@ -22,11 +22,12 @@ export function makeCompletionService(deps: CompletionServiceDeps = {}) {
 
   return {
     /**
-     * Update completion status for single step or all steps for a date
-     * @param params - Either { stepId, completed, userId } or { date, completed, userId }
+     * Update completion status for single step, multiple steps, or all steps for a date
+     * @param params - Either { stepId, completed, userId }, { stepIds, completed, userId }, or { date, completed, userId }
      */
     async updateCompletion(params: {
       stepId?: string;
+      stepIds?: string[];
       date?: string;
       completed: boolean;
       userId: string;
@@ -102,6 +103,34 @@ export function makeCompletionService(deps: CompletionServiceDeps = {}) {
           return { success: true, data: result };
         }
 
+        // Multi-step update by stepIds
+        if (params.stepIds) {
+          console.log(
+            "[CompletionService] Multi-step update by stepIds requested:",
+            {
+              stepIds: params.stepIds,
+              completed: params.completed,
+              userId: params.userId,
+              userProfileId: userProfile.id,
+            },
+          );
+
+          const completedAt = params.completed ? new Date() : undefined;
+
+          const result = await repo.updateCompletionsByStepIds({
+            stepIds: params.stepIds,
+            completed: params.completed,
+            userProfileId: userProfile.id,
+            completedAt,
+          });
+
+          console.log("[CompletionService] Multi-step update complete:", {
+            updatedCount: result.length,
+          });
+
+          return { success: true, data: result };
+        }
+
         // Multi-step update by date
         if (params.date) {
           console.log(
@@ -132,7 +161,7 @@ export function makeCompletionService(deps: CompletionServiceDeps = {}) {
 
         return {
           success: false,
-          error: "Either stepId or date must be provided",
+          error: "Either stepId, stepIds, or date must be provided",
         };
       } catch (error) {
         console.error("Error updating completion:", error);

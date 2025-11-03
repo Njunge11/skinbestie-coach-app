@@ -1,5 +1,5 @@
 // Repository layer for routine step completions
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { db } from "@/lib/db";
@@ -249,6 +249,126 @@ export function makeCompletionRepo(deps: CompletionRepoDeps = {}) {
             ),
           )
           .returning();
+
+        return updated;
+      }
+    },
+
+    /**
+     * Update multiple completions by step IDs
+     * @param params - stepIds array, completed status, userProfileId, optional completedAt
+     * @returns Array of updated completions
+     */
+    async updateCompletionsByStepIds(params: {
+      stepIds: string[];
+      completed: boolean;
+      userProfileId: string;
+      completedAt?: Date;
+    }) {
+      const { stepIds, completed, userProfileId, completedAt } = params;
+
+      console.log("[CompletionRepo] updateCompletionsByStepIds called:", {
+        stepIds,
+        completed,
+        userProfileId,
+        completedAt: completedAt?.toISOString(),
+      });
+
+      if (completed) {
+        // Get all matching steps
+        const steps = await database
+          .select()
+          .from(schema.routineStepCompletions)
+          .where(
+            and(
+              eq(schema.routineStepCompletions.userProfileId, userProfileId),
+              inArray(schema.routineStepCompletions.id, stepIds),
+            ),
+          );
+
+        console.log("[CompletionRepo] Found steps:", {
+          count: steps.length,
+          stepIds: steps.map((s) => s.id),
+        });
+
+        if (steps.length === 0) return [];
+
+        const completionTime = completedAt || new Date();
+
+        // Update each step individually to calculate correct status
+        const updates = await Promise.all(
+          steps.map(async (step) => {
+            // Cannot complete missed steps
+            if (step.status === "missed") {
+              console.log("[CompletionRepo] Skipping missed step:", step.id);
+              return step;
+            }
+
+            // If already completed, keep existing (idempotent)
+            if (step.status === "on-time" || step.status === "late") {
+              console.log(
+                "[CompletionRepo] Step already completed (idempotent):",
+                step.id,
+              );
+              return step;
+            }
+
+            // Check if past grace period
+            if (completionTime > step.gracePeriodEnd) {
+              console.log("[CompletionRepo] Step past grace period:", step.id);
+              return step;
+            }
+
+            // Calculate status based on completion time vs deadline
+            const status =
+              completionTime <= step.onTimeDeadline ? "on-time" : "late";
+
+            console.log("[CompletionRepo] Updating step:", {
+              id: step.id,
+              status,
+            });
+
+            const [updated] = await database
+              .update(schema.routineStepCompletions)
+              .set({
+                status,
+                completedAt: completionTime,
+              })
+              .where(
+                and(
+                  eq(schema.routineStepCompletions.id, step.id),
+                  eq(
+                    schema.routineStepCompletions.userProfileId,
+                    userProfileId,
+                  ),
+                ),
+              )
+              .returning();
+
+            return updated || step;
+          }),
+        );
+
+        return updates;
+      } else {
+        // Marking as incomplete - revert all to pending
+        const updated = await database
+          .update(schema.routineStepCompletions)
+          .set({
+            status: "pending",
+            completedAt: null,
+          })
+          .where(
+            and(
+              eq(schema.routineStepCompletions.userProfileId, userProfileId),
+              inArray(schema.routineStepCompletions.id, stepIds),
+            ),
+          )
+          .returning();
+
+        console.log("[CompletionRepo] Marked as incomplete:", {
+          count: updated.length,
+        });
 
         return updated;
       }

@@ -58,6 +58,7 @@ export async function PATCH(request: NextRequest) {
     const result = await service.updateCompletion({
       userId: validatedData.userId,
       stepId: validatedData.stepId,
+      stepIds: validatedData.stepIds,
       date: validatedData.date,
       completed: validatedData.completed,
     });

@@ -120,7 +120,7 @@ describe("PATCH /api/consumer-app/dashboard/routine-steps", () => {
       expect(data.error.code).toBe("INVALID_REQUEST");
     });
 
-    it("returns 400 when neither stepId nor date provided", async () => {
+    it("returns 400 when neither stepId nor stepIds nor date provided", async () => {
       const request = new NextRequest(
         "http://localhost:3000/api/consumer-app/dashboard/routine-steps",
         {
@@ -137,7 +137,9 @@ describe("PATCH /api/consumer-app/dashboard/routine-steps", () => {
 
       expect(response.status).toBe(400);
       expect(data.error.code).toBe("INVALID_REQUEST");
-      expect(data.error.message).toContain("Either stepId or date");
+      expect(data.error.message).toContain(
+        "Either stepId, stepIds, or date must be provided",
+      );
     });
 
     it("returns 400 when both stepId and date provided", async () => {
@@ -159,7 +161,7 @@ describe("PATCH /api/consumer-app/dashboard/routine-steps", () => {
 
       expect(response.status).toBe(400);
       expect(data.error.code).toBe("INVALID_REQUEST");
-      expect(data.error.message).toContain("Cannot provide both");
+      expect(data.error.message).toContain("Cannot provide multiple");
     });
 
     it("returns 400 when stepId is not a valid UUID", async () => {
@@ -463,6 +465,184 @@ describe("PATCH /api/consumer-app/dashboard/routine-steps", () => {
       expect(response.status).toBe(500);
       expect(data.error.code).toBe("INTERNAL_ERROR");
       expect(data.error.message).toBe("An internal error occurred");
+    });
+  });
+
+  describe("Bulk stepIds", () => {
+    beforeEach(() => {
+      vi.mocked(validateApiKey).mockResolvedValue(true);
+    });
+
+    it("successfully updates multiple steps using stepIds array", async () => {
+      const mockCompletions = [
+        {
+          id: "850e8400-e29b-41d4-a716-446655440001",
+          routineProductId: "750e8400-e29b-41d4-a716-446655440001",
+          userProfileId: "550e8400-e29b-41d4-a716-446655440000",
+          scheduledDate: new Date("2025-11-07"),
+          scheduledTimeOfDay: "morning",
+          onTimeDeadline: new Date("2025-11-07T14:00:00Z"),
+          gracePeriodEnd: new Date("2025-11-07T20:00:00Z"),
+          completedAt: new Date("2025-11-07T08:00:00Z"),
+          status: "on-time",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: "850e8400-e29b-41d4-a716-446655440002",
+          routineProductId: "750e8400-e29b-41d4-a716-446655440002",
+          userProfileId: "550e8400-e29b-41d4-a716-446655440000",
+          scheduledDate: new Date("2025-11-07"),
+          scheduledTimeOfDay: "morning",
+          onTimeDeadline: new Date("2025-11-07T14:00:00Z"),
+          gracePeriodEnd: new Date("2025-11-07T20:00:00Z"),
+          completedAt: new Date("2025-11-07T08:00:00Z"),
+          status: "on-time",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      mockService.updateCompletion.mockResolvedValue({
+        success: true,
+        data: mockCompletions,
+      });
+
+      const request = new NextRequest(
+        "http://localhost:3000/api/consumer-app/dashboard/routine-steps",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            userId: "550e8400-e29b-41d4-a716-446655440000",
+            stepIds: [
+              "850e8400-e29b-41d4-a716-446655440001",
+              "850e8400-e29b-41d4-a716-446655440002",
+            ],
+            completed: true,
+          }),
+        },
+      );
+
+      const response = await PATCH(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual(mockCompletions);
+      expect(mockService.updateCompletion).toHaveBeenCalledWith({
+        userId: "550e8400-e29b-41d4-a716-446655440000",
+        stepIds: [
+          "850e8400-e29b-41d4-a716-446655440001",
+          "850e8400-e29b-41d4-a716-446655440002",
+        ],
+        completed: true,
+      });
+    });
+
+    it("returns 400 when stepIds array is empty", async () => {
+      const request = new NextRequest(
+        "http://localhost:3000/api/consumer-app/dashboard/routine-steps",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            userId: "550e8400-e29b-41d4-a716-446655440000",
+            stepIds: [],
+            completed: true,
+          }),
+        },
+      );
+
+      const response = await PATCH(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 when stepIds contains invalid UUID", async () => {
+      const request = new NextRequest(
+        "http://localhost:3000/api/consumer-app/dashboard/routine-steps",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            userId: "550e8400-e29b-41d4-a716-446655440000",
+            stepIds: ["850e8400-e29b-41d4-a716-446655440001", "invalid-uuid"],
+            completed: true,
+          }),
+        },
+      );
+
+      const response = await PATCH(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 when both stepId and stepIds provided", async () => {
+      const request = new NextRequest(
+        "http://localhost:3000/api/consumer-app/dashboard/routine-steps",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            userId: "550e8400-e29b-41d4-a716-446655440000",
+            stepId: "850e8400-e29b-41d4-a716-446655440001",
+            stepIds: ["850e8400-e29b-41d4-a716-446655440002"],
+            completed: true,
+          }),
+        },
+      );
+
+      const response = await PATCH(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns 400 when stepIds and date both provided", async () => {
+      const request = new NextRequest(
+        "http://localhost:3000/api/consumer-app/dashboard/routine-steps",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            userId: "550e8400-e29b-41d4-a716-446655440000",
+            stepIds: ["850e8400-e29b-41d4-a716-446655440001"],
+            date: "2025-11-07",
+            completed: true,
+          }),
+        },
+      );
+
+      const response = await PATCH(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error.code).toBe("INVALID_REQUEST");
+    });
+
+    it("returns empty array when no steps found for stepIds", async () => {
+      mockService.updateCompletion.mockResolvedValue({
+        success: true,
+        data: [],
+      });
+
+      const request = new NextRequest(
+        "http://localhost:3000/api/consumer-app/dashboard/routine-steps",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            userId: "550e8400-e29b-41d4-a716-446655440000",
+            stepIds: ["850e8400-e29b-41d4-a716-446655440001"],
+            completed: true,
+          }),
+        },
+      );
+
+      const response = await PATCH(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual([]);
     });
   });
 });
