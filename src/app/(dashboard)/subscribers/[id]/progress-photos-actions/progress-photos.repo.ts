@@ -1,29 +1,19 @@
 import { db } from "@/lib/db";
-import { progressPhotos } from "@/lib/db/schema";
 import {
-  type ProgressPhotoRow,
-  type ProgressPhotoInsert,
-} from "@/lib/db/types";
+  progressPhotos,
+  type ProgressPhoto,
+  type NewProgressPhoto,
+} from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 
 // Repository-specific types derived from centralized types (TYPE_SYSTEM_GUIDE.md)
-export type ProgressPhoto = ProgressPhotoRow;
-export type NewProgressPhoto = ProgressPhotoInsert;
+export type { ProgressPhoto, NewProgressPhoto };
 
 export function makeProgressPhotosRepo() {
   return {
     async findByUserId(userId: string): Promise<ProgressPhoto[]> {
       const photos = await db
-        .select({
-          id: progressPhotos.id,
-          userProfileId: progressPhotos.userProfileId,
-          imageUrl: progressPhotos.imageUrl,
-          weekNumber: progressPhotos.weekNumber,
-          uploadedAt: progressPhotos.uploadedAt,
-          feedback: progressPhotos.feedback,
-          createdAt: progressPhotos.createdAt,
-          updatedAt: progressPhotos.updatedAt,
-        })
+        .select()
         .from(progressPhotos)
         .where(eq(progressPhotos.userProfileId, userId))
         .orderBy(desc(progressPhotos.uploadedAt))
@@ -36,16 +26,7 @@ export function makeProgressPhotosRepo() {
       weekNumber: number,
     ): Promise<ProgressPhoto[]> {
       const photos = await db
-        .select({
-          id: progressPhotos.id,
-          userProfileId: progressPhotos.userProfileId,
-          imageUrl: progressPhotos.imageUrl,
-          weekNumber: progressPhotos.weekNumber,
-          uploadedAt: progressPhotos.uploadedAt,
-          feedback: progressPhotos.feedback,
-          createdAt: progressPhotos.createdAt,
-          updatedAt: progressPhotos.updatedAt,
-        })
+        .select()
         .from(progressPhotos)
         .where(
           and(
@@ -60,16 +41,7 @@ export function makeProgressPhotosRepo() {
 
     async findById(id: string): Promise<ProgressPhoto | null> {
       const result = await db
-        .select({
-          id: progressPhotos.id,
-          userProfileId: progressPhotos.userProfileId,
-          imageUrl: progressPhotos.imageUrl,
-          weekNumber: progressPhotos.weekNumber,
-          uploadedAt: progressPhotos.uploadedAt,
-          feedback: progressPhotos.feedback,
-          createdAt: progressPhotos.createdAt,
-          updatedAt: progressPhotos.updatedAt,
-        })
+        .select()
         .from(progressPhotos)
         .where(eq(progressPhotos.id, id))
         .limit(1);

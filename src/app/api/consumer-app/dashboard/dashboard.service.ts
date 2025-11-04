@@ -38,11 +38,15 @@ export function makeDashboardService(deps: DashboardServiceDeps = {}) {
           return { success: false, error: "User not found" };
         }
 
-        // Execute parallel queries for goals, today's routine, and routine metadata
-        const [goals, todayRoutine, routine] = await Promise.all([
+        // Execute parallel queries for goals, today's routine, catchup steps, and routine metadata
+        const [goals, todayRoutine, routine, catchupSteps] = await Promise.all([
           repo.getPublishedGoals(userId),
           repo.getTodayRoutineSteps(userId, now()),
           repo.getRoutine(userId),
+          // Only fetch catchup steps if routine is published
+          userData.routineStatus === "published"
+            ? repo.getCatchupSteps(userId, now())
+            : Promise.resolve([]),
         ]);
 
         // Calculate setup progress
@@ -60,13 +64,26 @@ export function makeDashboardService(deps: DashboardServiceDeps = {}) {
         // Format response
         // For routine: if published routine exists, return array (even if empty), else null
         // For goals: if published template exists, return array (even if empty), else null
+        // For catchupSteps: if published routine exists, return array (even if empty), else null
+        // Note: userId should never be null when querying by userId, but DB schema allows it
         const response: DashboardResponse = {
           user: {
+            userId: userData.userId!,
+            userProfileId: userData.userProfileId,
             firstName: userData.firstName,
             lastName: userData.lastName,
             email: userData.email,
+            phoneNumber: userData.phoneNumber,
+            dateOfBirth: userData.dateOfBirth,
             nickname: userData.nickname,
             skinType: userData.skinType,
+            concerns: userData.concerns,
+            hasAllergies: userData.hasAllergies,
+            allergyDetails: userData.allergyDetails,
+            isSubscribed: userData.isSubscribed,
+            occupation: userData.occupation,
+            bio: userData.bio,
+            timezone: userData.timezone,
           },
           setupProgress: {
             percentage,
@@ -76,6 +93,8 @@ export function makeDashboardService(deps: DashboardServiceDeps = {}) {
           },
           todayRoutine:
             userData.routineStatus === "published" ? todayRoutine : null,
+          catchupSteps:
+            userData.routineStatus === "published" ? catchupSteps : null,
           routine: routine,
           goals: userData.goalsTemplateStatus === "published" ? goals : null,
           goalsAcknowledgedByClient:

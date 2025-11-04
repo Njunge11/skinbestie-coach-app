@@ -4,15 +4,15 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
-import { type SkinGoalsTemplateRow } from "@/lib/db/types";
+import { type SkinGoalsTemplate } from "@/lib/db/schema";
 
 // Derive types from centralized schema (TYPE_SYSTEM_GUIDE.md)
 export type GoalsTemplateUpdateData = Partial<
-  Pick<SkinGoalsTemplateRow, "goalsAcknowledgedByClient" | "status">
+  Pick<SkinGoalsTemplate, "goalsAcknowledgedByClient" | "status">
 >;
 
 export type GoalsTemplateData = Pick<
-  SkinGoalsTemplateRow,
+  SkinGoalsTemplate,
   "id" | "userId" | "status" | "goalsAcknowledgedByClient" | "updatedAt"
 >;
 

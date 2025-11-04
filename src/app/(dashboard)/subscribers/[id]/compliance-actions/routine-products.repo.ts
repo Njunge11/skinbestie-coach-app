@@ -2,14 +2,16 @@
  * Real repository for skincare routine products using Drizzle ORM
  */
 
-import { db } from "@/lib/db";
-import { skincareRoutineProducts } from "@/lib/db/schema";
-import { type SkincareRoutineProductRow } from "@/lib/db/types";
+import { db as defaultDb, type DrizzleDB } from "@/lib/db";
+import {
+  skincareRoutineProducts,
+  type SkincareRoutineProduct,
+} from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 
 // Derive type from centralized schema (TYPE_SYSTEM_GUIDE.md)
 export type RoutineProduct = Pick<
-  SkincareRoutineProductRow,
+  SkincareRoutineProduct,
   | "id"
   | "routineId"
   | "userProfileId"
@@ -21,12 +23,37 @@ export type RoutineProduct = Pick<
   | "timeOfDay"
 >;
 
-export function makeRoutineProductsRepo() {
+export function makeRoutineProductsRepo({
+  db = defaultDb,
+}: { db?: DrizzleDB } = {}) {
   return {
+    /**
+     * Find a product by ID
+     */
+    async findById(id: string) {
+      const [result] = await db
+        .select({
+          id: skincareRoutineProducts.id,
+          routineId: skincareRoutineProducts.routineId,
+          userProfileId: skincareRoutineProducts.userProfileId,
+          routineStep: skincareRoutineProducts.routineStep,
+          productName: skincareRoutineProducts.productName,
+          instructions: skincareRoutineProducts.instructions,
+          frequency: skincareRoutineProducts.frequency,
+          days: skincareRoutineProducts.days,
+          timeOfDay: skincareRoutineProducts.timeOfDay,
+        })
+        .from(skincareRoutineProducts)
+        .where(eq(skincareRoutineProducts.id, id))
+        .limit(1);
+
+      return (result as RoutineProduct) ?? null;
+    },
+
     /**
      * Find all products for a routine
      */
-    async findByRoutineId(routineId: string): Promise<RoutineProduct[]> {
+    async findByRoutineId(routineId: string) {
       const results = await db
         .select({
           id: skincareRoutineProducts.id,

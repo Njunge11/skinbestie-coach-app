@@ -3,13 +3,12 @@
  */
 
 import { db } from "@/lib/db";
-import { skincareRoutines } from "@/lib/db/schema";
-import { type SkincareRoutineRow } from "@/lib/db/types";
+import { skincareRoutines, type SkincareRoutine } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 // Derive type from centralized schema (TYPE_SYSTEM_GUIDE.md)
 export type Routine = Pick<
-  SkincareRoutineRow,
+  SkincareRoutine,
   "id" | "userProfileId" | "name" | "startDate" | "endDate"
 >;
 

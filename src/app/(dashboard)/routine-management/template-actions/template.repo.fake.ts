@@ -1,9 +1,9 @@
 // Fake repository for unit testing (follows TESTING.md)
 
 import {
-  type RoutineTemplateRow,
-  type RoutineTemplateProductRow,
-} from "@/lib/db/types";
+  type RoutineTemplate as RoutineTemplateRow,
+  type RoutineTemplateProduct as RoutineTemplateProductRow,
+} from "@/lib/db/schema";
 
 // Derive types from centralized schema (TYPE_SYSTEM_GUIDE.md)
 export type RoutineTemplate = Pick<

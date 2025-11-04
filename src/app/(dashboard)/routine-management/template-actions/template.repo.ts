@@ -2,22 +2,23 @@
 
 import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { routineTemplates, routineTemplateProducts } from "@/lib/db/schema";
 import {
-  type RoutineTemplateRow,
-  type RoutineTemplateProductRow,
-} from "@/lib/db/types";
+  routineTemplates,
+  routineTemplateProducts,
+  type RoutineTemplate as RoutineTemplateBase,
+  type RoutineTemplateProduct as RoutineTemplateProductBase,
+} from "@/lib/db/schema";
 
 // Define types (same as fake repo, derived from centralized schema)
 export type RoutineTemplate = Pick<
-  RoutineTemplateRow,
+  RoutineTemplateBase,
   "id" | "name" | "description" | "createdBy" | "createdAt" | "updatedAt"
 >;
 
 export type NewRoutineTemplate = Omit<RoutineTemplate, "id">;
 
 export type RoutineTemplateProduct = Pick<
-  RoutineTemplateProductRow,
+  RoutineTemplateProductBase,
   | "id"
   | "templateId"
   | "routineStep"

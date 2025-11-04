@@ -1,11 +1,12 @@
 // Repository layer for dashboard data access
 // Uses optimized queries with JOINs for minimal database round trips
 
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, and, asc, sql, desc } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
+import { formatInTimeZone } from "date-fns-tz";
 
 // For dependency injection in tests
 // Accept any Drizzle database instance (PostgresJs or PgLite)
@@ -29,12 +30,22 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
     async getUserDashboardData(userId: string) {
       const result = await database
         .select({
-          id: schema.userProfiles.id,
+          userId: schema.userProfiles.userId,
+          userProfileId: schema.userProfiles.id,
           firstName: schema.userProfiles.firstName,
           lastName: schema.userProfiles.lastName,
           email: schema.userProfiles.email,
+          phoneNumber: schema.userProfiles.phoneNumber,
+          dateOfBirth: schema.userProfiles.dateOfBirth,
           nickname: schema.userProfiles.nickname,
           skinType: schema.userProfiles.skinType,
+          concerns: schema.userProfiles.concerns,
+          hasAllergies: schema.userProfiles.hasAllergies,
+          allergyDetails: schema.userProfiles.allergyDetails,
+          isSubscribed: schema.userProfiles.isSubscribed,
+          occupation: schema.userProfiles.occupation,
+          bio: schema.userProfiles.bio,
+          timezone: schema.userProfiles.timezone,
           hasCompletedSkinTest: schema.userProfiles.hasCompletedSkinTest,
           hasCompletedBooking: schema.userProfiles.hasCompletedBooking,
           goalsTemplateId: schema.skinGoalsTemplate.id,
@@ -255,11 +266,100 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         evening,
       };
     },
+
+    /**
+     * Get catchup steps - previous days' pending steps still within grace period
+     * @param userId - The auth user ID (from users table)
+     * @param date - Current date/time (used to calculate "today" and grace period check)
+     *
+     * Type is inferred from the query - follows TYPE_SYSTEM_GUIDE principles
+     */
+    async getCatchupSteps(userId: string, date: Date) {
+      // First get the user profile with timezone
+      const userProfile = await database
+        .select({
+          id: schema.userProfiles.id,
+          timezone: schema.userProfiles.timezone,
+        })
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.userId, userId))
+        .limit(1);
+
+      if (!userProfile[0]) {
+        return [];
+      }
+
+      // Calculate "today" in the user's timezone
+      const userTimezone = userProfile[0].timezone;
+      const todayInUserTz = formatInTimeZone(date, userTimezone, "yyyy-MM-dd");
+
+      // IMPORTANT: Convert Date to ISO string before using in SQL template
+      // PGlite (tests) accepts Date objects, but postgres-js (production) requires strings
+      // See docs/DATABASE_GUIDE.md - Pitfall #11
+      const currentTimestamp = date.toISOString();
+
+      const result = await database
+        .select({
+          id: schema.routineStepCompletions.id,
+          routineStep: schema.skincareRoutineProducts.routineStep,
+          productName: schema.skincareRoutineProducts.productName,
+          productUrl: schema.skincareRoutineProducts.productUrl,
+          instructions: schema.skincareRoutineProducts.instructions,
+          timeOfDay: schema.skincareRoutineProducts.timeOfDay,
+          order: schema.skincareRoutineProducts.order,
+          status: schema.routineStepCompletions.status,
+          completedAt: schema.routineStepCompletions.completedAt,
+          scheduledDate: schema.routineStepCompletions.scheduledDate,
+          gracePeriodEnd: schema.routineStepCompletions.gracePeriodEnd,
+        })
+        .from(schema.routineStepCompletions)
+        .innerJoin(
+          schema.skincareRoutineProducts,
+          eq(
+            schema.routineStepCompletions.routineProductId,
+            schema.skincareRoutineProducts.id,
+          ),
+        )
+        .innerJoin(
+          schema.skincareRoutines,
+          and(
+            eq(
+              schema.skincareRoutineProducts.routineId,
+              schema.skincareRoutines.id,
+            ),
+            eq(schema.skincareRoutines.status, "published"),
+          ),
+        )
+        .where(
+          and(
+            eq(schema.routineStepCompletions.userProfileId, userProfile[0].id),
+            // Scheduled before today
+            sql`${schema.routineStepCompletions.scheduledDate} < ${todayInUserTz}::date`,
+            // Only pending steps can be caught up
+            eq(schema.routineStepCompletions.status, "pending"),
+            // Still within grace period
+            sql`${schema.routineStepCompletions.gracePeriodEnd} > ${currentTimestamp}::timestamptz`,
+          ),
+        )
+        .orderBy(
+          desc(schema.routineStepCompletions.scheduledDate),
+          asc(schema.skincareRoutineProducts.timeOfDay),
+          asc(schema.skincareRoutineProducts.order),
+        );
+
+      // Map database status to API status format (same as getTodayRoutineSteps)
+      return result.map((step) => ({
+        ...step,
+        status:
+          step.status === "on-time" ? ("completed" as const) : step.status,
+      }));
+    },
   };
 }
 
 // Export inferred types for external consumers
 // Following TYPE_SYSTEM_GUIDE: derive types from implementation, not manual duplication
+export type DashboardRepo = ReturnType<typeof makeDashboardRepo>;
 export type DashboardUserData = Awaited<
   ReturnType<ReturnType<typeof makeDashboardRepo>["getUserDashboardData"]>
 >;

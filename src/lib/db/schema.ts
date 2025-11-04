@@ -523,14 +523,28 @@ export const progressPhotos = pgTable(
     // Image storage
     imageUrl: text("image_url").notNull(),
 
+    // S3 storage details (nullable for backwards compatibility)
+    s3Key: text("s3_key"),
+    s3Bucket: text("s3_bucket"),
+
+    // File metadata
+    originalName: text("original_name"),
+    bytes: integer("bytes"),
+    mime: text("mime"),
+    width: integer("width"),
+    height: integer("height"),
+
     // Metadata
-    weekNumber: integer("week_number").notNull(),
+    weekNumber: integer("week_number"),
     uploadedAt: timestamp("uploaded_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
 
     // Coach feedback
     feedback: text("feedback"), // Nullable - can be added later
+
+    // Upload status
+    status: text("status").notNull().default("uploaded"),
 
     // Timestamps
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -561,6 +575,12 @@ export const progressPhotos = pgTable(
     byUserUploadedAt: index(
       "progress_photos_user_profile_id_uploaded_at_idx",
     ).on(table.userProfileId, table.uploadedAt.desc()),
+
+    // Index for S3 key lookups
+    s3KeyIdx: index("progress_photos_s3_key_idx").on(table.s3Key),
+
+    // Index for status filtering
+    statusIdx: index("progress_photos_status_idx").on(table.status),
   }),
 );
 
