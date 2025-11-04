@@ -7,14 +7,10 @@ import { makeCompletionService } from "./completion.service";
 import { updateCompletionRequestSchema } from "./completion.types";
 
 export async function PATCH(request: NextRequest) {
-  console.log("[CompletionRoute] PATCH request received");
-
   try {
     // Step 1: Validate API key
-    console.log("[CompletionRoute] Validating API key");
     const isValidKey = await validateApiKey();
     if (!isValidKey) {
-      console.log("[CompletionRoute] Invalid or missing API key");
       return NextResponse.json(
         {
           error: {
@@ -25,18 +21,13 @@ export async function PATCH(request: NextRequest) {
         { status: 401 },
       );
     }
-    console.log("[CompletionRoute] API key valid");
 
     // Step 2: Parse and validate request body
     const body = await request.json();
-    console.log("[CompletionRoute] Request body:", body);
 
     const validation = updateCompletionRequestSchema.safeParse(body);
 
     if (!validation.success) {
-      console.log("[CompletionRoute] Request validation failed:", {
-        errors: validation.error.issues,
-      });
       return NextResponse.json(
         {
           error: {
@@ -50,10 +41,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     const validatedData = validation.data;
-    console.log("[CompletionRoute] Request validated:", validatedData);
 
     // Step 3: Call service to update completion
-    console.log("[CompletionRoute] Calling service.updateCompletion");
     const service = makeCompletionService();
     const result = await service.updateCompletion({
       userId: validatedData.userId,
@@ -65,8 +54,6 @@ export async function PATCH(request: NextRequest) {
 
     // Step 4: Handle service errors
     if (!result.success) {
-      console.log("[CompletionRoute] Service returned error:", result.error);
-
       // Check for specific error types
       if (result.error === "Step not found or not authorized") {
         return NextResponse.json(
@@ -93,7 +80,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Step 5: Return success response
-    console.log("[CompletionRoute] Success - returning data");
     return NextResponse.json(result.data, { status: 200 });
   } catch (error) {
     // Catch any unexpected errors

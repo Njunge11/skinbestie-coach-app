@@ -65,8 +65,11 @@ export function makeDashboardService(deps: DashboardServiceDeps = {}) {
         // For routine: if published routine exists, return array (even if empty), else null
         // For goals: if published template exists, return array (even if empty), else null
         // For catchupSteps: if published routine exists, return array (even if empty), else null
+        // Note: userId should never be null when querying by userId, but DB schema allows it
         const response: DashboardResponse = {
           user: {
+            userId: userData.userId!,
+            userProfileId: userData.userProfileId,
             firstName: userData.firstName,
             lastName: userData.lastName,
             email: userData.email,

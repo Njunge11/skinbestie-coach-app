@@ -70,6 +70,8 @@ export const routineSchema = z.object({
 // Main response schema
 export const dashboardResponseSchema = z.object({
   user: z.object({
+    userId: z.string().uuid(),
+    userProfileId: z.string().uuid(),
     firstName: z.string(),
     lastName: z.string(),
     email: z.string().email(),

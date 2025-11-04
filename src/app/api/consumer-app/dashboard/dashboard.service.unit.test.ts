@@ -23,7 +23,8 @@ describe("DashboardService", () => {
   const today = new Date("2025-01-28");
 
   const baseDashboardData: DashboardUserData = {
-    id: profileId, // This is the profile ID returned from the DB
+    userId: authUserId, // Auth user ID
+    userProfileId: profileId, // Profile ID
     firstName: "John",
     lastName: "Doe",
     email: "john@example.com",
@@ -119,6 +120,8 @@ describe("DashboardService", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.user).toEqual({
+          userId: authUserId,
+          userProfileId: profileId,
           firstName: "John",
           lastName: "Doe",
           email: "john@example.com",
@@ -397,7 +400,8 @@ describe("DashboardService", () => {
     it("transforms repository data to API response format correctly", async () => {
       // Given
       const fullProfile: DashboardUserData = {
-        id: profileId,
+        userId: authUserId,
+        userProfileId: profileId,
         firstName: "Jane",
         lastName: "Smith",
         email: "jane@example.com",

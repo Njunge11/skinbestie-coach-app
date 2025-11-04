@@ -30,7 +30,8 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
     async getUserDashboardData(userId: string) {
       const result = await database
         .select({
-          id: schema.userProfiles.id,
+          userId: schema.userProfiles.userId,
+          userProfileId: schema.userProfiles.id,
           firstName: schema.userProfiles.firstName,
           lastName: schema.userProfiles.lastName,
           email: schema.userProfiles.email,
