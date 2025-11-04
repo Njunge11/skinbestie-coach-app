@@ -1,10 +1,6 @@
 // Repository for admins table
 import { db } from "@/lib/db";
-import {
-  admins,
-  type Admin,
-  type NewAdmin as NewAdminBase,
-} from "@/lib/db/schema";
+import { admins, type NewAdmin as NewAdminBase } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 // Repository-specific types derived from centralized types (TYPE_SYSTEM_GUIDE.md)

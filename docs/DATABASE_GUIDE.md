@@ -985,6 +985,88 @@ return {
 
 ---
 
+### Pitfall #11: Using Date Objects in SQL Template Literals
+
+**Problem**:
+When using raw SQL template literals with `sql` from Drizzle ORM, Date objects behave differently between test (PGlite) and production (postgres-js) database drivers.
+
+```typescript
+// ❌ WRONG - Fails in production with postgres-js driver
+const date = new Date();
+const result = await db
+  .select()
+  .from(routineStepCompletions)
+  .where(
+    sql`${schema.routineStepCompletions.gracePeriodEnd} > ${date}`
+  );
+
+// Error in production:
+// TypeError: The "string" argument must be of type string or an instance
+// of Buffer or ArrayBuffer. Received an instance of Date
+```
+
+**Why it happens**:
+- **PGlite** (test environment): Automatically converts Date objects to timestamps
+- **postgres-js** (production): Requires explicit string formatting in SQL templates
+- Tests pass but production fails due to driver differences
+
+**Solution**:
+Always convert Date objects to ISO strings when using them in SQL template literals:
+
+```typescript
+// ✅ CORRECT - Works in both test and production
+const date = new Date();
+const currentTimestamp = date.toISOString();
+
+const result = await db
+  .select()
+  .from(routineStepCompletions)
+  .where(
+    sql`${schema.routineStepCompletions.gracePeriodEnd} > ${currentTimestamp}::timestamptz`
+  );
+```
+
+**Alternative**: Use Drizzle's built-in operators instead of raw SQL:
+```typescript
+// ✅ BEST - Drizzle handles the conversion
+import { gt } from 'drizzle-orm';
+
+const result = await db
+  .select()
+  .from(routineStepCompletions)
+  .where(
+    gt(schema.routineStepCompletions.gracePeriodEnd, date)
+  );
+```
+
+**Key Takeaways**:
+1. Always use `.toISOString()` when passing Date objects to SQL templates
+2. Prefer Drizzle's type-safe operators (`gt`, `lt`, `eq`) over raw SQL when possible
+3. Be aware that PGlite (tests) and postgres-js (production) handle types differently
+4. This applies to any complex JavaScript type used in SQL templates
+
+**Real-world example**:
+```typescript
+// dashboard.repo.ts:294,336
+async getCatchupSteps(userId: string, date: Date) {
+  const userTimezone = userProfile.timezone;
+  const todayInUserTz = formatInTimeZone(date, userTimezone, "yyyy-MM-dd");
+  const currentTimestamp = date.toISOString(); // ✅ Convert to string
+
+  return await database
+    .select()
+    .from(schema.routineStepCompletions)
+    .where(
+      and(
+        sql`${schema.routineStepCompletions.scheduledDate} < ${todayInUserTz}::date`,
+        sql`${schema.routineStepCompletions.gracePeriodEnd} > ${currentTimestamp}::timestamptz`
+      )
+    );
+}
+```
+
+---
+
 ## Performance Checklist
 
 Use this checklist before deploying:

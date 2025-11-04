@@ -89,7 +89,8 @@ describe("DashboardRepo", () => {
       const result = await repo.getUserDashboardData(authUserId); // Pass auth user ID
 
       expect(result).not.toBeNull();
-      expect(result!.id).toBe(profileId); // Returns profile ID
+      expect(result!.userId).toBe(authUserId); // Returns auth user ID
+      expect(result!.userProfileId).toBe(profileId); // Returns profile ID
       expect(result!.firstName).toBe("John");
       expect(result!.lastName).toBe("Doe");
       expect(result!.email).toBe("user@test.com");
@@ -215,7 +216,8 @@ describe("DashboardRepo", () => {
       const result = await repo.getUserDashboardData(authUserId);
 
       // All fields should be present from single query
-      expect(result).toHaveProperty("id");
+      expect(result).toHaveProperty("userId");
+      expect(result).toHaveProperty("userProfileId");
       expect(result).toHaveProperty("firstName");
       expect(result).toHaveProperty("lastName");
       expect(result).toHaveProperty("email");
