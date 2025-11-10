@@ -106,6 +106,9 @@ export async function updateRoutine(
         if (validation.data.startDate !== undefined) {
           const newStart = toMidnightUTC(newStartDate);
           const oldStart = toMidnightUTC(oldStartDate);
+          console.log(
+            `🔍 [UPDATE-ROUTINE] Start date change detected: ${oldStart.toISOString()} → ${newStart.toISOString()}`,
+          );
 
           // Start date moved FORWARD: Delete uncompleted tasks before new start
           if (newStart > oldStart) {
@@ -145,6 +148,9 @@ export async function updateRoutine(
           // Start date moved BACKWARD: Check if we need to fill gap
           // (e.g., future date → today's date)
           else if (newStart < oldStart) {
+            console.log(
+              `⏪ [UPDATE-ROUTINE] Start moved BACKWARD. Today: ${today.toISOString()}`,
+            );
             // Calculate effective start dates (never before today)
             const oldEffectiveStart = new Date(
               Math.max(oldStart.getTime(), today.getTime()),
@@ -152,11 +158,18 @@ export async function updateRoutine(
             const newEffectiveStart = new Date(
               Math.max(newStart.getTime(), today.getTime()),
             );
+            console.log(
+              `🔍 [UPDATE-ROUTINE] Effective: ${newEffectiveStart.toISOString()} → ${oldEffectiveStart.toISOString()}`,
+            );
+            console.log(
+              `🔍 [UPDATE-ROUTINE] Gap check: ${newEffectiveStart < oldEffectiveStart} && ${newStart >= today}`,
+            );
 
             // Only fill gap if:
             // 1. New effective start is earlier than old (gap exists)
             // 2. New start date is not before today (no backfilling to past)
             if (newEffectiveStart < oldEffectiveStart && newStart >= today) {
+              console.log(`✅ [UPDATE-ROUTINE] Gap fill conditions MET`);
               // Get product IDs for this routine
               const products = await tx
                 .select({ id: skincareRoutineProducts.id })
@@ -340,6 +353,9 @@ export async function updateRoutine(
                           currentDate = addDays(currentDate, 1);
                         }
 
+                        console.log(
+                          `✅ [UPDATE-ROUTINE] Generated ${completionsToCreate.length} gap tasks`,
+                        );
                         if (completionsToCreate.length > 0) {
                           await tx
                             .insert(routineStepCompletions)

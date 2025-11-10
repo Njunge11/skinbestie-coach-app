@@ -300,7 +300,7 @@ describe("Dashboard API Route", () => {
       const mockCatchupSteps = [
         {
           id: "step-1",
-          routineStep: "Cleanser",
+          routineStep: "Cleanse",
           productName: "Morning Cleanser",
           productUrl: null,
           instructions: "Apply to face",

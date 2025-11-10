@@ -201,7 +201,7 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User selects routine step
     const comboboxes = screen.getAllByRole("combobox");
     await user.click(comboboxes[0]);
-    await user.click(screen.getByText("Moisturizer / Cream"));
+    await user.click(screen.getByText("Moisturise"));
 
     // User fills in product details
     await user.type(
@@ -222,7 +222,7 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify product was added to evening
     expect(mockOnAddProduct).toHaveBeenCalledWith("evening", {
-      routineStep: "Moisturizer / Cream",
+      routineStep: "Moisturise",
       productName: "Night Moisturizer",
       productUrl: "https://example.com/moisturizer",
       instructions: "Apply generously before bed",
@@ -247,7 +247,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "CeraVe Cleanser",
         productUrl: null,
         instructions: "Old instructions",
@@ -295,7 +295,7 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify update was called
     expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
-      routineStep: "Cleanser",
+      routineStep: "Cleanse",
       productName: "CeraVe Cleanser",
       productUrl: "",
       instructions: "Updated instructions",
@@ -320,7 +320,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "Product to Delete",
         productUrl: null,
         instructions: "Some instructions",
@@ -393,7 +393,7 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User selects routine step
     const comboboxes = screen.getAllByRole("combobox");
     await user.click(comboboxes[0]);
-    await user.click(screen.getByText("Exfoliant / Peel"));
+    await user.click(screen.getByText("Treat"));
 
     // User fills in product details
     await user.type(screen.getByPlaceholderText(/product name/i), "AHA Toner");
@@ -418,7 +418,7 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify product was added with frequency and days
     expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
-      routineStep: "Exfoliant / Peel",
+      routineStep: "Treat",
       productName: "AHA Toner",
       productUrl: "",
       instructions: "Apply with cotton pad",
@@ -657,14 +657,14 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User now selects routine step
     const comboboxes = screen.getAllByRole("combobox");
     await user.click(comboboxes[0]);
-    await user.click(screen.getByText("Cleanser"));
+    await user.click(screen.getByText("Cleanse"));
 
     // User tries again - should succeed now
     await user.click(screen.getByRole("button", { name: /^add$/i }));
 
     // Server action should be called
     expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
-      routineStep: "Cleanser",
+      routineStep: "Cleanse",
       productName: "Some Product",
       productUrl: "",
       instructions: "Some instructions",
@@ -827,7 +827,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "Original Name",
         productUrl: null,
         instructions: "Original instructions",
@@ -897,7 +897,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
-        routineStep: "Exfoliant / Peel",
+        routineStep: "Treat",
         productName: "AHA Toner",
         productUrl: null,
         instructions: "Apply with cotton pad",
@@ -946,7 +946,7 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify days are cleared (undefined)
     expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
-      routineStep: "Exfoliant / Peel",
+      routineStep: "Treat",
       productName: "AHA Toner",
       productUrl: "",
       instructions: "Apply with cotton pad",
@@ -991,7 +991,7 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User selects routine step and fills basics
     const comboboxes = screen.getAllByRole("combobox");
     await user.click(comboboxes[0]);
-    await user.click(screen.getByText("Serum / Treatment"));
+    await user.click(screen.getByText("Treat"));
     await user.type(
       screen.getByPlaceholderText(/product name/i),
       "Vitamin C Serum",
@@ -1032,7 +1032,7 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify product added with Thursday and Wednesday (not Monday)
     expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
-      routineStep: "Serum / Treatment",
+      routineStep: "Treat",
       productName: "Vitamin C Serum",
       productUrl: "",
       instructions: "Apply in the morning",
@@ -1055,7 +1055,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
-        routineStep: "Moisturizer / Cream",
+        routineStep: "Moisturise",
         productName: "CeraVe Moisturizer",
         productUrl: "https://example.com/cerave-moisturizer",
         instructions: "Apply twice daily",
@@ -1108,7 +1108,7 @@ describe("RoutineSection - Complete User Workflows", () => {
       makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
-        routineStep: "Exfoliant / Peel",
+        routineStep: "Treat",
         productName: "Glycolic Acid Toner",
         productUrl: null,
         instructions: "Use in the evening",

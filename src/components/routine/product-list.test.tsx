@@ -40,7 +40,7 @@ describe("ProductList", () => {
     // User fills in the form
     const routineStepButton = screen.getByText(/select routine step/i);
     await user.click(routineStepButton);
-    await user.click(screen.getByRole("option", { name: /cleanser/i }));
+    await user.click(screen.getByRole("option", { name: /cleanse/i }));
 
     const nameInput = screen.getByPlaceholderText(/product name/i);
     await user.type(nameInput, "CeraVe Cleanser");
@@ -54,7 +54,7 @@ describe("ProductList", () => {
     // onAdd should be called with the form data
     expect(onAdd).toHaveBeenCalledWith(
       expect.objectContaining({
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "CeraVe Cleanser",
         instructions: "Apply to damp skin",
         frequency: "daily",
@@ -72,7 +72,7 @@ describe("ProductList", () => {
     const existingProducts: Product[] = [
       {
         id: "product-1",
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "CeraVe Cleanser",
         productUrl: null,
         instructions: "Apply to damp skin",
@@ -110,7 +110,7 @@ describe("ProductList", () => {
     // User fills in the form for the second product
     const routineStepButton = screen.getByText(/select routine step/i);
     await user.click(routineStepButton);
-    await user.click(screen.getByRole("option", { name: "Eye Cream" }));
+    await user.click(screen.getByRole("option", { name: "Eye cream" }));
 
     const nameInput = screen.getByPlaceholderText(/product name/i);
     await user.type(nameInput, "Retinol Eye Cream");
@@ -124,7 +124,7 @@ describe("ProductList", () => {
     // onAdd should be called with the new product data
     expect(onAdd).toHaveBeenCalledWith(
       expect.objectContaining({
-        routineStep: "Eye Cream",
+        routineStep: "Eye cream",
         productName: "Retinol Eye Cream",
         instructions: "Apply around eyes",
         frequency: "daily",

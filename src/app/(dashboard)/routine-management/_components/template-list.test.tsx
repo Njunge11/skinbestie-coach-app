@@ -38,15 +38,19 @@ describe("TemplateList", () => {
         templates={[]}
         templateDetails={{}}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User sees empty state message
     expect(screen.getByText("No templates yet")).toBeInTheDocument();
-    expect(screen.getByText(/create your first routine template/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/create your first routine template/i),
+    ).toBeInTheDocument();
 
     // User sees Create Template button
-    const createButton = screen.getByRole("button", { name: /create template/i });
+    const createButton = screen.getByRole("button", {
+      name: /create template/i,
+    });
     expect(createButton).toBeInTheDocument();
 
     // User clicks Create Template button
@@ -84,7 +88,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User sees template name
@@ -129,7 +133,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template
@@ -171,7 +175,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User clicks Edit button
@@ -179,7 +183,9 @@ describe("TemplateList", () => {
     await user.click(editButtons[0]);
 
     // Edit dialog should appear with template name
-    expect(screen.getByLabelText(/template name/i)).toHaveValue("Acne Treatment");
+    expect(screen.getByLabelText(/template name/i)).toHaveValue(
+      "Acne Treatment",
+    );
   });
 
   it("user clicks delete button and confirmation dialog appears", async () => {
@@ -210,17 +216,21 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User clicks Delete button (trash icon) - it's the second button after Edit
     const buttons = screen.getAllByRole("button");
-    const deleteButton = buttons.find(btn => btn.querySelector('svg.lucide-trash2'));
+    const deleteButton = buttons.find((btn) =>
+      btn.querySelector("svg.lucide-trash2"),
+    );
     await user.click(deleteButton!);
 
     // Confirmation dialog should appear
     expect(screen.getByText("Delete Template?")).toBeInTheDocument();
-    expect(screen.getByText(/this will permanently delete the template/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/this will permanently delete the template/i),
+    ).toBeInTheDocument();
   });
 
   it("user cancels template deletion", async () => {
@@ -251,12 +261,14 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User clicks Delete button (trash icon)
     const buttons = screen.getAllByRole("button");
-    const deleteButton = buttons.find(btn => btn.querySelector('svg.lucide-trash2'));
+    const deleteButton = buttons.find((btn) =>
+      btn.querySelector("svg.lucide-trash2"),
+    );
     await user.click(deleteButton!);
 
     // Confirmation dialog appears
@@ -308,19 +320,23 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User clicks Delete button (trash icon)
     const buttons = screen.getAllByRole("button");
-    const deleteButton = buttons.find(btn => btn.querySelector('svg.lucide-trash2'));
+    const deleteButton = buttons.find((btn) =>
+      btn.querySelector("svg.lucide-trash2"),
+    );
     await user.click(deleteButton!);
 
     // Confirmation dialog appears
     expect(screen.getByText("Delete Template?")).toBeInTheDocument();
 
     // User confirms deletion
-    const deleteConfirmButton = screen.getByRole("button", { name: /delete template/i });
+    const deleteConfirmButton = screen.getByRole("button", {
+      name: /delete template/i,
+    });
     await user.click(deleteConfirmButton);
 
     // Server action called
@@ -365,16 +381,20 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User clicks Delete button (trash icon)
     const buttons = screen.getAllByRole("button");
-    const deleteButton = buttons.find(btn => btn.querySelector('svg.lucide-trash2'));
+    const deleteButton = buttons.find((btn) =>
+      btn.querySelector("svg.lucide-trash2"),
+    );
     await user.click(deleteButton!);
 
     // User confirms deletion
-    const deleteConfirmButton = screen.getByRole("button", { name: /delete template/i });
+    const deleteConfirmButton = screen.getByRole("button", {
+      name: /delete template/i,
+    });
     await user.click(deleteConfirmButton);
 
     // Server action called
@@ -430,7 +450,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User clicks Edit button
@@ -496,7 +516,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User clicks Edit button
@@ -526,14 +546,16 @@ describe("TemplateList", () => {
     const user = userEvent.setup();
     const onCreateClick = vi.fn();
 
-    const { updateTemplateProduct } = await import("../template-actions/actions");
+    const { updateTemplateProduct } = await import(
+      "../template-actions/actions"
+    );
 
     vi.mocked(updateTemplateProduct).mockResolvedValueOnce({
       success: true,
       data: {
         id: "product-1",
         templateId: "template-1",
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "Updated Cleanser",
         productUrl: null,
         instructions: "Apply gently",
@@ -563,7 +585,7 @@ describe("TemplateList", () => {
         morning: [
           {
             id: "product-1",
-            routineStep: "Cleanser",
+            routineStep: "Cleanse",
             productName: "Gentle Cleanser",
             productUrl: null,
             instructions: "Apply to damp skin",
@@ -582,7 +604,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template
@@ -605,9 +627,12 @@ describe("TemplateList", () => {
 
     // Server action called
     await waitFor(() => {
-      expect(updateTemplateProduct).toHaveBeenCalledWith("product-1", expect.objectContaining({
-        productName: "Updated Cleanser",
-      }));
+      expect(updateTemplateProduct).toHaveBeenCalledWith(
+        "product-1",
+        expect.objectContaining({
+          productName: "Updated Cleanser",
+        }),
+      );
     });
   });
 
@@ -615,7 +640,9 @@ describe("TemplateList", () => {
     const user = userEvent.setup();
     const onCreateClick = vi.fn();
 
-    const { updateTemplateProduct } = await import("../template-actions/actions");
+    const { updateTemplateProduct } = await import(
+      "../template-actions/actions"
+    );
     const { toast } = await import("sonner");
 
     vi.mocked(updateTemplateProduct).mockResolvedValueOnce({
@@ -640,7 +667,7 @@ describe("TemplateList", () => {
         morning: [
           {
             id: "product-1",
-            routineStep: "Cleanser",
+            routineStep: "Cleanse",
             productName: "Gentle Cleanser",
             productUrl: null,
             instructions: "Apply to damp skin",
@@ -659,7 +686,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template
@@ -689,7 +716,9 @@ describe("TemplateList", () => {
     const user = userEvent.setup();
     const onCreateClick = vi.fn();
 
-    const { deleteTemplateProduct } = await import("../template-actions/actions");
+    const { deleteTemplateProduct } = await import(
+      "../template-actions/actions"
+    );
 
     vi.mocked(deleteTemplateProduct).mockResolvedValueOnce({
       success: true,
@@ -713,7 +742,7 @@ describe("TemplateList", () => {
         morning: [
           {
             id: "product-1",
-            routineStep: "Cleanser",
+            routineStep: "Cleanse",
             productName: "Gentle Cleanser",
             productUrl: null,
             instructions: "Apply to damp skin",
@@ -732,7 +761,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template
@@ -752,7 +781,9 @@ describe("TemplateList", () => {
     const user = userEvent.setup();
     const onCreateClick = vi.fn();
 
-    const { deleteTemplateProduct } = await import("../template-actions/actions");
+    const { deleteTemplateProduct } = await import(
+      "../template-actions/actions"
+    );
     const { toast } = await import("sonner");
 
     vi.mocked(deleteTemplateProduct).mockResolvedValueOnce({
@@ -777,7 +808,7 @@ describe("TemplateList", () => {
         morning: [
           {
             id: "product-1",
-            routineStep: "Cleanser",
+            routineStep: "Cleanse",
             productName: "Gentle Cleanser",
             productUrl: null,
             instructions: "Apply to damp skin",
@@ -796,7 +827,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template
@@ -820,7 +851,9 @@ describe("TemplateList", () => {
     const user = userEvent.setup();
     const onCreateClick = vi.fn();
 
-    const { updateTemplateProduct } = await import("../template-actions/actions");
+    const { updateTemplateProduct } = await import(
+      "../template-actions/actions"
+    );
 
     vi.mocked(updateTemplateProduct).mockResolvedValueOnce({
       success: true,
@@ -876,7 +909,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template
@@ -895,9 +928,12 @@ describe("TemplateList", () => {
 
     // Server action called
     await waitFor(() => {
-      expect(updateTemplateProduct).toHaveBeenCalledWith("product-2", expect.objectContaining({
-        productName: "Updated Moisturizer",
-      }));
+      expect(updateTemplateProduct).toHaveBeenCalledWith(
+        "product-2",
+        expect.objectContaining({
+          productName: "Updated Moisturizer",
+        }),
+      );
     });
   });
 
@@ -905,7 +941,9 @@ describe("TemplateList", () => {
     const user = userEvent.setup();
     const onCreateClick = vi.fn();
 
-    const { updateTemplateProduct } = await import("../template-actions/actions");
+    const { updateTemplateProduct } = await import(
+      "../template-actions/actions"
+    );
     const { toast } = await import("sonner");
 
     vi.mocked(updateTemplateProduct).mockResolvedValueOnce({
@@ -949,7 +987,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template and edits evening product
@@ -968,7 +1006,9 @@ describe("TemplateList", () => {
 
     // Error toast shown
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Failed to update evening product");
+      expect(toast.error).toHaveBeenCalledWith(
+        "Failed to update evening product",
+      );
     });
   });
 
@@ -976,7 +1016,9 @@ describe("TemplateList", () => {
     const user = userEvent.setup();
     const onCreateClick = vi.fn();
 
-    const { deleteTemplateProduct } = await import("../template-actions/actions");
+    const { deleteTemplateProduct } = await import(
+      "../template-actions/actions"
+    );
 
     vi.mocked(deleteTemplateProduct).mockResolvedValueOnce({
       success: true,
@@ -1019,7 +1061,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template
@@ -1038,7 +1080,9 @@ describe("TemplateList", () => {
     const user = userEvent.setup();
     const onCreateClick = vi.fn();
 
-    const { deleteTemplateProduct } = await import("../template-actions/actions");
+    const { deleteTemplateProduct } = await import(
+      "../template-actions/actions"
+    );
     const { toast } = await import("sonner");
 
     vi.mocked(deleteTemplateProduct).mockResolvedValueOnce({
@@ -1082,7 +1126,7 @@ describe("TemplateList", () => {
         templates={templates}
         templateDetails={templateDetails}
         onCreateClick={onCreateClick}
-      />
+      />,
     );
 
     // User expands template and deletes evening product
@@ -1096,8 +1140,9 @@ describe("TemplateList", () => {
 
     // Error toast shown
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Failed to delete evening product");
+      expect(toast.error).toHaveBeenCalledWith(
+        "Failed to delete evening product",
+      );
     });
   });
-
 });
