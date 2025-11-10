@@ -181,7 +181,7 @@ async function createRoutineTemplates(adminId: string) {
   // Morning routine products
   const morningProducts = [
     {
-      routineStep: "Cleanser",
+      routineStep: "Cleanse",
       productName: "CeraVe Foaming Facial Cleanser",
       productUrl:
         "https://www.cerave.com/skincare/cleansers/foaming-facial-cleanser",
@@ -203,7 +203,7 @@ async function createRoutineTemplates(adminId: string) {
       timeOfDay: "morning" as const,
     },
     {
-      routineStep: "Serum",
+      routineStep: "Treat",
       productName: "The Ordinary Niacinamide 10% + Zinc 1%",
       productUrl:
         "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100411.html",
@@ -213,7 +213,7 @@ async function createRoutineTemplates(adminId: string) {
       timeOfDay: "morning" as const,
     },
     {
-      routineStep: "Moisturizer",
+      routineStep: "Moisturise",
       productName: "CeraVe AM Facial Moisturizing Lotion SPF 30",
       productUrl:
         "https://www.cerave.com/skincare/moisturizers/am-facial-moisturizing-lotion-with-sunscreen",
@@ -227,7 +227,7 @@ async function createRoutineTemplates(adminId: string) {
   // Evening routine products
   const eveningProducts = [
     {
-      routineStep: "Cleanser",
+      routineStep: "Cleanse",
       productName: "CeraVe Hydrating Facial Cleanser",
       productUrl:
         "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
@@ -248,7 +248,7 @@ async function createRoutineTemplates(adminId: string) {
       timeOfDay: "evening" as const,
     },
     {
-      routineStep: "Moisturizer",
+      routineStep: "Moisturise",
       productName: "CeraVe PM Facial Moisturizing Lotion",
       productUrl:
         "https://www.cerave.com/skincare/moisturizers/pm-facial-moisturizing-lotion",

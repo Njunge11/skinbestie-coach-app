@@ -24,7 +24,7 @@ export async function seedUserProfile(
     createdAt?: Date;
     updatedAt?: Date;
     userId?: string;
-  } = {}
+  } = {},
 ) {
   const now = new Date();
   const email = overrides.email || `user-${id}@example.com`;
@@ -33,27 +33,33 @@ export async function seedUserProfile(
 
   return await db.transaction(async (tx) => {
     // Create auth user first
-    const [authUser] = await tx.insert(users).values({
-      id: overrides.userId || `auth-${id}`,
-      email,
-      name: `${firstName} ${lastName}`,
-      emailVerified: null,
-      image: null,
-    }).returning();
+    const [authUser] = await tx
+      .insert(users)
+      .values({
+        id: overrides.userId || `auth-${id}`,
+        email,
+        name: `${firstName} ${lastName}`,
+        emailVerified: null,
+        image: null,
+      })
+      .returning();
 
     // Create user profile linked to auth user
-    const [profile] = await tx.insert(userProfiles).values({
-      id,
-      userId: authUser.id,
-      email,
-      firstName,
-      lastName,
-      phoneNumber: overrides.phoneNumber || "+1234567890",
-      dateOfBirth: overrides.dateOfBirth || new Date("1990-01-01"),
-      timezone: overrides.timezone || "America/New_York",
-      createdAt: overrides.createdAt || now,
-      updatedAt: overrides.updatedAt || now,
-    }).returning();
+    const [profile] = await tx
+      .insert(userProfiles)
+      .values({
+        id,
+        userId: authUser.id,
+        email,
+        firstName,
+        lastName,
+        phoneNumber: overrides.phoneNumber || "+1234567890",
+        dateOfBirth: overrides.dateOfBirth || new Date("1990-01-01"),
+        timezone: overrides.timezone || "America/New_York",
+        createdAt: overrides.createdAt || now,
+        updatedAt: overrides.updatedAt || now,
+      })
+      .returning();
 
     return profile;
   });
@@ -72,20 +78,23 @@ export async function seedRoutine(
     status?: "draft" | "published";
     createdAt?: Date;
     updatedAt?: Date;
-  } = {}
+  } = {},
 ) {
   const now = new Date();
 
-  return await db.insert(skincareRoutines).values({
-    id,
-    userProfileId,
-    name: overrides.name || "Test Routine",
-    startDate: overrides.startDate || new Date("2025-01-01"),
-    endDate: overrides.endDate === undefined ? null : overrides.endDate,
-    status: overrides.status || "draft",
-    createdAt: overrides.createdAt || now,
-    updatedAt: overrides.updatedAt || now,
-  }).returning();
+  return await db
+    .insert(skincareRoutines)
+    .values({
+      id,
+      userProfileId,
+      name: overrides.name || "Test Routine",
+      startDate: overrides.startDate || new Date("2025-01-01"),
+      endDate: overrides.endDate === undefined ? null : overrides.endDate,
+      status: overrides.status || "draft",
+      createdAt: overrides.createdAt || now,
+      updatedAt: overrides.updatedAt || now,
+    })
+    .returning();
 }
 
 /**
@@ -106,25 +115,29 @@ export async function seedRoutineProduct(
     order?: number;
     createdAt?: Date;
     updatedAt?: Date;
-  } = {}
+  } = {},
 ) {
   const now = new Date();
 
-  return await db.insert(skincareRoutineProducts).values({
-    id,
-    routineId,
-    userProfileId,
-    routineStep: overrides.routineStep || "Cleanser",
-    productName: overrides.productName || "Test Product",
-    productUrl: overrides.productUrl === undefined ? null : overrides.productUrl,
-    instructions: overrides.instructions || "Apply to face",
-    frequency: overrides.frequency || "daily",
-    days: overrides.days === undefined ? null : overrides.days,
-    timeOfDay: overrides.timeOfDay || "morning",
-    order: overrides.order ?? 0,
-    createdAt: overrides.createdAt || now,
-    updatedAt: overrides.updatedAt || now,
-  }).returning();
+  return await db
+    .insert(skincareRoutineProducts)
+    .values({
+      id,
+      routineId,
+      userProfileId,
+      routineStep: overrides.routineStep || "Cleanse",
+      productName: overrides.productName || "Test Product",
+      productUrl:
+        overrides.productUrl === undefined ? null : overrides.productUrl,
+      instructions: overrides.instructions || "Apply to face",
+      frequency: overrides.frequency || "daily",
+      days: overrides.days === undefined ? null : overrides.days,
+      timeOfDay: overrides.timeOfDay || "morning",
+      order: overrides.order ?? 0,
+      createdAt: overrides.createdAt || now,
+      updatedAt: overrides.updatedAt || now,
+    })
+    .returning();
 }
 
 /**
@@ -138,18 +151,22 @@ export async function seedTemplate(
     description?: string | null;
     createdAt?: Date;
     updatedAt?: Date;
-  } = {}
+  } = {},
 ) {
   const now = new Date();
 
-  return await db.insert(routineTemplates).values({
-    id,
-    name: overrides.name || "Test Template",
-    description: overrides.description === undefined ? null : overrides.description,
-    createdBy,
-    createdAt: overrides.createdAt || now,
-    updatedAt: overrides.updatedAt || now,
-  }).returning();
+  return await db
+    .insert(routineTemplates)
+    .values({
+      id,
+      name: overrides.name || "Test Template",
+      description:
+        overrides.description === undefined ? null : overrides.description,
+      createdBy,
+      createdAt: overrides.createdAt || now,
+      updatedAt: overrides.updatedAt || now,
+    })
+    .returning();
 }
 
 /**
@@ -169,22 +186,26 @@ export async function seedTemplateProduct(
     order?: number;
     createdAt?: Date;
     updatedAt?: Date;
-  } = {}
+  } = {},
 ) {
   const now = new Date();
 
-  return await db.insert(routineTemplateProducts).values({
-    id,
-    templateId,
-    routineStep: overrides.routineStep || "Cleanser",
-    productName: overrides.productName || "Test Product",
-    productUrl: overrides.productUrl === undefined ? null : overrides.productUrl,
-    instructions: overrides.instructions || "Apply to face",
-    frequency: overrides.frequency || "daily",
-    days: overrides.days === undefined ? null : overrides.days,
-    timeOfDay: overrides.timeOfDay || "morning",
-    order: overrides.order ?? 0,
-    createdAt: overrides.createdAt || now,
-    updatedAt: overrides.updatedAt || now,
-  }).returning();
+  return await db
+    .insert(routineTemplateProducts)
+    .values({
+      id,
+      templateId,
+      routineStep: overrides.routineStep || "Cleanse",
+      productName: overrides.productName || "Test Product",
+      productUrl:
+        overrides.productUrl === undefined ? null : overrides.productUrl,
+      instructions: overrides.instructions || "Apply to face",
+      frequency: overrides.frequency || "daily",
+      days: overrides.days === undefined ? null : overrides.days,
+      timeOfDay: overrides.timeOfDay || "morning",
+      order: overrides.order ?? 0,
+      createdAt: overrides.createdAt || now,
+      updatedAt: overrides.updatedAt || now,
+    })
+    .returning();
 }

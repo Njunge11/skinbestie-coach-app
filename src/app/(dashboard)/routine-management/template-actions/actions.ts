@@ -80,7 +80,7 @@ const deleteTemplateSchema = z.object({
  * Get all templates
  */
 export async function getTemplates(
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<RoutineTemplate[]>> {
   const { repo } = deps;
 
@@ -98,7 +98,7 @@ export async function getTemplates(
  */
 export async function getTemplate(
   templateId: string,
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<RoutineTemplate>> {
   const { repo } = deps;
 
@@ -128,7 +128,7 @@ export async function getTemplate(
 export async function createTemplate(
   adminId: string,
   input: CreateTemplateInput,
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<RoutineTemplate>> {
   const { repo, now } = deps;
 
@@ -168,7 +168,7 @@ export async function createTemplate(
 export async function updateTemplate(
   templateId: string,
   updates: UpdateTemplateInput,
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<RoutineTemplate>> {
   const { repo, now } = deps;
 
@@ -197,7 +197,10 @@ export async function updateTemplate(
     }
 
     // Update template
-    const updatedTemplate = await repo.update(validation.data.templateId, updateData);
+    const updatedTemplate = await repo.update(
+      validation.data.templateId,
+      updateData,
+    );
 
     if (!updatedTemplate) {
       return { success: false, error: "Template not found" };
@@ -215,7 +218,7 @@ export async function updateTemplate(
  */
 export async function deleteTemplate(
   templateId: string,
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo } = deps;
 
@@ -246,7 +249,7 @@ export async function deleteTemplate(
  */
 export async function getTemplateProducts(
   templateId: string,
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<RoutineTemplateProduct[]>> {
   const { repo } = deps;
 
@@ -272,10 +275,18 @@ const createTemplateProductSchema = z.object({
   productName: requiredStringSchema,
   productUrl: z.preprocess(
     (val) => (val === "" || val === null || val === undefined ? null : val),
-    z.string().url().nullable().optional()
+    z.string().url().nullable().optional(),
   ),
   instructions: requiredStringSchema,
-  frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]),
+  frequency: z.enum([
+    "daily",
+    "2x per week",
+    "3x per week",
+    "4x per week",
+    "5x per week",
+    "6x per week",
+    "specific_days",
+  ]),
   days: z.array(z.string()).nullable().optional(),
   timeOfDay: z.enum(["morning", "evening"]),
 });
@@ -286,10 +297,20 @@ const updateTemplateProductSchema = z.object({
   productName: requiredStringSchema.optional(),
   productUrl: z.preprocess(
     (val) => (val === "" || val === null || val === undefined ? null : val),
-    z.string().url().nullable().optional()
+    z.string().url().nullable().optional(),
   ),
   instructions: requiredStringSchema.optional(),
-  frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]).optional(),
+  frequency: z
+    .enum([
+      "daily",
+      "2x per week",
+      "3x per week",
+      "4x per week",
+      "5x per week",
+      "6x per week",
+      "specific_days",
+    ])
+    .optional(),
   days: z.array(z.string()).nullable().optional(),
 });
 
@@ -309,7 +330,7 @@ const reorderTemplateProductsSchema = z.object({
 export async function createTemplateProduct(
   templateId: string,
   input: CreateTemplateProductInput,
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<RoutineTemplateProduct>> {
   const { repo, now } = deps;
 
@@ -337,9 +358,11 @@ export async function createTemplateProduct(
     }
 
     // Get existing products to determine order
-    const existingProducts = await repo.findProductsByTemplateId(validation.data.templateId);
+    const existingProducts = await repo.findProductsByTemplateId(
+      validation.data.templateId,
+    );
     const sameTimeOfDayProducts = existingProducts.filter(
-      (p) => p.timeOfDay === validation.data.timeOfDay
+      (p) => p.timeOfDay === validation.data.timeOfDay,
     );
     const order = sameTimeOfDayProducts.length;
 
@@ -373,7 +396,7 @@ export async function createTemplateProduct(
 export async function updateTemplateProduct(
   productId: string,
   updates: UpdateTemplateProductInput,
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<RoutineTemplateProduct>> {
   const { repo, now } = deps;
 
@@ -418,7 +441,10 @@ export async function updateTemplateProduct(
     }
 
     // Update product
-    const updatedProduct = await repo.updateProduct(validation.data.productId, updateData);
+    const updatedProduct = await repo.updateProduct(
+      validation.data.productId,
+      updateData,
+    );
 
     if (!updatedProduct) {
       return { success: false, error: "Template product not found" };
@@ -436,7 +462,7 @@ export async function updateTemplateProduct(
  */
 export async function deleteTemplateProduct(
   productId: string,
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo } = deps;
 
@@ -449,7 +475,9 @@ export async function deleteTemplateProduct(
 
   try {
     // Delete product
-    const deletedProduct = await repo.deleteProductById(validation.data.productId);
+    const deletedProduct = await repo.deleteProductById(
+      validation.data.productId,
+    );
 
     if (!deletedProduct) {
       return { success: false, error: "Template product not found" };
@@ -469,7 +497,7 @@ export async function reorderTemplateProducts(
   templateId: string,
   timeOfDay: "morning" | "evening",
   productIds: string[],
-  deps: TemplateDeps = defaultDeps
+  deps: TemplateDeps = defaultDeps,
 ): Promise<Result<void>> {
   const { repo, now } = deps;
 

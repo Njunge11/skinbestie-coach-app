@@ -508,7 +508,7 @@ describe("Template Actions - Unit Tests", () => {
       repo._productStore.set("product_1", {
         id: "product_1",
         templateId: templateId,
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "Product 1",
         productUrl: null,
         instructions: "Use daily",
@@ -523,7 +523,7 @@ describe("Template Actions - Unit Tests", () => {
       repo._productStore.set("product_2", {
         id: "product_2",
         templateId: templateId,
-        routineStep: "Moisturizer",
+        routineStep: "Moisturise",
         productName: "Product 2",
         productUrl: null,
         instructions: "Use daily",
@@ -611,7 +611,7 @@ describe("Template Actions - Unit Tests", () => {
       repo._productStore.set("product_1", {
         id: "product_1",
         templateId: templateId,
-        routineStep: "Moisturizer",
+        routineStep: "Moisturise",
         productName: "Evening Product",
         productUrl: null,
         instructions: "Apply at night",
@@ -626,7 +626,7 @@ describe("Template Actions - Unit Tests", () => {
       repo._productStore.set("product_2", {
         id: "product_2",
         templateId: templateId,
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "Morning Product",
         productUrl: null,
         instructions: "Use daily",

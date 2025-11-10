@@ -11,6 +11,7 @@ import {
   integer,
   pgEnum,
   primaryKey,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type { AdapterAccountType } from "next-auth/adapters";
@@ -25,6 +26,9 @@ export const frequencyEnum = pgEnum("frequency", [
   "daily",
   "2x per week",
   "3x per week",
+  "4x per week",
+  "5x per week",
+  "6x per week",
   "specific_days",
 ]);
 export const timeOfDayEnum = pgEnum("time_of_day", ["morning", "evening"]);
@@ -43,6 +47,12 @@ export const goalPriorityEnum = pgEnum("goal_priority", [
   "low",
   "medium",
   "high",
+]);
+export const questionTypeEnum = pgEnum("question_type", ["yes_no", "freehand"]);
+export const surveyStatusEnum = pgEnum("survey_status", [
+  "draft",
+  "published",
+  "archived",
 ]);
 
 // ============================================
@@ -666,6 +676,226 @@ export const routineStepCompletions = pgTable(
   }),
 );
 
+export const surveys = pgTable(
+  "surveys",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Survey details
+    title: text("title").notNull(), // e.g., "Week 4 Progress Check-in"
+    description: text("description"), // Optional intro text shown to users
+
+    // Status
+    status: surveyStatusEnum("status").notNull().default("draft"),
+
+    // Admin tracking
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => admins.id, { onDelete: "restrict" }),
+    updatedBy: uuid("updated_by")
+      .notNull()
+      .references(() => admins.id, { onDelete: "restrict" }),
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for filtering by status
+    statusIdx: index("surveys_status_idx").on(table.status),
+    // Index for tracking who created surveys
+    createdByIdx: index("surveys_created_by_idx").on(table.createdBy),
+  }),
+);
+
+export const surveyQuestions = pgTable(
+  "survey_questions",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Key to survey
+    surveyId: uuid("survey_id")
+      .notNull()
+      .references(() => surveys.id, { onDelete: "cascade" }),
+
+    // Question details
+    questionText: text("question_text").notNull(), // e.g., "Are you seeing improvements?"
+    questionType: questionTypeEnum("question_type").notNull(), // "yes_no" or "freehand"
+
+    // Optional helper text (shown below question)
+    helperText: text("helper_text"), // e.g., "Please describe any changes you've noticed"
+
+    // Required flag
+    isRequired: boolean("is_required").notNull().default(true),
+
+    // Ordering (for display sequence)
+    order: integer("order").notNull(),
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by survey
+    surveyIdx: index("survey_questions_survey_idx").on(table.surveyId),
+    // Index for ordering
+    orderIdx: index("survey_questions_order_idx").on(table.order),
+    // Unique constraint to prevent duplicate order values per survey
+    uniqueOrderPerSurvey: uniqueIndex("survey_questions_survey_order_idx").on(
+      table.surveyId,
+      table.order,
+    ),
+  }),
+);
+
+export const surveySubmissions = pgTable(
+  "survey_submissions",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Keys
+    surveyId: uuid("survey_id")
+      .notNull()
+      .references(() => surveys.id, { onDelete: "cascade" }),
+    userProfileId: uuid("user_profile_id")
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
+
+    // Submission metadata
+    submittedAt: timestamp("submitted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by survey
+    surveyIdx: index("survey_submissions_survey_idx").on(table.surveyId),
+    // Index for efficient queries by user
+    userProfileIdx: index("survey_submissions_user_idx").on(
+      table.userProfileId,
+    ),
+    // Composite index for user + survey history
+    userSurveyIdx: index("survey_submissions_user_survey_idx").on(
+      table.userProfileId,
+      table.surveyId,
+    ),
+    // Index for chronological ordering
+    submittedAtIdx: index("survey_submissions_submitted_at_idx").on(
+      table.submittedAt,
+    ),
+  }),
+);
+
+export const surveyResponses = pgTable(
+  "survey_responses",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Keys
+    submissionId: uuid("submission_id")
+      .notNull()
+      .references(() => surveySubmissions.id, { onDelete: "cascade" }),
+    questionId: uuid("question_id")
+      .notNull()
+      .references(() => surveyQuestions.id, { onDelete: "cascade" }),
+    userProfileId: uuid("user_profile_id")
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
+
+    // Response data (polymorphic - depends on question type)
+    yesNoAnswer: boolean("yes_no_answer"), // Used for yes_no questions
+    freehandAnswer: text("freehand_answer"), // Used for freehand questions
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by submission
+    submissionIdx: index("survey_responses_submission_idx").on(
+      table.submissionId,
+    ),
+    // Index for efficient queries by user
+    userProfileIdx: index("survey_responses_user_idx").on(table.userProfileId),
+    // Index for efficient queries by question
+    questionIdx: index("survey_responses_question_idx").on(table.questionId),
+    // Unique constraint: one response per submission per question
+    uniqueSubmissionQuestion: uniqueIndex(
+      "survey_responses_submission_question_idx",
+    ).on(table.submissionId, table.questionId),
+  }),
+);
+
+// ============================================
+// Journal Tables
+// ============================================
+
+export const journals = pgTable(
+  "journals",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Key to user profile
+    userProfileId: uuid("user_profile_id")
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
+
+    // Content Fields
+    title: text("title").notNull().default("Untitled Journal Entry"),
+    content: jsonb("content").$type<object>().notNull().default(sql`'{
+      "root": {
+        "children": [],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "type": "root",
+        "version": 1
+      }
+    }'::jsonb`), // Lexical Editor JSON format
+    public: boolean("public").notNull().default(false),
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastModified: timestamp("last_modified", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user profile
+    userProfileIdx: index("journals_user_profile_idx").on(table.userProfileId),
+    // Index for efficient queries by created date (DESC for newest first)
+    createdAtIdx: index("journals_created_at_idx").on(
+      table.userProfileId,
+      table.createdAt,
+    ),
+    // Index for efficient queries by last modified date
+    lastModifiedIdx: index("journals_last_modified_idx").on(table.lastModified),
+  }),
+);
+
 // Type exports for TypeScript
 
 // NextAuth types
@@ -706,3 +936,13 @@ export type NewProgressPhoto = typeof progressPhotos.$inferInsert;
 export type RoutineStepCompletion = typeof routineStepCompletions.$inferSelect;
 export type NewRoutineStepCompletion =
   typeof routineStepCompletions.$inferInsert;
+export type Survey = typeof surveys.$inferSelect;
+export type NewSurvey = typeof surveys.$inferInsert;
+export type SurveyQuestion = typeof surveyQuestions.$inferSelect;
+export type NewSurveyQuestion = typeof surveyQuestions.$inferInsert;
+export type SurveySubmission = typeof surveySubmissions.$inferSelect;
+export type NewSurveySubmission = typeof surveySubmissions.$inferInsert;
+export type SurveyResponse = typeof surveyResponses.$inferSelect;
+export type NewSurveyResponse = typeof surveyResponses.$inferInsert;
+export type Journal = typeof journals.$inferSelect;
+export type NewJournal = typeof journals.$inferInsert;

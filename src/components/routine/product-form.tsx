@@ -208,7 +208,15 @@ export function ProductForm({
           <div className="flex flex-wrap gap-2">
             {DAYS_OF_WEEK.map((day) => {
               const isSelected = data.days?.includes(day.value);
-              const maxDays = data.frequency === "2x per week" ? 2 : 3;
+              // Extract max days dynamically from frequency string
+              const getMaxDays = (frequency: string): number => {
+                if (frequency === "daily") return 7;
+                if (frequency === "specific_days") return 7;
+                // Match "2x per week" → 2, "3x per week" → 3, etc.
+                const match = frequency.match(/^(\d+)x per week$/);
+                return match ? parseInt(match[1], 10) : 7;
+              };
+              const maxDays = getMaxDays(data.frequency);
               const canSelect =
                 isSelected || (data.days?.length || 0) < maxDays;
 
@@ -247,7 +255,12 @@ export function ProductForm({
             })}
           </div>
           <p className="text-xs text-gray-500">
-            Select {data.frequency === "2x per week" ? "2" : "3"} days
+            Select{" "}
+            {(() => {
+              const match = data.frequency.match(/^(\d+)x per week$/);
+              return match ? match[1] : "specific";
+            })()}{" "}
+            days
           </p>
         </div>
       )}

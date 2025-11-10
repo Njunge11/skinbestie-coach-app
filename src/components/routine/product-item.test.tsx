@@ -11,7 +11,7 @@ describe("ProductItem", () => {
 
     const product: Product = {
       id: "product-1",
-      routineStep: "Cleanser",
+      routineStep: "Cleanse",
       productName: "CeraVe Hydrating Cleanser",
       productUrl: "https://example.com/product",
       instructions: "Apply to damp skin, massage gently",
@@ -31,7 +31,7 @@ describe("ProductItem", () => {
     );
 
     // User sees routine step badge
-    expect(screen.getByText("Cleanser")).toBeInTheDocument();
+    expect(screen.getByText("Cleanse")).toBeInTheDocument();
 
     // User sees frequency badge with days
     expect(screen.getByText(/2x per week/i)).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe("ProductItem", () => {
 
     const product: Product = {
       id: "product-1",
-      routineStep: "Serum",
+      routineStep: "Treat",
       productName: "Vitamin C Serum",
       productUrl: "https://example.com/serum",
       instructions: "Apply in the morning",
@@ -88,7 +88,7 @@ describe("ProductItem", () => {
 
     const product: Product = {
       id: "product-1",
-      routineStep: "Moisturizer",
+      routineStep: "Moisturise",
       productName: "Simple Face Cream",
       productUrl: null,
       instructions: "Apply after serum",
@@ -163,7 +163,7 @@ describe("ProductItem", () => {
 
     const product: Product = {
       id: "product-1",
-      routineStep: "Moisturizer",
+      routineStep: "Moisturise",
       productName: "Simple Moisturizer",
       productUrl: null,
       instructions: "Apply to face",

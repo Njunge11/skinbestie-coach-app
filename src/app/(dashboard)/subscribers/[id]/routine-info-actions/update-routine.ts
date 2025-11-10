@@ -33,7 +33,8 @@ export type RoutineDeps = typeof defaultRoutineDeps;
  *
  * Handles:
  * - Start date FORWARD: Delete uncompleted tasks before new start
- * - Start date BACKWARD: Do nothing (no backfilling)
+ * - Start date BACKWARD (future → today): Generate tasks for gap
+ * - Start date BACKWARD (to past): Do nothing (no backfilling)
  * - End date EARLIER: Delete uncompleted tasks beyond new end
  * - End date LATER: Generate tasks for gap (respecting 60-day cap)
  * - End date → null: Extend to 60-day cap
@@ -105,6 +106,9 @@ export async function updateRoutine(
         if (validation.data.startDate !== undefined) {
           const newStart = toMidnightUTC(newStartDate);
           const oldStart = toMidnightUTC(oldStartDate);
+          console.log(
+            `🔍 [UPDATE-ROUTINE] Start date change detected: ${oldStart.toISOString()} → ${newStart.toISOString()}`,
+          );
 
           // Start date moved FORWARD: Delete uncompleted tasks before new start
           if (newStart > oldStart) {
@@ -141,7 +145,229 @@ export async function updateRoutine(
             }
           }
 
-          // Start date moved BACKWARD: Do nothing (no backfilling)
+          // Start date moved BACKWARD: Check if we need to fill gap
+          // (e.g., future date → today's date)
+          else if (newStart < oldStart) {
+            console.log(
+              `⏪ [UPDATE-ROUTINE] Start moved BACKWARD. Today: ${today.toISOString()}`,
+            );
+            // Calculate effective start dates (never before today)
+            const oldEffectiveStart = new Date(
+              Math.max(oldStart.getTime(), today.getTime()),
+            );
+            const newEffectiveStart = new Date(
+              Math.max(newStart.getTime(), today.getTime()),
+            );
+            console.log(
+              `🔍 [UPDATE-ROUTINE] Effective: ${newEffectiveStart.toISOString()} → ${oldEffectiveStart.toISOString()}`,
+            );
+            console.log(
+              `🔍 [UPDATE-ROUTINE] Gap check: ${newEffectiveStart < oldEffectiveStart} && ${newStart >= today}`,
+            );
+
+            // Only fill gap if:
+            // 1. New effective start is earlier than old (gap exists)
+            // 2. New start date is not before today (no backfilling to past)
+            if (newEffectiveStart < oldEffectiveStart && newStart >= today) {
+              console.log(`✅ [UPDATE-ROUTINE] Gap fill conditions MET`);
+              // Get product IDs for this routine
+              const products = await tx
+                .select({ id: skincareRoutineProducts.id })
+                .from(skincareRoutineProducts)
+                .where(
+                  eq(
+                    skincareRoutineProducts.routineId,
+                    validation.data.routineId,
+                  ),
+                );
+
+              const productIds = products.map((p) => p.id);
+
+              if (productIds.length > 0) {
+                // Calculate new 60-day window
+                const defaultWindowEnd = addDays(newEffectiveStart, 59);
+                const windowEnd = newEndDate
+                  ? new Date(
+                      Math.min(
+                        defaultWindowEnd.getTime(),
+                        toMidnightUTC(newEndDate).getTime(),
+                      ),
+                    )
+                  : defaultWindowEnd;
+
+                // Delete tasks beyond the new 60-day window
+                await tx
+                  .delete(routineStepCompletions)
+                  .where(
+                    and(
+                      inArray(
+                        routineStepCompletions.routineProductId,
+                        productIds,
+                      ),
+                      gt(routineStepCompletions.scheduledDate, windowEnd),
+                      eq(routineStepCompletions.status, "pending"),
+                    ),
+                  );
+
+                // Find the earliest existing task date
+                const earliestTasks = await tx
+                  .select({
+                    scheduledDate: routineStepCompletions.scheduledDate,
+                  })
+                  .from(routineStepCompletions)
+                  .where(
+                    inArray(
+                      routineStepCompletions.routineProductId,
+                      productIds,
+                    ),
+                  )
+                  .orderBy(routineStepCompletions.scheduledDate)
+                  .limit(1);
+
+                if (earliestTasks.length > 0) {
+                  const minExistingDate = toMidnightUTC(
+                    earliestTasks[0].scheduledDate,
+                  );
+
+                  // Gap exists if new effective start is before earliest existing task
+                  if (newEffectiveStart < minExistingDate) {
+                    const gapStart = newEffectiveStart;
+                    const gapEnd = addDays(minExistingDate, -1);
+
+                    // Only fill gap up to the earliest existing task (don't duplicate)
+                    // windowEnd already calculated above
+                    const fillEnd = new Date(
+                      Math.min(gapEnd.getTime(), windowEnd.getTime()),
+                    );
+
+                    // Only generate if gap exists within window
+                    if (gapStart <= fillEnd) {
+                      // Fetch products with full details for generation
+                      const productsWithDetails = await tx
+                        .select({
+                          id: skincareRoutineProducts.id,
+                          frequency: skincareRoutineProducts.frequency,
+                          days: skincareRoutineProducts.days,
+                          timeOfDay: skincareRoutineProducts.timeOfDay,
+                        })
+                        .from(skincareRoutineProducts)
+                        .where(
+                          eq(
+                            skincareRoutineProducts.routineId,
+                            validation.data.routineId,
+                          ),
+                        );
+
+                      const [user] = await tx
+                        .select({ timezone: userProfiles.timezone })
+                        .from(userProfiles)
+                        .where(eq(userProfiles.id, updated.userProfileId))
+                        .limit(1);
+
+                      if (productsWithDetails.length > 0 && user) {
+                        // PERFORMANCE: Cache deadlines to avoid redundant timezone math
+                        const getDeadlines = makeDeadlineCache(user.timezone);
+
+                        // PERFORMANCE: Group products by timeOfDay for cache locality
+                        const productsByTime: Record<
+                          "morning" | "evening",
+                          typeof productsWithDetails
+                        > = {
+                          morning: [],
+                          evening: [],
+                        };
+                        for (const product of productsWithDetails) {
+                          productsByTime[product.timeOfDay].push(product);
+                        }
+
+                        // Generate completions for gap
+                        const completionsToCreate: Array<{
+                          routineProductId: string;
+                          userProfileId: string;
+                          scheduledDate: Date;
+                          scheduledTimeOfDay: "morning" | "evening";
+                          onTimeDeadline: Date;
+                          gracePeriodEnd: Date;
+                          completedAt: null;
+                          status: "pending";
+                        }> = [];
+                        let currentDate = new Date(gapStart);
+
+                        while (currentDate <= fillEnd) {
+                          // Process morning products together (cache hit after first)
+                          const morningDeadlines = getDeadlines(
+                            currentDate,
+                            "morning",
+                          );
+                          for (const product of productsByTime.morning) {
+                            if (
+                              shouldGenerateForDate(
+                                {
+                                  frequency: product.frequency,
+                                  days: product.days ?? undefined,
+                                },
+                                currentDate,
+                              )
+                            ) {
+                              completionsToCreate.push({
+                                routineProductId: product.id,
+                                userProfileId: updated.userProfileId,
+                                scheduledDate: new Date(currentDate),
+                                scheduledTimeOfDay: "morning",
+                                onTimeDeadline: morningDeadlines.onTimeDeadline,
+                                gracePeriodEnd: morningDeadlines.gracePeriodEnd,
+                                completedAt: null,
+                                status: "pending" as const,
+                              });
+                            }
+                          }
+
+                          // Process evening products together (cache hit after first)
+                          const eveningDeadlines = getDeadlines(
+                            currentDate,
+                            "evening",
+                          );
+                          for (const product of productsByTime.evening) {
+                            if (
+                              shouldGenerateForDate(
+                                {
+                                  frequency: product.frequency,
+                                  days: product.days ?? undefined,
+                                },
+                                currentDate,
+                              )
+                            ) {
+                              completionsToCreate.push({
+                                routineProductId: product.id,
+                                userProfileId: updated.userProfileId,
+                                scheduledDate: new Date(currentDate),
+                                scheduledTimeOfDay: "evening",
+                                onTimeDeadline: eveningDeadlines.onTimeDeadline,
+                                gracePeriodEnd: eveningDeadlines.gracePeriodEnd,
+                                completedAt: null,
+                                status: "pending" as const,
+                              });
+                            }
+                          }
+
+                          currentDate = addDays(currentDate, 1);
+                        }
+
+                        console.log(
+                          `✅ [UPDATE-ROUTINE] Generated ${completionsToCreate.length} gap tasks`,
+                        );
+                        if (completionsToCreate.length > 0) {
+                          await tx
+                            .insert(routineStepCompletions)
+                            .values(completionsToCreate);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
 
         // HANDLE END DATE CHANGES
