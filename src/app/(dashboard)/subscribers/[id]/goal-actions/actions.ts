@@ -42,11 +42,13 @@ type Result<T> = SuccessResult<T> | ErrorResult;
 // Input types - simplified to match schema
 export type CreateGoalInput = {
   description: string;
+  timeline?: string;
   isPrimaryGoal?: boolean;
 };
 
 export type UpdateGoalInput = {
   description?: string;
+  timeline?: string;
   isPrimaryGoal?: boolean;
   complete?: boolean;
 };
@@ -58,12 +60,14 @@ const requiredStringSchema = z.string().trim().min(1);
 const createGoalSchema = z.object({
   userId: uuidSchema,
   description: requiredStringSchema,
+  timeline: z.string().optional(),
   isPrimaryGoal: z.boolean().optional(),
 });
 
 const updateGoalSchema = z.object({
   goalId: uuidSchema,
   description: z.string().trim().min(1).optional(),
+  timeline: z.string().optional(),
   isPrimaryGoal: z.boolean().optional(),
   complete: z.boolean().optional(),
 });
@@ -125,6 +129,7 @@ export async function createGoal(
   const validation = createGoalSchema.safeParse({
     userId,
     description: input.description,
+    timeline: input.timeline,
     isPrimaryGoal: input.isPrimaryGoal,
   });
 
@@ -163,6 +168,7 @@ export async function createGoal(
     const newGoal: NewGoal = {
       templateId: template.id,
       description: validation.data.description,
+      timeline: validation.data.timeline ?? null,
       isPrimaryGoal: validation.data.isPrimaryGoal ?? false,
       complete: false,
       order,
@@ -214,6 +220,10 @@ export async function updateGoal(
 
     if (validation.data.description !== undefined) {
       updateData.description = validation.data.description;
+    }
+
+    if (validation.data.timeline !== undefined) {
+      updateData.timeline = validation.data.timeline ?? null;
     }
 
     if (validation.data.isPrimaryGoal !== undefined) {

@@ -165,6 +165,7 @@ export function ClientPageWrapper({
       id: `temp-${Date.now()}`,
       templateId: goalsTemplate?.id || "",
       description: data.description,
+      timeline: null,
       isPrimaryGoal: data.isPrimaryGoal ?? false,
       complete: false,
       completedAt: null,
