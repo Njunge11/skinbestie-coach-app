@@ -141,6 +141,25 @@ export const verificationCodes = pgTable(
   }),
 );
 
+export const userVerificationCodes = pgTable(
+  "user_verification_codes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    used: boolean("used").notNull().default(false),
+    usedAt: timestamp("used_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user
+    userIdx: index("user_verification_codes_user_idx").on(table.userId),
+  }),
+);
+
 export const userProfiles = pgTable(
   "user_profiles",
   {
@@ -911,6 +930,8 @@ export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
 export type VerificationCode = typeof verificationCodes.$inferSelect;
 export type NewVerificationCode = typeof verificationCodes.$inferInsert;
+export type UserVerificationCode = typeof userVerificationCodes.$inferSelect;
+export type NewUserVerificationCode = typeof userVerificationCodes.$inferInsert;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type NewUserProfile = typeof userProfiles.$inferInsert;
 export type SkinGoalsTemplate = typeof skinGoalsTemplate.$inferSelect;
