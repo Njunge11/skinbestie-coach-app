@@ -1,0 +1,1 @@
+ALTER TABLE "skincare_goals" ADD COLUMN "timeline" text;

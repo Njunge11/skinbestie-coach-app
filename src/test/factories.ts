@@ -210,6 +210,7 @@ export function makeGoal(overrides: Partial<Goal> = {}): Goal {
     id: crypto.randomUUID(),
     templateId: crypto.randomUUID(),
     description: "Test goal",
+    timeline: null,
     isPrimaryGoal: false,
     complete: false,
     completedAt: null,

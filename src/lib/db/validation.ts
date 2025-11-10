@@ -23,11 +23,13 @@ export const createAdminSchema = z.object({
 export const createGoalSchema = z.object({
   userId: z.string().uuid("Invalid user ID format"),
   description: z.string().min(1, "Description is required"),
+  timeline: z.string().optional(),
   isPrimaryGoal: z.boolean().optional().default(false),
 });
 
 export const updateGoalSchema = z.object({
   description: z.string().min(1, "Description is required").optional(),
+  timeline: z.string().optional(),
   isPrimaryGoal: z.boolean().optional(),
   complete: z.boolean().optional(),
 });
