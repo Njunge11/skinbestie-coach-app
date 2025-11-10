@@ -211,6 +211,48 @@
       "when": 1762180701908,
       "tag": "0029_smiling_apocalypse",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1762318906361,
+      "tag": "0030_dazzling_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1762319863017,
+      "tag": "0031_worthless_marvel_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1762576468168,
+      "tag": "0032_lucky_morbius",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1762576492995,
+      "tag": "0033_glossy_maggott",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1762582607898,
+      "tag": "0034_flawless_molecule_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1762740657475,
+      "tag": "0035_wet_leader",
+      "breakpoints": true
     }
   ]
 }

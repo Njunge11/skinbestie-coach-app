@@ -31,7 +31,7 @@ describe("CompletionRepo - updateCompletion", () => {
       await createUserProfile(profileId, authUserId, "user@test.com");
 
       await createRoutine(routineId, profileId);
-      await createRoutineProduct(productId1, routineId, profileId, "Cleanser");
+      await createRoutineProduct(productId1, routineId, profileId, "Cleanse");
 
       // Create pending completion with future deadline (can complete on-time)
       const now = new Date("2025-11-07T08:00:00Z");
@@ -70,7 +70,7 @@ describe("CompletionRepo - updateCompletion", () => {
       await createUserProfile(profileId, authUserId, "user@test.com");
 
       await createRoutine(routineId, profileId);
-      await createRoutineProduct(productId1, routineId, profileId, "Cleanser");
+      await createRoutineProduct(productId1, routineId, profileId, "Cleanse");
 
       // Create pending completion with past on-time deadline but within grace period
       const now = new Date("2025-11-07T15:00:00Z");
@@ -109,7 +109,7 @@ describe("CompletionRepo - updateCompletion", () => {
       await createUserProfile(profileId, authUserId, "user@test.com");
 
       await createRoutine(routineId, profileId);
-      await createRoutineProduct(productId1, routineId, profileId, "Cleanser");
+      await createRoutineProduct(productId1, routineId, profileId, "Cleanse");
 
       // Create completed step
       const completedAt = new Date("2025-11-07T08:00:00Z");
@@ -163,7 +163,7 @@ describe("CompletionRepo - updateCompletion", () => {
       await createUserProfile(profileId, authUserId, "user@test.com");
 
       await createRoutine(routineId, profileId);
-      await createRoutineProduct(productId1, routineId, profileId, "Cleanser");
+      await createRoutineProduct(productId1, routineId, profileId, "Cleanse");
 
       // Create missed step (grace period passed)
       const now = new Date("2025-11-07T22:00:00Z");
@@ -201,7 +201,7 @@ describe("CompletionRepo - updateCompletion", () => {
       await createUserProfile(profileId2, authUserId2, "user2@test.com");
 
       await createRoutine(routineId, profileId);
-      await createRoutineProduct(productId1, routineId, profileId, "Cleanser");
+      await createRoutineProduct(productId1, routineId, profileId, "Cleanse");
 
       // Create pending completion for user 1
       const onTimeDeadline = new Date("2025-11-07T14:00:00Z");
@@ -236,7 +236,7 @@ describe("CompletionRepo - updateCompletion", () => {
       await createUserProfile(profileId, authUserId, "user@test.com");
 
       await createRoutine(routineId, profileId);
-      await createRoutineProduct(productId1, routineId, profileId, "Cleanser");
+      await createRoutineProduct(productId1, routineId, profileId, "Cleanse");
 
       // Create already completed step
       const firstCompletedAt = new Date("2025-11-07T08:00:00Z");
@@ -275,7 +275,7 @@ describe("CompletionRepo - updateCompletion", () => {
       await createUserProfile(profileId, authUserId, "user@test.com");
 
       await createRoutine(routineId, profileId);
-      await createRoutineProduct(productId1, routineId, profileId, "Cleanser");
+      await createRoutineProduct(productId1, routineId, profileId, "Cleanse");
 
       // Create pending step with grace period that has passed
       const onTimeDeadline = new Date("2025-11-07T14:00:00Z"); // 2pm
@@ -326,7 +326,7 @@ describe("CompletionRepo - updateCompletion", () => {
         productId1,
         routineId,
         profileId,
-        "Cleanser",
+        "Cleanse",
         1,
       );
       await createRoutineProduct(productId2, routineId, profileId, "Toner", 2);
@@ -334,7 +334,7 @@ describe("CompletionRepo - updateCompletion", () => {
         productId3,
         routineId,
         profileId,
-        "Moisturizer",
+        "Moisturise",
         3,
       );
 
@@ -405,7 +405,7 @@ describe("CompletionRepo - updateCompletion", () => {
         productId1,
         routineId,
         profileId,
-        "Cleanser",
+        "Cleanse",
         1,
       );
       await createRoutineProduct(productId2, routineId, profileId, "Toner", 2);
@@ -463,7 +463,7 @@ describe("CompletionRepo - updateCompletion", () => {
         productId1,
         routineId,
         profileId,
-        "Cleanser",
+        "Cleanse",
         1,
       );
       await createRoutineProduct(productId2, routineId, profileId, "Toner", 2);
@@ -471,7 +471,7 @@ describe("CompletionRepo - updateCompletion", () => {
         productId3,
         routineId,
         profileId,
-        "Moisturizer",
+        "Moisturise",
         3,
       );
 
@@ -556,7 +556,7 @@ describe("CompletionRepo - updateCompletion", () => {
         productId1,
         routineId,
         profileId,
-        "Cleanser",
+        "Cleanse",
         1,
       );
       await createRoutineProduct(productId2, routineId, profileId, "Toner", 2);
@@ -618,7 +618,7 @@ describe("CompletionRepo - updateCompletion", () => {
       await createUserProfile(profileId2, authUserId2, "user2@test.com");
 
       await createRoutine(routineId, profileId);
-      await createRoutineProduct(productId1, routineId, profileId, "Cleanser");
+      await createRoutineProduct(productId1, routineId, profileId, "Cleanse");
 
       // Create completion for user 1
       const onTimeDeadline = new Date("2025-11-07T14:00:00Z");
@@ -665,7 +665,7 @@ describe("CompletionRepo - updateCompletion", () => {
         productId1,
         routineId,
         profileId,
-        "Cleanser",
+        "Cleanse",
         1,
       );
       await createRoutineProduct(productId2, routineId, profileId, "Toner", 2);
@@ -730,7 +730,7 @@ describe("CompletionRepo - updateCompletion", () => {
         productId1,
         routineId,
         profileId,
-        "Cleanser",
+        "Cleanse",
         1,
       );
       await createRoutineProduct(productId2, routineId, profileId, "Toner", 2);

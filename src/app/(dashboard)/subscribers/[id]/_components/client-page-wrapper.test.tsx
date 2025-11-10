@@ -1165,7 +1165,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const product = makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "Original Cleanser",
         productUrl: null,
         instructions: "Apply to wet face",
@@ -1257,7 +1257,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
       const product = makeRoutineProduct({
         id: "product-1",
         routineId: "routine-1",
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "Original Cleanser",
         productUrl: null,
         instructions: "Apply to wet face",

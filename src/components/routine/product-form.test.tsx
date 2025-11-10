@@ -34,12 +34,12 @@ describe("ProductForm", () => {
     const routineStepButton = screen.getByText(/select routine step/i);
     await user.click(routineStepButton);
 
-    // User selects "Cleanser" from the list
-    await user.click(screen.getByRole("option", { name: /cleanser/i }));
+    // User selects "Cleanse" from the list
+    await user.click(screen.getByRole("option", { name: /cleanse/i }));
 
     // User fills product name
     const productNameInput = screen.getByPlaceholderText(/product name/i);
-    await user.type(productNameInput, "CeraVe Hydrating Cleanser");
+    await user.type(productNameInput, "CeraVe Hydrating cleanse");
 
     // User fills product URL
     const productUrlInput = screen.getByPlaceholderText(/product url/i);
@@ -86,7 +86,7 @@ describe("ProductForm", () => {
     // User selects routine step
     const routineStepButton = screen.getByText(/select routine step/i);
     await user.click(routineStepButton);
-    await user.click(screen.getByRole("option", { name: /moisturizer/i }));
+    await user.click(screen.getByRole("option", { name: /moisturise/i }));
 
     // User fills product name
     const productNameInput = screen.getByPlaceholderText(/product name/i);
@@ -96,7 +96,7 @@ describe("ProductForm", () => {
 
     // User fills instructions
     const instructionsInput = screen.getByLabelText(/^instructions$/i);
-    await user.type(instructionsInput, "Apply after serum");
+    await user.type(instructionsInput, "Apply after treat");
 
     // User clicks Add button
     await user.click(screen.getByRole("button", { name: /add/i }));
@@ -147,11 +147,11 @@ describe("ProductForm", () => {
     // User selects routine step
     const routineStepButton = screen.getByText(/select routine step/i);
     await user.click(routineStepButton);
-    await user.click(screen.getByRole("option", { name: /serum/i }));
+    await user.click(screen.getByRole("option", { name: /treat/i }));
 
     // User fills product name
     const productNameInput = screen.getByPlaceholderText(/product name/i);
-    await user.type(productNameInput, "Vitamin C Serum");
+    await user.type(productNameInput, "Vitamin C treat");
 
     // User fills instructions
     const instructionsInput = screen.getByLabelText(/^instructions$/i);
@@ -279,11 +279,11 @@ describe("ProductForm", () => {
     // User selects routine step
     const routineStepButton = screen.getByText(/select routine step/i);
     await user.click(routineStepButton);
-    await user.click(screen.getByRole("option", { name: /cleanser/i }));
+    await user.click(screen.getByRole("option", { name: /cleanse/i }));
 
     // User fills product name
     const productNameInput = screen.getByPlaceholderText(/product name/i);
-    await user.type(productNameInput, "Gentle Cleanser");
+    await user.type(productNameInput, "Gentle cleanse");
 
     // User fills instructions
     const instructionsInput = screen.getByLabelText(/^instructions$/i);

@@ -120,11 +120,22 @@ export type UpdateRoutineProductInput = {
 const uuidSchema = z.string().uuid();
 const requiredStringSchema = z.string().trim().min(1);
 const timeOfDaySchema = z.enum(["morning", "evening"]);
+const routineStepSchema = z.enum([
+  "Cleanse",
+  "Treat",
+  "Protect",
+  "Moisturise",
+  "Eye cream",
+  "Toner",
+  "Essence",
+  "Pimple patch",
+  "Lip care",
+]);
 
 const createRoutineProductSchema = z.object({
   userId: uuidSchema,
   routineId: uuidSchema,
-  routineStep: requiredStringSchema,
+  routineStep: routineStepSchema,
   productName: requiredStringSchema,
   productUrl: z.preprocess(
     (val) => (val === "" ? null : val),
@@ -134,14 +145,22 @@ const createRoutineProductSchema = z.object({
   productPurchaseInstructions: z
     .preprocess((val) => (val === "" ? null : val), z.string().nullable())
     .optional(),
-  frequency: z.enum(["daily", "2x per week", "3x per week", "specific_days"]),
+  frequency: z.enum([
+    "daily",
+    "2x per week",
+    "3x per week",
+    "4x per week",
+    "5x per week",
+    "6x per week",
+    "specific_days",
+  ]),
   days: z.array(z.string()).nullable(),
   timeOfDay: timeOfDaySchema,
 });
 
 const updateRoutineProductSchema = z.object({
   productId: uuidSchema,
-  routineStep: z.string().trim().min(1).optional(),
+  routineStep: routineStepSchema.optional(),
   productName: z.string().trim().min(1).optional(),
   productUrl: z.preprocess(
     (val) => (val === "" ? undefined : val),
@@ -149,7 +168,15 @@ const updateRoutineProductSchema = z.object({
   ),
   instructions: z.string().trim().min(1).optional(),
   frequency: z
-    .enum(["daily", "2x per week", "3x per week", "specific_days"])
+    .enum([
+      "daily",
+      "2x per week",
+      "3x per week",
+      "4x per week",
+      "5x per week",
+      "6x per week",
+      "specific_days",
+    ])
     .optional(),
   days: z.array(z.string()).nullable().optional(),
 });

@@ -54,7 +54,7 @@ describe("DashboardService - getCatchupSteps", () => {
     const mockCatchupSteps = [
       {
         id: "step-1",
-        routineStep: "Cleanser",
+        routineStep: "Cleanse",
         productName: "Morning Cleanser",
         productUrl: null,
         instructions: "Apply to face",
@@ -135,10 +135,10 @@ describe("DashboardService - getCatchupSteps", () => {
   it("fetches catchup steps in parallel with other data", async () => {
     const mockGoals = [{ id: "goal-1", description: "Clear skin" }];
     const mockTodayRoutine = [
-      { id: "step-1", productName: "Cleanser", status: "pending" },
+      { id: "step-1", productName: "Cleanse", status: "pending" },
     ];
     const mockCatchupSteps = [
-      { id: "step-2", productName: "Moisturizer", status: "pending" },
+      { id: "step-2", productName: "Moisturise", status: "pending" },
     ];
 
     mockRepo.getPublishedGoals.mockResolvedValue(mockGoals);

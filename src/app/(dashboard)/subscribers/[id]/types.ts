@@ -25,6 +25,9 @@ export type Frequency =
   | "daily"
   | "2x per week"
   | "3x per week"
+  | "4x per week"
+  | "5x per week"
+  | "6x per week"
   | "specific_days";
 export type TimeOfDay = "morning" | "evening";
 
