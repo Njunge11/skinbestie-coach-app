@@ -2,6 +2,7 @@ import type { IAuthRepository, UserWithProfile } from "./auth.repo";
 import { createAuthRepository } from "./auth.repo";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { sendConsumerVerificationCode } from "@/lib/email/send-consumer-verification-code";
 
 export type ServiceResult<T> =
   | { success: true; data: T }
@@ -25,7 +26,7 @@ export type UseVerificationTokenDeps = {
 };
 
 export type CreateVerificationCodeResult = {
-  code: string; // Plain 6-digit code for sending in email/SMS
+  message: string;
   expires: Date;
 };
 
@@ -284,11 +285,22 @@ export function createAuthService(
           expires,
         });
 
-        // Return plain code for sending in email/SMS
+        // Send email asynchronously (don't await to avoid blocking)
+        sendConsumerVerificationCode({
+          to: identifier,
+          code: plainCode,
+        }).catch((error) => {
+          console.error(
+            "Failed to send verification code email (async):",
+            error,
+          );
+        });
+
+        // Return success message without exposing the code
         return {
           success: true,
           data: {
-            code: plainCode,
+            message: "Verification code sent to your email",
             expires,
           },
         };

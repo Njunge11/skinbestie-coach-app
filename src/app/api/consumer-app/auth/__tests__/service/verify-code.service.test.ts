@@ -6,6 +6,11 @@ import bcrypt from "bcryptjs";
 // Mock bcrypt
 vi.mock("bcryptjs");
 
+// Mock email sending
+vi.mock("@/lib/email/send-consumer-verification-code", () => ({
+  sendConsumerVerificationCode: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 // Mock repository
 const mockRepo: IAuthRepository = {
   getUserByEmail: vi.fn(),
@@ -31,7 +36,7 @@ describe("Auth Service - Verification Code", () => {
   });
 
   describe("createVerificationCode", () => {
-    it("successfully generates 6-digit numeric code", async () => {
+    it("successfully generates verification code and sends email", async () => {
       // Given: Valid identifier
       vi.mocked(mockRepo.createVerificationCode).mockResolvedValue({
         identifier: testIdentifier,
@@ -44,11 +49,13 @@ describe("Auth Service - Verification Code", () => {
         now: () => fixedNow,
       });
 
-      // Then: Returns 6-digit numeric code
+      // Then: Returns success message (not the actual code)
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.code).toMatch(/^\d{6}$/);
-        expect(result.data.code.length).toBe(6);
+        expect(result.data.message).toBe(
+          "Verification code sent to your email",
+        );
+        expect(result.data.expires).toEqual(fixedExpires);
       }
     });
 

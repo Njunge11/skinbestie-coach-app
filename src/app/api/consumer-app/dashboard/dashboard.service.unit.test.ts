@@ -52,6 +52,7 @@ describe("DashboardService", () => {
     {
       id: "goal-1",
       description: "Clear skin",
+      timeline: null,
       complete: false,
       completedAt: null,
       order: 1,
@@ -60,6 +61,7 @@ describe("DashboardService", () => {
     {
       id: "goal-2",
       description: "Even skin tone",
+      timeline: null,
       complete: true,
       completedAt: new Date("2025-01-15"),
       order: 2,

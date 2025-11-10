@@ -12,11 +12,13 @@ import type {
 const uuidSchema = z.string().uuid();
 const createGoalSchema = z.object({
   description: z.string().trim().min(1, "Description is required"),
+  timeline: z.string().optional(),
   isPrimaryGoal: z.boolean().optional(),
 });
 
 const updateGoalSchema = z.object({
   description: z.string().trim().min(1, "Description is required").optional(),
+  timeline: z.string().optional(),
   isPrimaryGoal: z.boolean().optional(),
   complete: z.boolean().optional(),
 });
@@ -35,11 +37,13 @@ type Result<T> = SuccessResult<T> | ErrorResult;
 // Input types
 export type CreateGoalInput = {
   description: string;
+  timeline?: string;
   isPrimaryGoal?: boolean;
 };
 
 export type UpdateGoalInput = {
   description?: string;
+  timeline?: string;
   isPrimaryGoal?: boolean;
   complete?: boolean;
 };
@@ -126,6 +130,7 @@ export function makeGoalsService(deps: GoalsServiceDeps = {}) {
         const newGoal: NewGoal = {
           templateId: template.id,
           description: inputValidation.data.description,
+          timeline: inputValidation.data.timeline ?? null,
           isPrimaryGoal: inputValidation.data.isPrimaryGoal ?? false,
           complete: false,
           order,
@@ -177,6 +182,10 @@ export function makeGoalsService(deps: GoalsServiceDeps = {}) {
 
         if (updatesValidation.data.description !== undefined) {
           updateData.description = updatesValidation.data.description;
+        }
+
+        if (updatesValidation.data.timeline !== undefined) {
+          updateData.timeline = updatesValidation.data.timeline ?? null;
         }
 
         if (updatesValidation.data.isPrimaryGoal !== undefined) {

@@ -260,6 +260,13 @@
       "when": 1762773047936,
       "tag": "0036_misty_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1762787349178,
+      "tag": "0037_cold_ender_wiggin",
+      "breakpoints": true
     }
   ]
 }

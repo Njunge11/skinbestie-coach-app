@@ -10,6 +10,7 @@ export type Goal = Pick<
   | "id"
   | "templateId"
   | "description"
+  | "timeline"
   | "isPrimaryGoal"
   | "complete"
   | "completedAt"
@@ -34,6 +35,7 @@ export function makeGoalsRepo() {
           id: skincareGoals.id,
           templateId: skincareGoals.templateId,
           description: skincareGoals.description,
+          timeline: skincareGoals.timeline,
           isPrimaryGoal: skincareGoals.isPrimaryGoal,
           complete: skincareGoals.complete,
           completedAt: skincareGoals.completedAt,
@@ -54,6 +56,7 @@ export function makeGoalsRepo() {
           id: skincareGoals.id,
           templateId: skincareGoals.templateId,
           description: skincareGoals.description,
+          timeline: skincareGoals.timeline,
           isPrimaryGoal: skincareGoals.isPrimaryGoal,
           complete: skincareGoals.complete,
           completedAt: skincareGoals.completedAt,

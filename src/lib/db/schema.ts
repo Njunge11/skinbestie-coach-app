@@ -295,6 +295,9 @@ export const skincareGoals = pgTable(
     // Goal content - only description now
     description: text("description").notNull(),
 
+    // Timeline for goal completion (e.g., "2-4 weeks", "3 months")
+    timeline: text("timeline"),
+
     // Primary goal flag - only one goal per user can be primary
     isPrimaryGoal: boolean("is_primary_goal").notNull().default(false),
 

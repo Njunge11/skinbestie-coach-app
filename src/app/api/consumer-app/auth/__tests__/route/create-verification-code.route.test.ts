@@ -92,7 +92,7 @@ describe("POST /api/consumer-app/auth/create-verification-code", () => {
     expect(body.error.code).toBe("INVALID_REQUEST");
   });
 
-  it("returns 200 with 6-digit code when successfully created", async () => {
+  it("returns 200 with success message when code sent via email", async () => {
     // Given: Valid API key and identifier
     vi.mocked(authModule.validateApiKey).mockResolvedValue(true);
 
@@ -103,7 +103,7 @@ describe("POST /api/consumer-app/auth/create-verification-code", () => {
       createVerificationCode: vi.fn().mockResolvedValue({
         success: true,
         data: {
-          code: testCode,
+          message: "Verification code sent to your email",
           expires: new Date("2025-11-10T14:15:00Z"),
         },
       }),
@@ -126,8 +126,8 @@ describe("POST /api/consumer-app/auth/create-verification-code", () => {
     // Then
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.code).toBe(testCode);
-    expect(body.code).toMatch(/^\d{6}$/); // 6 digits
+    expect(body.message).toBe("Verification code sent to your email");
     expect(body.expires).toBeDefined();
+    expect(body.code).toBeUndefined(); // Code should NOT be exposed in response
   });
 });

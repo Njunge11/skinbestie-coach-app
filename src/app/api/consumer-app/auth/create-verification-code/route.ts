@@ -9,9 +9,13 @@ import { createVerificationCodeRequestSchema } from "../auth.types";
  * Create a 6-digit verification code (magic code) - hashed and stored with 15 minute expiration
  */
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+
   // Step 1: Authenticate
   const isValidApiKey = await validateApiKey();
   if (!isValidApiKey) {
+    console.log(`[${timestamp}] [${requestId}] ❌ CREATE_CODE: Unauthorized`);
     return errors.unauthorized();
   }
 
@@ -20,12 +24,28 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
+    console.log(
+      `[${timestamp}] [${requestId}] ❌ CREATE_CODE: Invalid JSON in request body`,
+    );
     return errors.invalidRequest("Invalid JSON in request body");
   }
+
+  // Log incoming request
+  console.log(
+    `[${timestamp}] [${requestId}] 📥 CREATE_CODE Request:`,
+    JSON.stringify({
+      identifier: body.identifier,
+      ip: request.headers.get("x-forwarded-for") || "unknown",
+    }),
+  );
 
   // Step 3: Validate request data
   const validation = createVerificationCodeRequestSchema.safeParse(body);
   if (!validation.success) {
+    console.log(
+      `[${timestamp}] [${requestId}] ❌ CREATE_CODE: Validation failed`,
+      JSON.stringify(validation.error.issues),
+    );
     return errors.invalidRequest("Validation failed", validation.error.issues);
   }
 
@@ -38,14 +58,25 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       // Invalid email format
+      console.log(
+        `[${timestamp}] [${requestId}] ❌ CREATE_CODE: Service error - ${result.error}`,
+      );
       return errors.invalidRequest(result.error);
     }
 
     // Step 5: Return response
+    console.log(
+      `[${timestamp}] [${requestId}] ✅ CREATE_CODE Response:`,
+      JSON.stringify({
+        identifier: validation.data.identifier,
+        message: result.data.message,
+        expires: result.data.expires,
+      }),
+    );
     return NextResponse.json(result.data, { status: 200 });
   } catch (error) {
     console.error(
-      "Unexpected error in POST /auth/create-verification-code:",
+      `[${timestamp}] [${requestId}] 💥 CREATE_CODE: Unexpected error`,
       error,
     );
     return errors.internalError("An unexpected error occurred");

@@ -178,7 +178,7 @@ curl -X POST "https://yourdomain.com/api/consumer-app/auth/use-verification-toke
 
 **POST** `/create-verification-code`
 
-Generate a 6-digit numeric code for passwordless login (sent via SMS/email).
+Generate a 6-digit numeric code for passwordless login and send via email using Resend.
 
 **Request Body:**
 ```json
@@ -190,7 +190,7 @@ Generate a 6-digit numeric code for passwordless login (sent via SMS/email).
 **Success Response (200):**
 ```json
 {
-  "code": "123456",  // 6-digit code to send to user
+  "message": "Verification code sent to your email",
   "expires": "2025-01-10T12:15:00Z"  // 15 minutes from creation
 }
 ```
@@ -200,8 +200,13 @@ Generate a 6-digit numeric code for passwordless login (sent via SMS/email).
 
 **Flow:**
 1. Call this endpoint with user's email
-2. Send `code` to user via SMS or email
-3. User enters code → verify with endpoint #6
+2. **Code is automatically sent via email** (Resend)
+3. User enters code from email → verify with endpoint #6
+
+**Important:**
+- The actual 6-digit code is **NOT returned** in the response (security)
+- The code is sent directly to the user's email
+- Email sent using SkinBestie branded template
 
 **Example:**
 ```bash
@@ -263,16 +268,18 @@ curl -X POST "https://yourdomain.com/api/consumer-app/auth/verify-code" \
 6. If valid → user authenticated
 ```
 
-### Verification Code Flow (SMS/Email)
+### Verification Code Flow (Email - Automated)
 
 ```
 1. User enters email
 2. Call POST /create-verification-code
-3. Send 6-digit code via SMS/email
-4. User enters code
+3. ✅ Code automatically sent via email (Resend)
+4. User receives email and enters code
 5. Call POST /verify-code
 6. If valid → user authenticated
 ```
+
+**Note:** The verification code is automatically sent via email using Resend with a SkinBestie branded template. The code is NOT returned in the API response for security reasons.
 
 ---
 

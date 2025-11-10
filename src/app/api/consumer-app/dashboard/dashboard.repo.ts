@@ -93,6 +93,7 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         .select({
           id: schema.skincareGoals.id,
           description: schema.skincareGoals.description,
+          timeline: schema.skincareGoals.timeline,
           complete: schema.skincareGoals.complete,
           completedAt: schema.skincareGoals.completedAt,
           order: schema.skincareGoals.order,

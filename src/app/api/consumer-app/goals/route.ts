@@ -32,12 +32,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Extract userId and goal data
-    const { userId, description, isPrimaryGoal } = validation.data;
+    const { userId, description, timeline, isPrimaryGoal } = validation.data;
 
     // 4. Call service to create goal
     const service = makeGoalsService();
     const result = await service.createGoal(userId, {
       description,
+      timeline,
       isPrimaryGoal,
     });
 
