@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Field, FieldGroup } from "@/components/ui/field";
+import { CheckCircle2 } from "lucide-react";
 
 interface PasswordResetSuccessStateProps {
   onBackToLogin: () => void;
@@ -9,39 +8,34 @@ export function PasswordResetSuccessState({
   onBackToLogin,
 }: PasswordResetSuccessStateProps) {
   return (
-    <FieldGroup>
-      <div className="flex flex-col items-center gap-6 text-center py-4">
-        <svg
-          className="h-16 w-16 text-green-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            strokeWidth={2}
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12l2 2 4-4"
-          />
-        </svg>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold">Password reset successful</h1>
-          <p className="text-muted-foreground text-balance">
-            Your password has been updated successfully
-          </p>
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-[21rem] space-y-6">
+      {/* Success Icon */}
+      <div className="relative">
+        <CheckCircle2
+          className="w-16 h-16 text-green-600"
+          strokeWidth={1.5}
+          aria-hidden="true"
+        />
       </div>
-      <Field>
-        <Button type="button" className="w-full bg-black hover:bg-gray-800 text-white" onClick={onBackToLogin}>
-          Back to login
-        </Button>
-      </Field>
-    </FieldGroup>
+
+      {/* Title and Description */}
+      <div className="text-center space-y-3">
+        <h2 className="text-2xl font-semibold text-[#272B2D]">
+          Password reset successful
+        </h2>
+        <p className="text-base text-[#3F4548] max-w-md">
+          Your password has been updated successfully. You can now sign in with
+          your new password.
+        </p>
+      </div>
+
+      {/* Action Button */}
+      <button
+        onClick={onBackToLogin}
+        className="w-full bg-skinbestie-landing-blue text-white py-3 px-6 rounded font-semibold hover:bg-skinbestie-landing-blue/90 transition-colors"
+      >
+        Back to login
+      </button>
+    </div>
   );
 }
