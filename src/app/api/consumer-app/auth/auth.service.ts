@@ -285,15 +285,10 @@ export function createAuthService(
           expires,
         });
 
-        // Send email asynchronously (don't await to avoid blocking)
-        sendConsumerVerificationCode({
+        // Send email (must await in serverless environments)
+        await sendConsumerVerificationCode({
           to: identifier,
           code: plainCode,
-        }).catch((error) => {
-          console.error(
-            "Failed to send verification code email (async):",
-            error,
-          );
         });
 
         // Return success message without exposing the code
