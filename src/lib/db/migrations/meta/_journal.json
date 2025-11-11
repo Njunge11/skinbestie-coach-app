@@ -267,6 +267,13 @@
       "when": 1762787349178,
       "tag": "0037_cold_ender_wiggin",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1762852552401,
+      "tag": "0038_pale_luke_cage",
+      "breakpoints": true
     }
   ]
 }

@@ -26,7 +26,10 @@ export function ProfileHeader({ client }: ProfileHeaderProps) {
   };
 
   return (
-    <Card className="overflow-hidden bg-white">
+    <Card
+      className="overflow-hidden"
+      style={{ backgroundColor: "var(--color-skinbestie-primary-light)" }}
+    >
       <CardContent className="py-6">
         <div className="flex flex-row items-start gap-4 xl:gap-6">
           <div className="w-20 h-20 flex-shrink-0 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold">
@@ -36,7 +39,20 @@ export function ProfileHeader({ client }: ProfileHeaderProps) {
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl xl:text-2xl font-bold">{client.name}</h2>
+                {client.nickname ? (
+                  <div className="flex flex-col">
+                    <h2 className="text-xl xl:text-2xl font-bold">
+                      {client.nickname}
+                    </h2>
+                    <span className="text-sm text-muted-foreground">
+                      ({client.name})
+                    </span>
+                  </div>
+                ) : (
+                  <h2 className="text-xl xl:text-2xl font-bold">
+                    {client.name}
+                  </h2>
+                )}
               </div>
 
               {/* Desktop buttons - hidden on mobile/tablet */}

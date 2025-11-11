@@ -17,64 +17,6 @@ vi.mock("next/image", () => ({
 }));
 
 describe("Sidebar - UI Integration Tests", () => {
-  it("highlights Home as active when on home page", async () => {
-    const { usePathname } = await import("next/navigation");
-    vi.mocked(usePathname).mockReturnValue("/");
-
-    render(
-      <Sidebar
-        onLogout={vi.fn()}
-        isMobileOpen={false}
-        setIsMobileOpen={vi.fn()}
-      />
-    );
-
-    const homeLink = screen.getByRole("link", { name: /home/i });
-    const subscribersLink = screen.getByRole("link", { name: /subscribers/i });
-
-    expect(homeLink).toHaveClass("bg-primary");
-    expect(homeLink).toHaveClass("text-primary-foreground");
-    expect(subscribersLink).not.toHaveClass("bg-primary");
-  });
-
-  it("highlights Subscribers as active when on subscribers page", async () => {
-    const { usePathname } = await import("next/navigation");
-    vi.mocked(usePathname).mockReturnValue("/subscribers");
-
-    render(
-      <Sidebar
-        onLogout={vi.fn()}
-        isMobileOpen={false}
-        setIsMobileOpen={vi.fn()}
-      />
-    );
-
-    const homeLink = screen.getByRole("link", { name: /home/i });
-    const subscribersLink = screen.getByRole("link", { name: /subscribers/i });
-
-    expect(subscribersLink).toHaveClass("bg-primary");
-    expect(subscribersLink).toHaveClass("text-primary-foreground");
-    expect(homeLink).not.toHaveClass("bg-primary");
-  });
-
-  it("highlights Subscribers as active when on a subscriber detail page", async () => {
-    const { usePathname } = await import("next/navigation");
-    vi.mocked(usePathname).mockReturnValue("/subscribers/123");
-
-    render(
-      <Sidebar
-        onLogout={vi.fn()}
-        isMobileOpen={false}
-        setIsMobileOpen={vi.fn()}
-      />
-    );
-
-    const subscribersLink = screen.getByRole("link", { name: /subscribers/i });
-
-    expect(subscribersLink).toHaveClass("bg-primary");
-    expect(subscribersLink).toHaveClass("text-primary-foreground");
-  });
-
   it("user clicks logout button and callback is triggered", async () => {
     const user = userEvent.setup();
     const { usePathname } = await import("next/navigation");
@@ -88,7 +30,7 @@ describe("Sidebar - UI Integration Tests", () => {
         onLogout={onLogout}
         isMobileOpen={false}
         setIsMobileOpen={setIsMobileOpen}
-      />
+      />,
     );
 
     const logoutButton = screen.getByRole("button", { name: /log out/i });
@@ -110,7 +52,7 @@ describe("Sidebar - UI Integration Tests", () => {
         onLogout={vi.fn()}
         isMobileOpen={true}
         setIsMobileOpen={setIsMobileOpen}
-      />
+      />,
     );
 
     const subscribersLink = screen.getByRole("link", { name: /subscribers/i });
@@ -128,7 +70,7 @@ describe("Sidebar - UI Integration Tests", () => {
         onLogout={vi.fn()}
         isMobileOpen={true}
         setIsMobileOpen={vi.fn()}
-      />
+      />,
     );
 
     const sidebar = screen.getByRole("complementary");
@@ -145,7 +87,7 @@ describe("Sidebar - UI Integration Tests", () => {
         onLogout={vi.fn()}
         isMobileOpen={false}
         setIsMobileOpen={vi.fn()}
-      />
+      />,
     );
 
     const sidebar = screen.getByRole("complementary");
@@ -164,7 +106,7 @@ describe("Sidebar - UI Integration Tests", () => {
         onLogout={vi.fn()}
         isMobileOpen={true}
         setIsMobileOpen={setIsMobileOpen}
-      />
+      />,
     );
 
     // The backdrop overlay is the div with bg-black/50

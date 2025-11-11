@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Droplet } from "lucide-react";
 import { useState } from "react";
 
 interface SkinProfileSectionProps {
@@ -32,7 +32,10 @@ export function SkinProfileSection({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between py-4">
-        <CardTitle className="text-lg font-semibold">Skin Profile</CardTitle>
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Droplet className="w-5 h-5 text-primary" />
+          Skin Profile
+        </CardTitle>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -100,7 +100,10 @@ export function ComplianceSection({ userId }: ComplianceSectionProps) {
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-            <CardTitle>Compliance</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              Compliance
+            </CardTitle>
             <div className="flex gap-1 p-1 bg-muted rounded-lg">
               {periods.map((period) => (
                 <button
@@ -196,7 +199,10 @@ export function ComplianceSection({ userId }: ComplianceSectionProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Compliance</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            Compliance
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8 text-destructive">
@@ -233,7 +239,10 @@ export function ComplianceSection({ userId }: ComplianceSectionProps) {
     <Card>
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-          <CardTitle>Compliance</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            Compliance
+          </CardTitle>
           <div className="flex gap-1 p-1 bg-muted rounded-lg">
             {periods.map((period) => (
               <button
@@ -256,7 +265,7 @@ export function ComplianceSection({ userId }: ComplianceSectionProps) {
       <CardContent className="space-y-4">
         {/* 4 Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {/* Overall Adherence - Black with gradient */}
+          {/* Overall Adherence - Primary gradient */}
           <Card className="bg-gradient-to-b from-primary to-primary/90 border-0">
             <CardContent className="p-6 text-primary-foreground">
               <p className="text-sm font-medium opacity-90 mb-2">
@@ -273,58 +282,60 @@ export function ComplianceSection({ userId }: ComplianceSectionProps) {
             </CardContent>
           </Card>
 
-          {/* On Time */}
-          <Card>
+          {/* On Time - Success green */}
+          <Card
+            style={{ backgroundColor: "var(--color-skinbestie-success)" }}
+            className="border-0"
+          >
             <CardContent className="p-6">
-              <p className="text-sm font-medium text-muted-foreground mb-2">
+              <p className="text-sm font-medium text-foreground/70 mb-2">
                 On Time
               </p>
               <div>
                 <div className="text-4xl font-bold text-foreground mb-1">
                   {complianceData.overall.onTime}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-foreground/60">
                   Steps completed on schedule
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Late */}
-          <Card>
+          {/* Late - Warning cream/yellow */}
+          <Card
+            style={{ backgroundColor: "var(--color-skinbestie-landing-cream)" }}
+            className="border-0"
+          >
             <CardContent className="p-6">
-              <p className="text-sm font-medium text-muted-foreground mb-2">
+              <p className="text-sm font-medium text-foreground/70 mb-2">
                 Late
               </p>
               <div>
                 <div className="text-4xl font-bold text-foreground mb-1">
                   {complianceData.overall.late}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-foreground/60">
                   Steps completed after schedule
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Missed */}
-          <Card>
+          {/* Missed - Light red/pink */}
+          <Card
+            style={{ backgroundColor: "var(--color-skinbestie-primary-light)" }}
+            className="border-0"
+          >
             <CardContent className="p-6">
-              <p className="text-sm font-medium text-muted-foreground mb-2">
+              <p className="text-sm font-medium text-foreground/70 mb-2">
                 Missed
               </p>
               <div>
-                <div
-                  className={cn(
-                    "text-4xl font-bold mb-1",
-                    complianceData.overall.missed > 0
-                      ? "text-destructive"
-                      : "text-foreground",
-                  )}
-                >
+                <div className="text-4xl font-bold text-foreground mb-1">
                   {complianceData.overall.missed}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-foreground/60">
                   Steps not completed
                 </p>
               </div>

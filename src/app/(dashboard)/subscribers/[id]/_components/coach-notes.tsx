@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Check, X, Trash2 } from "lucide-react";
+import { Plus, Check, X, Trash2, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,7 +95,8 @@ export function CoachNotes({
   };
 
   const formatTimestamp = (timestamp: Date | string) => {
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    const date =
+      typeof timestamp === "string" ? new Date(timestamp) : timestamp;
 
     const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "long" });
     const day = date.getDate();
@@ -125,7 +126,10 @@ export function CoachNotes({
   return (
     <Card className="xl:sticky xl:top-20">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>Coach Notes</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-primary" />
+          Coach Notes
+        </CardTitle>
         {!isAdding && (
           <Button
             size="sm"
@@ -150,11 +154,20 @@ export function CoachNotes({
               autoFocus
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleAddNote} disabled={isSubmitting || !newNoteContent.trim()}>
+              <Button
+                size="sm"
+                onClick={handleAddNote}
+                disabled={isSubmitting || !newNoteContent.trim()}
+              >
                 <Check className="w-4 h-4 mr-2" />
                 {isSubmitting ? "Saving..." : "Save"}
               </Button>
-              <Button size="sm" variant="outline" onClick={handleCancelAdding} disabled={isSubmitting}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCancelAdding}
+                disabled={isSubmitting}
+              >
                 <X className="w-4 h-4 mr-2" />
                 Cancel
               </Button>
@@ -184,11 +197,20 @@ export function CoachNotes({
                       autoFocus
                     />
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleSaveEdit(note.id)} disabled={isSubmitting || !editNoteContent.trim()}>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveEdit(note.id)}
+                        disabled={isSubmitting || !editNoteContent.trim()}
+                      >
                         <Check className="w-4 h-4 mr-2" />
                         {isSubmitting ? "Saving..." : "Save"}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={handleCancelEditing} disabled={isSubmitting}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEditing}
+                        disabled={isSubmitting}
+                      >
                         <X className="w-4 h-4 mr-2" />
                         Cancel
                       </Button>
@@ -218,7 +240,13 @@ export function CoachNotes({
                         className="h-6 w-6 p-0 hover:text-destructive flex-shrink-0"
                         aria-label="Delete note"
                       >
-                        <Trash2 className={deletingId === note.id ? "w-3 h-3 animate-pulse" : "w-3 h-3"} />
+                        <Trash2
+                          className={
+                            deletingId === note.id
+                              ? "w-3 h-3 animate-pulse"
+                              : "w-3 h-3"
+                          }
+                        />
                       </Button>
                     </div>
                   </div>

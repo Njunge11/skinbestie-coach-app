@@ -918,6 +918,40 @@ export const journals = pgTable(
   }),
 );
 
+export const profileTags = pgTable(
+  "profile_tags",
+  {
+    // Primary Key
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Foreign Key to user profile
+    userProfileId: uuid("user_profile_id")
+      .notNull()
+      .references(() => userProfiles.id, { onDelete: "cascade" }),
+
+    // Tag content (max 100 chars - reasonable for "Allergic to fragrance", etc.)
+    tag: varchar("tag", { length: 100 }).notNull(),
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Index for efficient queries by user profile
+    userProfileIdx: index("profile_tags_user_profile_idx").on(
+      table.userProfileId,
+    ),
+    // Index for tag searches/filtering
+    tagIdx: index("profile_tags_tag_idx").on(table.tag),
+    // Prevent duplicate tags per user (case-sensitive at DB level)
+    uniqueUserTag: uniqueIndex("profile_tags_user_tag_idx").on(
+      table.userProfileId,
+      table.tag,
+    ),
+  }),
+);
+
 // Type exports for TypeScript
 
 // NextAuth types
@@ -970,3 +1004,5 @@ export type SurveyResponse = typeof surveyResponses.$inferSelect;
 export type NewSurveyResponse = typeof surveyResponses.$inferInsert;
 export type Journal = typeof journals.$inferSelect;
 export type NewJournal = typeof journals.$inferInsert;
+export type ProfileTag = typeof profileTags.$inferSelect;
+export type NewProfileTag = typeof profileTags.$inferInsert;

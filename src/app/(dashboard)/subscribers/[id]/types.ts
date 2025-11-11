@@ -31,11 +31,20 @@ export type Frequency =
   | "specific_days";
 export type TimeOfDay = "morning" | "evening";
 
+// Profile Tag DTO
+export interface ProfileTag {
+  id: string;
+  userProfileId: string;
+  tag: string;
+  createdAt: Date;
+}
+
 // Client DTO - view model for component display
 // NOTE: This is a computed view model, not directly from schema
 export interface Client {
   id: string;
   name: string;
+  nickname: string | null;
   age: number;
   email: string;
   mobile: string;
@@ -47,6 +56,7 @@ export interface Client {
   currentWeek: number;
   startDate: string;
   hasRoutine: boolean;
+  tags: ProfileTag[];
   createdAt: Date;
 }
 
