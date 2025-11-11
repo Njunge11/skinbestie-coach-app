@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { ArrowLeft } from "lucide-react";
 import { LoginFormState } from "@/components/auth/login-states/login-form-state";
 import { ForgotPasswordEmailState } from "@/components/auth/login-states/forgot-password-email-state";
 import { VerificationCodeState } from "@/components/auth/login-states/verification-code-state";
@@ -39,14 +38,6 @@ export function LoginForm() {
     setEmail("");
     setVerificationCode("");
     setLoginError(null);
-  };
-
-  const handleBack = () => {
-    if (formState === "login") {
-      window.location.href = "/";
-    } else {
-      resetToLogin();
-    }
   };
 
   const handleLoginSubmit = async (data: LoginInput) => {
@@ -116,25 +107,11 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 md:h-[784px]">
+      <div className="grid grid-cols-1 xl:grid-cols-2 h-screen">
         <LoginMarketing />
-        <div className="flex flex-col pt-5 pb-5 px-4 md:px-[30px] bg-skinbestie-landing-white">
-          {/* Top bar */}
-          <div className="flex justify-start items-baseline">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              <ArrowLeft size={24} className="text-[#222118]" />
-              <span className="font-[family-name:var(--font-anton)] text-2xl font-normal leading-none tracking-tight uppercase text-[#222118]">
-                Back
-              </span>
-            </button>
-          </div>
-
+        <div className="flex flex-col justify-center px-4 xl:px-[30px] bg-skinbestie-landing-white h-screen xl:h-full">
           {/* Card */}
-          <div className="mt-8 mx-auto w-full max-w-[440px] bg-skinbestie-landing-gray p-6 rounded-lg">
+          <div className="mx-auto w-full max-w-[440px] bg-skinbestie-landing-gray p-6 rounded-lg">
             {formState === "login" && (
               <LoginFormState
                 onForgotPassword={() => setFormState("forgot-password")}

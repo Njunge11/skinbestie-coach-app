@@ -114,23 +114,6 @@ describe("LoginForm - UI Tests", () => {
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
   });
 
-  it("allows user to navigate back to login from forgot password state", async () => {
-    const user = userEvent.setup();
-    render(<LoginForm />);
-
-    // Go to forgot password
-    await user.click(screen.getByRole("button", { name: /forgot password/i }));
-    expect(
-      screen.getByRole("heading", { name: /reset password/i }),
-    ).toBeInTheDocument();
-
-    // Navigate back to login using the Back button at top
-    await user.click(screen.getByRole("button", { name: /back/i }));
-    expect(
-      screen.getByRole("heading", { name: /sign in/i }),
-    ).toBeInTheDocument();
-  });
-
   it("allows user to resend verification code", async () => {
     const user = userEvent.setup();
     render(<LoginForm />);
