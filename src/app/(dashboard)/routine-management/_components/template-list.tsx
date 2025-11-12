@@ -478,11 +478,7 @@ export function TemplateList({
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDeleteTemplate}
-            >
+            <Button type="button" onClick={handleDeleteTemplate}>
               Delete Template
             </Button>
           </DialogFooter>

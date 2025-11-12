@@ -16,6 +16,7 @@ export type UserProfile = Pick<
   | "email"
   | "phoneNumber"
   | "dateOfBirth"
+  | "nickname"
   | "skinType"
   | "concerns"
   | "hasAllergies"
@@ -43,6 +44,7 @@ export function makeUserProfileRepo() {
           email: userProfiles.email,
           phoneNumber: userProfiles.phoneNumber,
           dateOfBirth: userProfiles.dateOfBirth,
+          nickname: userProfiles.nickname,
           skinType: userProfiles.skinType,
           concerns: userProfiles.concerns,
           hasAllergies: userProfiles.hasAllergies,

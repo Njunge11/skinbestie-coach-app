@@ -10,11 +10,13 @@ describe("DashboardService - getCatchupSteps", () => {
     getTodayRoutineSteps: ReturnType<typeof vi.fn>;
     getCatchupSteps: ReturnType<typeof vi.fn>;
     getRoutine: ReturnType<typeof vi.fn>;
+    getProfileTags: ReturnType<typeof vi.fn>;
   };
   let service: ReturnType<typeof makeDashboardService>;
 
   const fixedNow = new Date("2025-11-04T10:00:00Z");
   const userId = "550e8400-e29b-41d4-a716-446655440000";
+  const userProfileId = "550e8400-e29b-41d4-a716-446655440001";
 
   beforeEach(() => {
     mockRepo = {
@@ -23,6 +25,7 @@ describe("DashboardService - getCatchupSteps", () => {
       getTodayRoutineSteps: vi.fn(),
       getCatchupSteps: vi.fn(),
       getRoutine: vi.fn(),
+      getProfileTags: vi.fn(),
     };
 
     service = makeDashboardService({
@@ -32,22 +35,36 @@ describe("DashboardService - getCatchupSteps", () => {
 
     // Default: valid user exists
     mockRepo.getUserDashboardData.mockResolvedValue({
+      userId: userId,
+      userProfileId: userProfileId,
       firstName: "Test",
       lastName: "User",
       email: "test@example.com",
+      phoneNumber: "+1234567890",
+      dateOfBirth: new Date("1990-01-01"),
       nickname: null,
       skinType: null,
+      concerns: null,
+      hasAllergies: null,
+      allergyDetails: null,
+      isSubscribed: null,
+      occupation: null,
+      bio: null,
+      timezone: "America/New_York",
       hasCompletedSkinTest: true,
-      goalsTemplateStatus: "published",
-      routineStatus: "published",
       hasCompletedBooking: true,
+      goalsTemplateId: "template-1",
+      goalsTemplateStatus: "published",
       goalsAcknowledgedByClient: false,
+      routineId: "routine-1",
+      routineStatus: "published",
     });
 
     mockRepo.getPublishedGoals.mockResolvedValue([]);
     mockRepo.getTodayRoutineSteps.mockResolvedValue([]);
     mockRepo.getCatchupSteps.mockResolvedValue([]);
     mockRepo.getRoutine.mockResolvedValue(null);
+    mockRepo.getProfileTags.mockResolvedValue([]);
   });
 
   it("includes catchup steps in dashboard response when steps exist", async () => {
@@ -97,16 +114,29 @@ describe("DashboardService - getCatchupSteps", () => {
 
   it("returns catchup steps as null when routine is not published", async () => {
     mockRepo.getUserDashboardData.mockResolvedValue({
+      userId: userId,
+      userProfileId: userProfileId,
       firstName: "Test",
       lastName: "User",
       email: "test@example.com",
+      phoneNumber: "+1234567890",
+      dateOfBirth: new Date("1990-01-01"),
       nickname: null,
       skinType: null,
+      concerns: null,
+      hasAllergies: null,
+      allergyDetails: null,
+      isSubscribed: null,
+      occupation: null,
+      bio: null,
+      timezone: "America/New_York",
       hasCompletedSkinTest: true,
-      goalsTemplateStatus: "published",
-      routineStatus: "draft", // Not published
       hasCompletedBooking: true,
+      goalsTemplateId: "template-1",
+      goalsTemplateStatus: "published",
       goalsAcknowledgedByClient: false,
+      routineId: "routine-1",
+      routineStatus: "draft", // Not published
     });
 
     const result = await service.getConsumerDashboard(userId);

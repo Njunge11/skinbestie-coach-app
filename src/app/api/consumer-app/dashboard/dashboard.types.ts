@@ -94,6 +94,7 @@ export const dashboardResponseSchema = z.object({
     occupation: z.string().nullable(),
     bio: z.string().nullable(),
     timezone: z.string(),
+    profileTags: z.array(z.string()),
   }),
   setupProgress: z.object({
     percentage: z.number().min(0).max(100),

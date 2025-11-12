@@ -25,6 +25,7 @@ type Result<T> = SuccessResult<T> | ErrorResult;
 export type UserProfileData = {
   id: string;
   name: string;
+  nickname: string | null;
   email: string;
   mobile: string;
   age: number;
@@ -87,6 +88,7 @@ export async function getUserProfile(
     const data: UserProfileData = {
       id: user.id,
       name: `${user.firstName} ${user.lastName}`,
+      nickname: user.nickname || null,
       email: user.email,
       mobile: user.phoneNumber,
       age: calculateAge(user.dateOfBirth, now()),

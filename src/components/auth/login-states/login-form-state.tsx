@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 
@@ -14,7 +12,12 @@ interface LoginFormStateProps {
   onClearError?: () => void;
 }
 
-export function LoginFormState({ onForgotPassword, onSubmit, error, onClearError }: LoginFormStateProps) {
+export function LoginFormState({
+  onForgotPassword,
+  onSubmit,
+  error,
+  onClearError,
+}: LoginFormStateProps) {
   const [showPassword, setShowPassword] = useState(false);
   const {
     register,
@@ -35,47 +38,73 @@ export function LoginFormState({ onForgotPassword, onSubmit, error, onClearError
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)}>
-      <FieldGroup>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="text-muted-foreground text-balance">
-            Login to your skinbestie account
-          </p>
-        </div>
-        <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
+    <>
+      <h1 className="font-[family-name:var(--font-anton)] text-center text-[2rem] uppercase text-[#222118]">
+        Sign In
+      </h1>
+      <p className="text-center text-lg font-medium text-[#3F4548] pt-2">
+        Access your admin dashboard
+      </p>
+
+      <form
+        onSubmit={handleSubmit(handleFormSubmit)}
+        className="mt-6 space-y-4"
+      >
+        {error && (
+          <div
+            className="p-3 bg-red-50 border border-red-200 rounded-md"
+            role="alert"
+          >
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-[#272B2D] mb-2"
+          >
+            Email address
+          </label>
           <Input
-            id="email"
             type="email"
-            placeholder="m@example.com"
-            className="border-[#030303] border-[0.5px]"
+            id="email"
+            placeholder="you@example.com"
+            style={{ border: "0.5px solid #828282" }}
+            className="w-full px-4 py-3 rounded bg-white text-[#272B2D] placeholder:text-[#878481] focus:outline-none focus:ring-2 focus:ring-[#030303] focus:border-transparent"
             {...register("email", {
-              onChange: handleInputChange
+              onChange: handleInputChange,
             })}
           />
           {errors.email && (
             <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
           )}
-        </Field>
-        <Field>
-          <div className="flex items-center">
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-[#272B2D]"
+            >
+              Password
+            </label>
             <button
               type="button"
               onClick={onForgotPassword}
-              className="ml-auto text-sm underline-offset-2 hover:underline"
+              className="text-sm text-[#030303] font-semibold underline hover:text-[#222118] transition-colors"
             >
-              Forgot your password?
+              Forgot password?
             </button>
           </div>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              className="border-[#030303] border-[0.5px] pr-10"
+              style={{ border: "0.5px solid #828282" }}
+              className="w-full px-4 py-3 rounded bg-white text-[#272B2D] placeholder:text-[#878481] focus:outline-none focus:ring-2 focus:ring-[#030303] focus:border-transparent pr-10"
               {...register("password", {
-                onChange: handleInputChange
+                onChange: handleInputChange,
               })}
             />
             <button
@@ -91,18 +120,20 @@ export function LoginFormState({ onForgotPassword, onSubmit, error, onClearError
             </button>
           </div>
           {errors.password && (
-            <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>
+            <p className="text-sm text-red-600 mt-1">
+              {errors.password.message}
+            </p>
           )}
-          {error && (
-            <p className="text-sm text-red-600 mt-1">{error}</p>
-          )}
-        </Field>
-        <Field>
-          <Button type="submit" className="w-full bg-black hover:bg-gray-800 text-white" disabled={isSubmitting}>
-            {isSubmitting ? "Logging in..." : "Login"}
-          </Button>
-        </Field>
-      </FieldGroup>
-    </form>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-skinbestie-landing-blue text-white py-3 px-6 rounded font-semibold hover:bg-skinbestie-landing-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? "Logging in..." : "Login"}
+        </button>
+      </form>
+    </>
   );
 }

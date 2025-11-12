@@ -4,6 +4,7 @@ import { getRoutineProducts } from "./routine-actions/actions";
 import { getRoutine } from "./routine-info-actions/actions";
 import { getCoachNotes } from "./coach-notes-actions/actions";
 import { getProgressPhotos } from "./progress-photos-actions/actions";
+import { getProfileTags } from "./profile-tags-actions/actions";
 import { getTemplates } from "@/app/(dashboard)/routine-management/template-actions/actions";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -16,6 +17,7 @@ import type {
   CoachNote,
   Routine,
   GoalsTemplate,
+  ProfileTag,
 } from "./types";
 
 interface SubscriberDetailPageProps {
@@ -53,10 +55,11 @@ export default async function SubscriberDetailPage({
         getRoutineProducts(id),
       ]);
 
-    // Fetch templates, coach notes and photos sequentially after core data
+    // Fetch templates, coach notes, photos, and tags sequentially after core data
     const templatesResult = await getTemplates();
     const coachNotesResult = await getCoachNotes(id);
     const photosResult = await getProgressPhotos(id);
+    const tagsResult = await getProfileTags(id);
 
     const initialGoalsTemplate: GoalsTemplate | null = goalsResult.success
       ? goalsResult.data.template
@@ -78,11 +81,13 @@ export default async function SubscriberDetailPage({
     const initialTemplates = templatesResult.success
       ? templatesResult.data
       : [];
+    const initialTags: ProfileTag[] = tagsResult.success ? tagsResult.data : [];
 
     // Transform server data to Client type
     const initialClient: Client = {
       id: profileData.id,
       name: profileData.name,
+      nickname: profileData.nickname,
       age: profileData.age,
       email: profileData.email,
       mobile: profileData.mobile,
@@ -94,6 +99,7 @@ export default async function SubscriberDetailPage({
       currentWeek: 1,
       startDate: profileData.createdAt.toISOString().split("T")[0],
       hasRoutine: initialRoutine !== null,
+      tags: initialTags,
       createdAt: profileData.createdAt,
     };
 

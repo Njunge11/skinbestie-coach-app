@@ -33,6 +33,7 @@ describe("ProfileHeader - UI Tests", () => {
   const mockClient: Client = {
     id: "1",
     name: "Sarah Chen",
+    nickname: null,
     age: 28,
     email: "sarah@example.com",
     mobile: "+254712345678",
@@ -44,6 +45,7 @@ describe("ProfileHeader - UI Tests", () => {
     currentWeek: 1,
     startDate: "2025-10-15",
     hasRoutine: true,
+    tags: [],
     createdAt: new Date("2025-01-01"),
   };
 

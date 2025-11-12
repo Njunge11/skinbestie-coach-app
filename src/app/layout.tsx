@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Anton } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -8,9 +8,18 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const anton = Anton({
+  variable: "--font-anton",
+  subsets: ["latin"],
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: "Skinbestie Coach App",
   description: "Admin portal for Skinbestie Coach",
+  icons: {
+    icon: "/Favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -20,7 +29,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body
+        className={`${inter.variable} ${anton.variable} font-sans antialiased`}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -2,12 +2,11 @@ import {
   Body,
   Container,
   Head,
-  Heading,
   Html,
+  Img,
   Preview,
   Text,
-  Section,
-} from '@react-email/components';
+} from "@react-email/components";
 
 interface VerificationCodeEmailProps {
   code: string;
@@ -17,23 +16,30 @@ export function VerificationCodeEmail({ code }: VerificationCodeEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Your verification code to reset your password</Preview>
+      <Preview>Your SkinBestie Admin verification code</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>SkinBestie Admin</Heading>
+          <Img
+            src="https://skinbestie.co/SkinBESTIE.png"
+            alt="SkinBestie"
+            width="160"
+            height="auto"
+            style={logo}
+          />
 
           <Text style={text}>
-            Use the verification code below to reset your password:
+            Use the verification code below to reset your admin password:
           </Text>
 
-          <Section style={codeContainer}>
+          <Container style={codeContainer}>
             <Text style={codeText}>{code}</Text>
-          </Section>
+          </Container>
 
-          <Text style={text}>This code will expire in 15 minutes.</Text>
+          <Text style={expiryText}>This code will expire in 15 minutes.</Text>
 
           <Text style={warningText}>
-            If you didn&apos;t request a password reset, you can safely ignore this email.
+            If you didn&apos;t request a password reset, you can safely ignore
+            this email.
           </Text>
 
           <Text style={footer}>
@@ -47,68 +53,75 @@ export function VerificationCodeEmail({ code }: VerificationCodeEmailProps) {
 
 export default VerificationCodeEmail;
 
-// Styles
+// Styles based on SkinBestie brand colors
 const main = {
-  backgroundColor: '#f6f9fc',
+  backgroundColor: "#fffdf4", // skinbestie brand background
   fontFamily:
     '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  padding: "40px 0",
 };
 
 const container = {
-  backgroundColor: '#ffffff',
-  margin: '0 auto',
-  padding: '20px 0 48px',
-  marginBottom: '64px',
+  backgroundColor: "#F4F2EB",
+  margin: "0 auto",
+  padding: "40px 20px 48px",
+  borderRadius: "8px",
+  maxWidth: "600px",
 };
 
-const h1 = {
-  color: '#333',
-  fontSize: '24px',
-  fontWeight: 'bold',
-  margin: '40px 0',
-  padding: '0',
-  textAlign: 'center' as const,
+const logo = {
+  margin: "0 auto 32px",
+  display: "block",
 };
 
 const text = {
-  color: '#333',
-  fontSize: '16px',
-  lineHeight: '26px',
-  textAlign: 'center' as const,
-  padding: '0 40px',
+  color: "#323232", // skinbestie-landing-black
+  fontSize: "16px",
+  lineHeight: "26px",
+  textAlign: "center" as const,
+  margin: "0 0 24px",
 };
 
 const codeContainer = {
-  background: '#f4f4f4',
-  borderRadius: '8px',
-  margin: '32px auto',
-  padding: '24px',
-  width: 'fit-content',
+  background: "#FFFFFF",
+  borderRadius: "12px",
+  margin: "32px auto",
+  padding: "24px 32px",
+  width: "fit-content",
 };
 
 const codeText = {
-  color: '#000',
-  fontSize: '48px',
-  fontWeight: 'bold',
-  letterSpacing: '8px',
-  margin: '0',
-  textAlign: 'center' as const,
-  fontFamily: 'monospace',
+  color: "#323232", // skinbestie-landing-black
+  fontSize: "32px",
+  fontWeight: "bold" as const,
+  letterSpacing: "8px",
+  margin: "0",
+  textAlign: "center" as const,
+  fontFamily: "monospace",
+};
+
+const expiryText = {
+  color: "#323232", // skinbestie-landing-black
+  fontSize: "14px",
+  lineHeight: "22px",
+  textAlign: "center" as const,
+  margin: "0 0 32px",
 };
 
 const warningText = {
-  color: '#666',
-  fontSize: '14px',
-  lineHeight: '24px',
-  textAlign: 'center' as const,
-  padding: '0 40px',
-  marginTop: '32px',
+  color: "#B3B2AD", // skinbestie-landing-gray-form
+  fontSize: "14px",
+  lineHeight: "22px",
+  textAlign: "center" as const,
+  margin: "32px 0 0",
+  borderTop: "1px solid #f1f2f3", // skinbestie-neutral-border
+  paddingTop: "24px",
 };
 
 const footer = {
-  color: '#999',
-  fontSize: '12px',
-  lineHeight: '16px',
-  textAlign: 'center' as const,
-  marginTop: '48px',
+  color: "#B3B2AD", // skinbestie-landing-gray-form
+  fontSize: "12px",
+  lineHeight: "18px",
+  textAlign: "center" as const,
+  marginTop: "32px",
 };

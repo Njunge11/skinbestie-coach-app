@@ -64,7 +64,7 @@ export default function Sidebar({
             />
           </div>
 
-          <nav className="flex-1 space-y-4 px-3 py-4">
+          <nav className="flex-1 space-y-2 px-3 py-4">
             {navItems.map((item) => {
               const Icon = item.icon;
               // For home ("/"), use exact match. For other routes, match if pathname starts with href
@@ -78,11 +78,19 @@ export default function Sidebar({
                   href={item.href}
                   prefetch={true}
                   onClick={() => setIsMobileOpen(false)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-6 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-primary text-primary-foreground"
+                      ? "text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   }`}
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor:
+                            "var(--color-skinbestie-primary-light)",
+                        }
+                      : undefined
+                  }
                 >
                   <Icon className="h-5 w-5" />
                   <span>{item.label}</span>

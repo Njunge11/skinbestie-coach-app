@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import Image from "next/image";
 import { LoginFormState } from "@/components/auth/login-states/login-form-state";
 import { ForgotPasswordEmailState } from "@/components/auth/login-states/forgot-password-email-state";
 import { VerificationCodeState } from "@/components/auth/login-states/verification-code-state";
 import { SetNewPasswordState } from "@/components/auth/login-states/set-new-password-state";
 import { PasswordResetSuccessState } from "@/components/auth/login-states/password-reset-success-state";
+import LoginMarketing from "@/components/auth/login-marketing";
 import {
   forgotPasswordAction,
   verifyCodeAction,
@@ -22,12 +20,14 @@ import type {
   SetNewPasswordInput,
 } from "@/lib/validations/auth";
 
-type FormState = "login" | "forgot-password" | "verification" | "new-password" | "success";
+type FormState =
+  | "login"
+  | "forgot-password"
+  | "verification"
+  | "new-password"
+  | "success";
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function LoginForm() {
   const [formState, setFormState] = useState<FormState>("login");
   const [email, setEmail] = useState<string>("");
   const [verificationCode, setVerificationCode] = useState<string>("");
@@ -87,7 +87,7 @@ export function LoginForm({
       email,
       verificationCode,
       data.password,
-      data.confirmPassword
+      data.confirmPassword,
     );
 
     if (!result.success) {
@@ -106,10 +106,12 @@ export function LoginForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0 bg-[#F3ECC7]">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <div className="p-6 md:p-8">
+    <>
+      <div className="grid grid-cols-1 xl:grid-cols-2 h-screen">
+        <LoginMarketing />
+        <div className="flex flex-col justify-center px-4 xl:px-[30px] bg-skinbestie-landing-white h-screen xl:h-full">
+          {/* Card */}
+          <div className="mx-auto w-full max-w-[440px] bg-skinbestie-landing-gray p-6 rounded-lg">
             {formState === "login" && (
               <LoginFormState
                 onForgotPassword={() => setFormState("forgot-password")}
@@ -121,7 +123,6 @@ export function LoginForm({
             {formState === "forgot-password" && (
               <ForgotPasswordEmailState
                 onContinue={() => setFormState("verification")}
-                onBackToLogin={resetToLogin}
                 onSubmit={handleForgotPasswordSubmit}
               />
             )}
@@ -130,6 +131,7 @@ export function LoginForm({
                 onContinue={() => setFormState("new-password")}
                 onResendCode={handleResendCode}
                 onSubmit={handleVerificationCodeSubmit}
+                email={email}
               />
             )}
             {formState === "new-password" && (
@@ -142,16 +144,8 @@ export function LoginForm({
               <PasswordResetSuccessState onBackToLogin={resetToLogin} />
             )}
           </div>
-          <div className="bg-muted relative hidden md:block">
-            <Image
-              src="/login.png"
-              width={"767"}
-              height={"784"}
-              alt="login image"
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </>
   );
 }

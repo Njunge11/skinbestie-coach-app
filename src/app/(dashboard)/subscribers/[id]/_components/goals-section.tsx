@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Target } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -102,7 +102,10 @@ export function GoalsSection({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
-          <CardTitle>Skin Goals</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary" />
+            Skin Goals
+          </CardTitle>
           {template && (
             <Badge
               variant={

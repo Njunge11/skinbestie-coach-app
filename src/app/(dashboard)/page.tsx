@@ -33,36 +33,41 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <DashboardGreeting name={userName} />
+    <div className="max-w-6xl mx-auto px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
+      <div className="space-y-6">
+        <DashboardGreeting name={userName} />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {stats.map((stat, index) => (
-          <div key={index} className="rounded-lg border bg-white p-6 shadow-sm">
-            <h3 className="text-md font-medium">{stat.title}</h3>
-            <p className="mt-6 text-3xl font-bold">{stat.value}</p>
-            {stat.trend.value !== 0 && (
-              <div
-                className={`mt-2 flex items-center gap-1 text-xs ${
-                  stat.trend.isPositive ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {stat.trend.isPositive ? (
-                  <TrendingUp className="h-3 w-3" />
-                ) : (
-                  <TrendingDown className="h-3 w-3" />
-                )}
-                <span className="font-medium">
-                  {stat.trend.isPositive ? "+" : "-"}
-                  {Math.abs(stat.trend.value)}% vs previous month
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {stats.map((stat, index) => (
+            <div
+              key={index}
+              className="rounded-lg border bg-white p-6 shadow-sm"
+            >
+              <h3 className="text-md font-medium">{stat.title}</h3>
+              <p className="mt-6 text-3xl font-bold">{stat.value}</p>
+              {stat.trend.value !== 0 && (
+                <div
+                  className={`mt-2 flex items-center gap-1 text-xs ${
+                    stat.trend.isPositive ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {stat.trend.isPositive ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
+                  <span className="font-medium">
+                    {stat.trend.isPositive ? "+" : "-"}
+                    {Math.abs(stat.trend.value)}% vs previous month
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <BookingsTable />
       </div>
-
-      <BookingsTable />
     </div>
   );
 }

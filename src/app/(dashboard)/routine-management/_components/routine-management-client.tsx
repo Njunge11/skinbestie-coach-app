@@ -57,41 +57,43 @@ export function RoutineManagementClient({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Routine Management
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Create and manage reusable routine templates
-          </p>
+    <div className="max-w-4xl mx-auto px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Routine Management
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Create and manage reusable routine templates
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCreateDialog(true)}
+            className="w-full md:w-auto px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            + Create Template
+          </button>
         </div>
-        <button
-          onClick={() => setShowCreateDialog(true)}
-          className="w-full md:w-auto px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-        >
-          + Create Template
-        </button>
+
+        {templates.length > 0 && (
+          <p className="text-sm font-bold text-gray-600">
+            {templates.length} Templates · {totalProducts} Total Products
+          </p>
+        )}
+
+        <TemplateList
+          templates={templates}
+          templateDetails={templateDetails}
+          onCreateClick={() => setShowCreateDialog(true)}
+        />
+
+        <CreateTemplateDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSubmit={handleCreateTemplate}
+        />
       </div>
-
-      {templates.length > 0 && (
-        <p className="text-sm font-bold text-gray-600">
-          {templates.length} Templates · {totalProducts} Total Products
-        </p>
-      )}
-
-      <TemplateList
-        templates={templates}
-        templateDetails={templateDetails}
-        onCreateClick={() => setShowCreateDialog(true)}
-      />
-
-      <CreateTemplateDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onSubmit={handleCreateTemplate}
-      />
     </div>
   );
 }

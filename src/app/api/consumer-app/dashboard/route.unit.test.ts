@@ -338,5 +338,96 @@ describe("Dashboard API Route", () => {
       expect(data.catchupSteps[0].productName).toBe("Morning Cleanser");
       expect(data.catchupSteps[0].status).toBe("pending");
     });
+
+    it("returns dashboard data with profile tags", async () => {
+      // Given
+      const profileWithTags = {
+        ...mockProfileData,
+        user: {
+          ...mockProfileData.user,
+          userId: validUserId,
+          userProfileId: "550e8400-e29b-41d4-a716-446655440001",
+          phoneNumber: "+1234567890",
+          dateOfBirth: new Date("1990-01-01"),
+          nickname: null,
+          skinType: null,
+          concerns: null,
+          hasAllergies: null,
+          allergyDetails: null,
+          isSubscribed: null,
+          occupation: null,
+          bio: null,
+          timezone: "America/New_York",
+          profileTags: ["Allergic to fragrance", "Sensitive skin"],
+        },
+        goalsAcknowledgedByClient: false,
+        routine: null,
+      };
+
+      mockValidateApiKey.mockResolvedValue(true);
+      mockService.getConsumerDashboard.mockResolvedValue({
+        success: true,
+        data: profileWithTags,
+      });
+
+      const request = new NextRequest(
+        `http://localhost:3000/api/consumer-app/dashboard?userId=${validUserId}`,
+      );
+
+      // When
+      const response = await GET(request);
+      const data = await response.json();
+
+      // Then
+      expect(response.status).toBe(200);
+      expect(data.user.profileTags).toEqual([
+        "Allergic to fragrance",
+        "Sensitive skin",
+      ]);
+    });
+
+    it("returns dashboard data with empty profile tags array", async () => {
+      // Given
+      const profileWithEmptyTags = {
+        ...mockProfileData,
+        user: {
+          ...mockProfileData.user,
+          userId: validUserId,
+          userProfileId: "550e8400-e29b-41d4-a716-446655440001",
+          phoneNumber: "+1234567890",
+          dateOfBirth: new Date("1990-01-01"),
+          nickname: null,
+          skinType: null,
+          concerns: null,
+          hasAllergies: null,
+          allergyDetails: null,
+          isSubscribed: null,
+          occupation: null,
+          bio: null,
+          timezone: "America/New_York",
+          profileTags: [],
+        },
+        goalsAcknowledgedByClient: false,
+        routine: null,
+      };
+
+      mockValidateApiKey.mockResolvedValue(true);
+      mockService.getConsumerDashboard.mockResolvedValue({
+        success: true,
+        data: profileWithEmptyTags,
+      });
+
+      const request = new NextRequest(
+        `http://localhost:3000/api/consumer-app/dashboard?userId=${validUserId}`,
+      );
+
+      // When
+      const response = await GET(request);
+      const data = await response.json();
+
+      // Then
+      expect(response.status).toBe(200);
+      expect(data.user.profileTags).toEqual([]);
+    });
   });
 });

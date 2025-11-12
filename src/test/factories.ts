@@ -114,6 +114,7 @@ export function makeClient(overrides: Partial<Client> = {}): Client {
   return {
     id: crypto.randomUUID(),
     name: "Test User",
+    nickname: null,
     age: 30,
     email: "test@example.com",
     mobile: "555-1234",
@@ -125,6 +126,7 @@ export function makeClient(overrides: Partial<Client> = {}): Client {
     currentWeek: 1,
     startDate: new Date().toISOString().split("T")[0],
     hasRoutine: false,
+    tags: [],
     createdAt: new Date(),
     ...overrides,
   };

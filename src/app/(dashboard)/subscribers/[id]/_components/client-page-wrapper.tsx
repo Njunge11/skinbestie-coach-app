@@ -9,6 +9,7 @@ import { GoalsSection } from "./goals-section";
 import { RoutineSection } from "./routine-section";
 import { ComplianceSection } from "./compliance-section";
 import { CoachNotesPanel } from "./coach-notes-panel";
+import { ProfileTags } from "./profile-tags/profile-tags";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import {
@@ -38,6 +39,10 @@ import {
   deleteCoachNote,
 } from "../coach-notes-actions/actions";
 import { updatePhotoFeedback } from "../progress-photos-actions/actions";
+import {
+  addProfileTag,
+  removeProfileTag,
+} from "../profile-tags-actions/actions";
 import type {
   Client,
   Goal,
@@ -46,6 +51,7 @@ import type {
   Routine,
   RoutineProduct,
   CoachNote,
+  ProfileTag,
   GoalFormData,
   RoutineFormData,
   RoutineProductFormData,
@@ -93,6 +99,7 @@ export function ClientPageWrapper({
     initialRoutineProducts,
   );
   const [coachNotes, setCoachNotes] = useState<CoachNote[]>(initialCoachNotes);
+  const [tags, setTags] = useState<ProfileTag[]>(initialClient.tags);
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [isCoachNotesPanelOpen, setIsCoachNotesPanelOpen] = useState(false);
@@ -652,85 +659,140 @@ export function ClientPageWrapper({
     }
   };
 
+  // Profile Tags Handlers
+  const handleAddTag = async (tag: string) => {
+    // Create optimistic tag
+    const optimisticTag: ProfileTag = {
+      id: `temp-${Date.now()}`,
+      userProfileId: userId,
+      tag,
+      createdAt: new Date(),
+    };
+
+    // Optimistic update
+    const newTags = [...tags, optimisticTag];
+    setTags(newTags);
+
+    // Call server action
+    const result = await addProfileTag(userId, tag);
+
+    if (result.success) {
+      // Replace temp tag with real one
+      setTags((prev) => [
+        ...prev.filter((t) => !t.id.startsWith("temp-")),
+        result.data,
+      ]);
+    } else {
+      // Revert on failure
+      setTags(tags);
+      toast.error(result.error);
+    }
+  };
+
+  const handleRemoveTag = async (tagId: string) => {
+    // Optimistic update
+    const previousTags = tags;
+    const newTags = tags.filter((t) => t.id !== tagId);
+    setTags(newTags);
+
+    // Call server action
+    const result = await removeProfileTag(tagId, userId);
+
+    if (!result.success) {
+      // Revert on failure
+      setTags(previousTags);
+      toast.error(result.error);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <ProfileHeader client={client} />
-
-      <SkinProfileSection
-        skinType={client.skinType ? [client.skinType] : null}
-        age={client.age}
-        concerns={client.concerns}
-        startedJourney={client.startDate}
-      />
-
-      {/* Main Content */}
+    <div className="max-w-4xl mx-auto px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
       <div className="space-y-6">
-        <ComplianceSection userId={userId} />
+        <ProfileHeader client={client} />
 
-        <GoalsSection
-          goals={optimisticGoals}
-          template={goalsTemplate}
-          onAddGoal={handleAddGoal}
-          onUpdateGoal={handleUpdateGoal}
-          onToggleGoal={handleToggleGoal}
-          onDeleteGoal={handleDeleteGoal}
-          onReorderGoals={handleReorderGoals}
-          onPublishToggle={handlePublishToggle}
-          showMainFocus={true}
-          showCheckbox={false}
+        <ProfileTags
+          tags={tags}
+          userId={userId}
+          onAddTag={handleAddTag}
+          onRemoveTag={handleRemoveTag}
         />
 
-        <RoutineSection
-          routine={routine}
-          products={optimisticRoutineProducts}
-          templates={initialTemplates}
-          onCreateFromTemplate={handleCreateRoutineFromTemplate}
-          onCreateBlank={handleCreateBlankRoutine}
-          onUpdateRoutine={handleUpdateRoutine}
-          onPublishRoutine={handlePublishRoutine}
-          onDeleteRoutine={handleDeleteRoutine}
-          onAddProduct={handleAddRoutineProduct}
-          onUpdateProduct={handleUpdateRoutineProduct}
-          onDeleteProduct={handleDeleteRoutineProduct}
-          onReorderProducts={handleReorderRoutineProducts}
+        <SkinProfileSection
+          skinType={client.skinType ? [client.skinType] : null}
+          age={client.age}
+          concerns={client.concerns}
+          startedJourney={client.startDate}
         />
 
-        <ProgressPhotos
-          photos={optimisticPhotos}
-          onUpdateFeedback={handleUpdatePhotoFeedback}
-          isCompareMode={isCompareMode}
-          selectedPhotos={selectedPhotos}
-          onPhotoSelect={handlePhotoSelect}
-          onToggleCompareMode={handleToggleCompareMode}
+        {/* Main Content */}
+        <div className="space-y-6">
+          <ComplianceSection userId={userId} />
+
+          <GoalsSection
+            goals={optimisticGoals}
+            template={goalsTemplate}
+            onAddGoal={handleAddGoal}
+            onUpdateGoal={handleUpdateGoal}
+            onToggleGoal={handleToggleGoal}
+            onDeleteGoal={handleDeleteGoal}
+            onReorderGoals={handleReorderGoals}
+            onPublishToggle={handlePublishToggle}
+            showMainFocus={true}
+            showCheckbox={false}
+          />
+
+          <RoutineSection
+            routine={routine}
+            products={optimisticRoutineProducts}
+            templates={initialTemplates}
+            onCreateFromTemplate={handleCreateRoutineFromTemplate}
+            onCreateBlank={handleCreateBlankRoutine}
+            onUpdateRoutine={handleUpdateRoutine}
+            onPublishRoutine={handlePublishRoutine}
+            onDeleteRoutine={handleDeleteRoutine}
+            onAddProduct={handleAddRoutineProduct}
+            onUpdateProduct={handleUpdateRoutineProduct}
+            onDeleteProduct={handleDeleteRoutineProduct}
+            onReorderProducts={handleReorderRoutineProducts}
+          />
+
+          <ProgressPhotos
+            photos={optimisticPhotos}
+            onUpdateFeedback={handleUpdatePhotoFeedback}
+            isCompareMode={isCompareMode}
+            selectedPhotos={selectedPhotos}
+            onPhotoSelect={handlePhotoSelect}
+            onToggleCompareMode={handleToggleCompareMode}
+          />
+        </div>
+
+        {/* Floating Action Button for Coach Notes */}
+        <Button
+          onClick={() => setIsCoachNotesPanelOpen(true)}
+          className="fixed bottom-8 right-8 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow z-30 p-0"
+          aria-label="Open coach notes"
+        >
+          <div className="relative">
+            <FileText className="w-5 h-5" />
+            {coachNotes.length > 0 && (
+              <span className="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-medium bg-red-500 text-white rounded-full">
+                {coachNotes.length}
+              </span>
+            )}
+          </div>
+        </Button>
+
+        {/* Coach Notes Side Panel */}
+        <CoachNotesPanel
+          isOpen={isCoachNotesPanelOpen}
+          onClose={() => setIsCoachNotesPanelOpen(false)}
+          notes={optimisticCoachNotes}
+          adminId={adminId}
+          onAddNote={handleAddCoachNote}
+          onUpdateNote={handleUpdateCoachNote}
+          onDeleteNote={handleDeleteCoachNote}
         />
       </div>
-
-      {/* Floating Action Button for Coach Notes */}
-      <Button
-        onClick={() => setIsCoachNotesPanelOpen(true)}
-        className="fixed bottom-8 right-8 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow z-30 p-0"
-        aria-label="Open coach notes"
-      >
-        <div className="relative">
-          <FileText className="w-5 h-5" />
-          {coachNotes.length > 0 && (
-            <span className="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-medium bg-red-500 text-white rounded-full">
-              {coachNotes.length}
-            </span>
-          )}
-        </div>
-      </Button>
-
-      {/* Coach Notes Side Panel */}
-      <CoachNotesPanel
-        isOpen={isCoachNotesPanelOpen}
-        onClose={() => setIsCoachNotesPanelOpen(false)}
-        notes={optimisticCoachNotes}
-        adminId={adminId}
-        onAddNote={handleAddCoachNote}
-        onUpdateNote={handleUpdateCoachNote}
-        onDeleteNote={handleDeleteCoachNote}
-      />
     </div>
   );
 }
