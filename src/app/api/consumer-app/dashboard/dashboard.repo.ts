@@ -269,6 +269,24 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
     },
 
     /**
+     * Get profile tags for a user profile
+     * @param userProfileId - The user profile ID (from user_profiles table)
+     *
+     * Type is inferred from the query - follows TYPE_SYSTEM_GUIDE principles
+     */
+    async getProfileTags(userProfileId: string) {
+      const result = await database
+        .select({
+          tag: schema.profileTags.tag,
+        })
+        .from(schema.profileTags)
+        .where(eq(schema.profileTags.userProfileId, userProfileId));
+
+      // Return array of tag strings
+      return result.map((row) => row.tag);
+    },
+
+    /**
      * Get catchup steps - previous days' pending steps still within grace period
      * @param userId - The auth user ID (from users table)
      * @param date - Current date/time (used to calculate "today" and grace period check)

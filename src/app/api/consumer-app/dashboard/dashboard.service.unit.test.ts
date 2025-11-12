@@ -14,6 +14,7 @@ describe("DashboardService", () => {
     getTodayRoutineSteps: ReturnType<typeof vi.fn>;
     getCatchupSteps: ReturnType<typeof vi.fn>;
     getRoutine: ReturnType<typeof vi.fn>;
+    getProfileTags: ReturnType<typeof vi.fn>;
   };
   let deps: DashboardServiceDeps;
 
@@ -90,6 +91,7 @@ describe("DashboardService", () => {
       getTodayRoutineSteps: vi.fn(),
       getCatchupSteps: vi.fn().mockResolvedValue([]), // Default to empty catchup steps
       getRoutine: vi.fn().mockResolvedValue(null), // Default to null routine
+      getProfileTags: vi.fn().mockResolvedValue([]), // Default to empty tags
     };
 
     deps = {
@@ -138,6 +140,7 @@ describe("DashboardService", () => {
           occupation: null,
           bio: null,
           timezone: "Europe/London",
+          profileTags: [],
         });
         expect(result.data.setupProgress).toEqual({
           percentage: 100,
@@ -643,6 +646,91 @@ describe("DashboardService", () => {
         authUserId,
         customDate,
       );
+    });
+
+    it("includes profile tags in user object when tags exist", async () => {
+      // Given
+      mockRepo.getUserDashboardData.mockResolvedValue(baseDashboardData);
+      mockRepo.getPublishedGoals.mockResolvedValue([]);
+      mockRepo.getTodayRoutineSteps.mockResolvedValue([]);
+      mockRepo.getProfileTags.mockResolvedValue([
+        "Allergic to fragrance",
+        "Sensitive skin",
+      ]);
+
+      // When
+      const result = await service.getConsumerDashboard(authUserId);
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.user.profileTags).toEqual([
+          "Allergic to fragrance",
+          "Sensitive skin",
+        ]);
+      }
+    });
+
+    it("includes empty array for profile tags when user has no tags", async () => {
+      // Given
+      mockRepo.getUserDashboardData.mockResolvedValue(baseDashboardData);
+      mockRepo.getPublishedGoals.mockResolvedValue([]);
+      mockRepo.getTodayRoutineSteps.mockResolvedValue([]);
+      mockRepo.getProfileTags.mockResolvedValue([]);
+
+      // When
+      const result = await service.getConsumerDashboard(authUserId);
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.user.profileTags).toEqual([]);
+      }
+    });
+
+    it("fetches profile tags in parallel with other data", async () => {
+      // Given
+      mockRepo.getUserDashboardData.mockResolvedValue(baseDashboardData);
+      mockRepo.getPublishedGoals.mockResolvedValue([]);
+      mockRepo.getTodayRoutineSteps.mockResolvedValue([]);
+      mockRepo.getProfileTags.mockResolvedValue([
+        "Allergic to fragrance",
+        "Sensitive skin",
+      ]);
+
+      // When
+      await service.getConsumerDashboard(authUserId);
+
+      // Then - Verify getProfileTags was called with correct userProfileId
+      expect(mockRepo.getProfileTags).toHaveBeenCalledWith(profileId);
+    });
+
+    it("includes profile tags in response with multiple tags", async () => {
+      // Given
+      mockRepo.getUserDashboardData.mockResolvedValue(baseDashboardData);
+      mockRepo.getPublishedGoals.mockResolvedValue([]);
+      mockRepo.getTodayRoutineSteps.mockResolvedValue([]);
+      mockRepo.getProfileTags.mockResolvedValue([
+        "Allergic to fragrance",
+        "Sensitive skin",
+        "Prefers natural products",
+        "Dry skin type",
+      ]);
+
+      // When
+      const result = await service.getConsumerDashboard(authUserId);
+
+      // Then
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.user.profileTags).toHaveLength(4);
+        expect(result.data.user.profileTags).toEqual([
+          "Allergic to fragrance",
+          "Sensitive skin",
+          "Prefers natural products",
+          "Dry skin type",
+        ]);
+      }
     });
   });
 });

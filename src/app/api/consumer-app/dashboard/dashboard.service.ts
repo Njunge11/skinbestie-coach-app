@@ -38,16 +38,18 @@ export function makeDashboardService(deps: DashboardServiceDeps = {}) {
           return { success: false, error: "User not found" };
         }
 
-        // Execute parallel queries for goals, today's routine, catchup steps, and routine metadata
-        const [goals, todayRoutine, routine, catchupSteps] = await Promise.all([
-          repo.getPublishedGoals(userId),
-          repo.getTodayRoutineSteps(userId, now()),
-          repo.getRoutine(userId),
-          // Only fetch catchup steps if routine is published
-          userData.routineStatus === "published"
-            ? repo.getCatchupSteps(userId, now())
-            : Promise.resolve([]),
-        ]);
+        // Execute parallel queries for goals, today's routine, catchup steps, routine metadata, and profile tags
+        const [goals, todayRoutine, routine, catchupSteps, profileTags] =
+          await Promise.all([
+            repo.getPublishedGoals(userId),
+            repo.getTodayRoutineSteps(userId, now()),
+            repo.getRoutine(userId),
+            // Only fetch catchup steps if routine is published
+            userData.routineStatus === "published"
+              ? repo.getCatchupSteps(userId, now())
+              : Promise.resolve([]),
+            repo.getProfileTags(userData.userProfileId),
+          ]);
 
         // Calculate setup progress
         const steps = {
@@ -84,6 +86,7 @@ export function makeDashboardService(deps: DashboardServiceDeps = {}) {
             occupation: userData.occupation,
             bio: userData.bio,
             timezone: userData.timezone,
+            profileTags: profileTags,
           },
           setupProgress: {
             percentage,

@@ -699,6 +699,98 @@ describe("DashboardRepo", () => {
     });
   });
 
+  describe("getProfileTags", () => {
+    beforeEach(async () => {
+      // Create test user for profile tags tests
+      await db.insert(schema.userProfiles).values({
+        id: profileId,
+        userId: authUserId,
+        email: "user@test.com",
+        firstName: "Tags",
+        lastName: "Tester",
+        phoneNumber: "+1234567890",
+        dateOfBirth: new Date("1990-01-01"),
+      });
+    });
+
+    it("returns empty array when user has no profile tags", async () => {
+      const tags = await repo.getProfileTags(profileId);
+
+      expect(tags).toEqual([]);
+    });
+
+    it("returns all tags for a specific user profile", async () => {
+      // Insert test tags
+      await db.insert(schema.profileTags).values([
+        { userProfileId: profileId, tag: "Allergic to fragrance" },
+        { userProfileId: profileId, tag: "Sensitive skin" },
+        { userProfileId: profileId, tag: "Prefers natural products" },
+      ]);
+
+      const tags = await repo.getProfileTags(profileId);
+
+      expect(tags).toHaveLength(3);
+      expect(tags).toEqual(
+        expect.arrayContaining([
+          "Allergic to fragrance",
+          "Sensitive skin",
+          "Prefers natural products",
+        ]),
+      );
+    });
+
+    it("does not return tags from other users", async () => {
+      const otherUserProfileId = "550e8400-e29b-41d4-a716-446655440099";
+
+      // Create another user profile
+      await db.insert(schema.users).values({
+        id: "350e8400-e29b-41d4-a716-446655440098",
+        email: "other@test.com",
+        name: "Other User",
+      });
+
+      await db.insert(schema.userProfiles).values({
+        id: otherUserProfileId,
+        userId: "350e8400-e29b-41d4-a716-446655440098",
+        email: "other@test.com",
+        firstName: "Other",
+        lastName: "User",
+        phoneNumber: "+1234567891",
+        dateOfBirth: new Date("1990-01-01"),
+      });
+
+      await db.insert(schema.profileTags).values([
+        { userProfileId: profileId, tag: "My tag" },
+        { userProfileId: otherUserProfileId, tag: "Other user tag" },
+      ]);
+
+      const tags = await repo.getProfileTags(profileId);
+
+      expect(tags).toHaveLength(1);
+      expect(tags[0]).toBe("My tag");
+    });
+
+    it("returns tags as array of strings", async () => {
+      await db.insert(schema.profileTags).values([
+        { userProfileId: profileId, tag: "Tag 1" },
+        { userProfileId: profileId, tag: "Tag 2" },
+      ]);
+
+      const tags = await repo.getProfileTags(profileId);
+
+      expect(Array.isArray(tags)).toBe(true);
+      expect(typeof tags[0]).toBe("string");
+      expect(typeof tags[1]).toBe("string");
+    });
+
+    it("handles user profile with no tags table entries", async () => {
+      // User exists but has no entries in profile_tags table
+      const tags = await repo.getProfileTags(profileId);
+
+      expect(tags).toEqual([]);
+    });
+  });
+
   describe("getTodayRoutineSteps - Timezone Awareness", () => {
     beforeEach(async () => {
       // Setup user with Nairobi timezone (UTC+3)
