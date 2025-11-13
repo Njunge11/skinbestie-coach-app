@@ -64,6 +64,8 @@ export function makeUserProfile(
     hasCompletedSkinTest: false,
     hasCompletedBooking: false,
     isSubscribed: null,
+    productsReceived: false,
+    routineStartDateSet: false,
 
     // Completion tracking
     completedSteps: [],

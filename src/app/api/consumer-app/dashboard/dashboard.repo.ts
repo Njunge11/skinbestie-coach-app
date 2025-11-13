@@ -48,6 +48,8 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
           timezone: schema.userProfiles.timezone,
           hasCompletedSkinTest: schema.userProfiles.hasCompletedSkinTest,
           hasCompletedBooking: schema.userProfiles.hasCompletedBooking,
+          productsReceived: schema.userProfiles.productsReceived,
+          routineStartDateSet: schema.userProfiles.routineStartDateSet,
           goalsTemplateId: schema.skinGoalsTemplate.id,
           goalsTemplateStatus: schema.skinGoalsTemplate.status,
           goalsAcknowledgedByClient:

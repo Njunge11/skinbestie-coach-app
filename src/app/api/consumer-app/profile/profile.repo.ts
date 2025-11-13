@@ -6,30 +6,9 @@ import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { type UserProfile } from "@/lib/db/schema";
 
-// Derive types from centralized schema (TYPE_SYSTEM_GUIDE.md)
+// Derive types from database schema - single source of truth
 export type ProfileUpdateData = Partial<
-  Pick<
-    UserProfile,
-    | "nickname"
-    | "firstName"
-    | "lastName"
-    | "email"
-    | "phoneNumber"
-    | "dateOfBirth"
-    | "skinType"
-    | "concerns"
-    | "hasAllergies"
-    | "allergyDetails"
-    | "occupation"
-    | "bio"
-    | "timezone"
-    | "hasCompletedSkinTest"
-    | "hasCompletedBooking"
-    | "isSubscribed"
-    | "completedSteps"
-    | "isCompleted"
-    | "completedAt"
-  >
+  Omit<UserProfile, "id" | "userId" | "createdAt" | "updatedAt">
 >;
 
 export type ProfileData = Pick<
@@ -41,6 +20,8 @@ export type ProfileData = Pick<
   | "email"
   | "nickname"
   | "phoneNumber"
+  | "productsReceived"
+  | "routineStartDateSet"
   | "updatedAt"
 >;
 
@@ -69,6 +50,8 @@ export function makeProfileRepo(deps: ProfileRepoDeps = {}) {
           email: schema.userProfiles.email,
           nickname: schema.userProfiles.nickname,
           phoneNumber: schema.userProfiles.phoneNumber,
+          productsReceived: schema.userProfiles.productsReceived,
+          routineStartDateSet: schema.userProfiles.routineStartDateSet,
           updatedAt: schema.userProfiles.updatedAt,
         })
         .from(schema.userProfiles)
@@ -105,6 +88,8 @@ export function makeProfileRepo(deps: ProfileRepoDeps = {}) {
         email: result[0].email,
         nickname: result[0].nickname,
         phoneNumber: result[0].phoneNumber,
+        productsReceived: result[0].productsReceived,
+        routineStartDateSet: result[0].routineStartDateSet,
         updatedAt: result[0].updatedAt,
       };
     },

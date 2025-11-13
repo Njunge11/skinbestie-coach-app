@@ -197,6 +197,14 @@ export const userProfiles = pgTable(
     // Skin test completion tracking
     hasCompletedSkinTest: boolean("has_completed_skin_test"),
 
+    // Products received tracking
+    productsReceived: boolean("products_received").notNull().default(false),
+
+    // Routine start date set tracking
+    routineStartDateSet: boolean("routine_start_date_set")
+      .notNull()
+      .default(false),
+
     // Additional profile fields
     nickname: text("nickname"),
     occupation: text("occupation"),

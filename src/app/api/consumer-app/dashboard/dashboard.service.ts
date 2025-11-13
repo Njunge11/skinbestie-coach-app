@@ -57,10 +57,12 @@ export function makeDashboardService(deps: DashboardServiceDeps = {}) {
           hasPublishedGoals: userData.goalsTemplateStatus === "published",
           hasPublishedRoutine: userData.routineStatus === "published",
           hasCompletedBooking: userData.hasCompletedBooking ?? false,
+          productsReceived: userData.productsReceived,
+          routineStartDateSet: userData.routineStartDateSet,
         };
 
         const completed = Object.values(steps).filter(Boolean).length;
-        const total = 4;
+        const total = 6;
         const percentage = Math.round((completed / total) * 100);
 
         // Format response

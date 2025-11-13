@@ -19,7 +19,6 @@ describe("Profile Tags Actions - Unit Tests", () => {
   const user1Id = "550e8400-e29b-41d4-a716-446655440000";
   const user2Id = "550e8400-e29b-41d4-a716-446655440001";
   const tag1Id = "850e8400-e29b-41d4-a716-446655440001";
-  const tag2Id = "850e8400-e29b-41d4-a716-446655440002";
 
   let repo: ProfileTagsRepo;
   let deps: ProfileTagsDeps;

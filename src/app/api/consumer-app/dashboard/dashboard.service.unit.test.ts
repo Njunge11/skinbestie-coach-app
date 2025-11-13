@@ -42,6 +42,8 @@ describe("DashboardService", () => {
     timezone: "Europe/London",
     hasCompletedSkinTest: false,
     hasCompletedBooking: false,
+    productsReceived: false,
+    routineStartDateSet: false,
     goalsTemplateId: null,
     goalsTemplateStatus: null,
     goalsAcknowledgedByClient: null,
@@ -103,12 +105,14 @@ describe("DashboardService", () => {
   });
 
   describe("getConsumerDashboard", () => {
-    it("returns complete profile when all data exists (100%, 4/4)", async () => {
+    it("returns complete profile when all data exists (100%, 6/6)", async () => {
       // Given
       mockRepo.getUserDashboardData.mockResolvedValue({
         ...baseDashboardData,
         hasCompletedSkinTest: true,
         hasCompletedBooking: true,
+        productsReceived: true,
+        routineStartDateSet: true,
         goalsTemplateId: "template-1",
         goalsTemplateStatus: "published",
         routineId: "routine-1",
@@ -144,13 +148,15 @@ describe("DashboardService", () => {
         });
         expect(result.data.setupProgress).toEqual({
           percentage: 100,
-          completed: 4,
-          total: 4,
+          completed: 6,
+          total: 6,
           steps: {
             hasCompletedSkinTest: true,
             hasCompletedBooking: true,
             hasPublishedGoals: true,
             hasPublishedRoutine: true,
+            productsReceived: true,
+            routineStartDateSet: true,
           },
         });
         expect(result.data.goals).toEqual(sampleGoals);
@@ -158,7 +164,7 @@ describe("DashboardService", () => {
       }
     });
 
-    it("returns profile with 0% progress (0/4)", async () => {
+    it("returns profile with 0% progress (0/6)", async () => {
       // Given
       mockRepo.getUserDashboardData.mockResolvedValue(baseDashboardData);
       mockRepo.getPublishedGoals.mockResolvedValue([]);
@@ -173,18 +179,20 @@ describe("DashboardService", () => {
         expect(result.data.setupProgress).toEqual({
           percentage: 0,
           completed: 0,
-          total: 4,
+          total: 6,
           steps: {
             hasCompletedSkinTest: false,
             hasCompletedBooking: false,
             hasPublishedGoals: false,
             hasPublishedRoutine: false,
+            productsReceived: false,
+            routineStartDateSet: false,
           },
         });
       }
     });
 
-    it("returns profile with 25% progress (1/4)", async () => {
+    it("returns profile with 17% progress (1/6)", async () => {
       // Given
       mockRepo.getUserDashboardData.mockResolvedValue({
         ...baseDashboardData,
@@ -200,20 +208,22 @@ describe("DashboardService", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.setupProgress).toEqual({
-          percentage: 25,
+          percentage: 17,
           completed: 1,
-          total: 4,
+          total: 6,
           steps: {
             hasCompletedSkinTest: true,
             hasCompletedBooking: false,
             hasPublishedGoals: false,
             hasPublishedRoutine: false,
+            productsReceived: false,
+            routineStartDateSet: false,
           },
         });
       }
     });
 
-    it("returns profile with 50% progress (2/4)", async () => {
+    it("returns profile with 33% progress (2/6)", async () => {
       // Given
       mockRepo.getUserDashboardData.mockResolvedValue({
         ...baseDashboardData,
@@ -230,20 +240,22 @@ describe("DashboardService", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.setupProgress).toEqual({
-          percentage: 50,
+          percentage: 33,
           completed: 2,
-          total: 4,
+          total: 6,
           steps: {
             hasCompletedSkinTest: true,
             hasCompletedBooking: true,
             hasPublishedGoals: false,
             hasPublishedRoutine: false,
+            productsReceived: false,
+            routineStartDateSet: false,
           },
         });
       }
     });
 
-    it("returns profile with 75% progress (3/4)", async () => {
+    it("returns profile with 50% progress (3/6)", async () => {
       // Given
       mockRepo.getUserDashboardData.mockResolvedValue({
         ...baseDashboardData,
@@ -262,14 +274,16 @@ describe("DashboardService", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.setupProgress).toEqual({
-          percentage: 75,
+          percentage: 50,
           completed: 3,
-          total: 4,
+          total: 6,
           steps: {
             hasCompletedSkinTest: true,
             hasCompletedBooking: true,
             hasPublishedGoals: true,
             hasPublishedRoutine: false,
+            productsReceived: false,
+            routineStartDateSet: false,
           },
         });
       }
@@ -423,6 +437,8 @@ describe("DashboardService", () => {
         timezone: "Europe/London",
         hasCompletedSkinTest: true,
         hasCompletedBooking: false,
+        productsReceived: false,
+        routineStartDateSet: false,
         goalsTemplateId: "template-1",
         goalsTemplateStatus: "published",
         goalsAcknowledgedByClient: false,

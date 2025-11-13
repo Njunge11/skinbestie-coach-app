@@ -98,13 +98,15 @@ export const dashboardResponseSchema = z.object({
   }),
   setupProgress: z.object({
     percentage: z.number().min(0).max(100),
-    completed: z.number().min(0).max(4),
+    completed: z.number().min(0).max(6),
     total: z.number(),
     steps: z.object({
       hasCompletedSkinTest: z.boolean(),
       hasPublishedGoals: z.boolean(),
       hasPublishedRoutine: z.boolean(),
       hasCompletedBooking: z.boolean(),
+      productsReceived: z.boolean(),
+      routineStartDateSet: z.boolean(),
     }),
   }),
   todayRoutine: z.array(routineItemSchema).nullable(),
