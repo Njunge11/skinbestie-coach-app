@@ -480,6 +480,7 @@ export async function getWeeklyStats(
   lastWeekEnd.setUTCMilliseconds(-1); // 1ms before this week starts
 
   // Query 1: Total Subscribers (current total vs last week's total)
+  // Only count users where isSubscribed = true
   const [subscribersResult] = await db
     .select({
       currentTotal: sql<number>`count(*)`.mapWith(Number),
@@ -488,7 +489,8 @@ export async function getWeeklyStats(
           Number,
         ),
     })
-    .from(userProfiles);
+    .from(userProfiles)
+    .where(sql`${userProfiles.isSubscribed} = true`);
 
   const subscribersTrend = calculateTrend(
     subscribersResult.currentTotal,

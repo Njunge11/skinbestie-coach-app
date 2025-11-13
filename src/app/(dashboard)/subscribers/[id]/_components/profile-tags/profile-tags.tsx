@@ -90,7 +90,7 @@ export function ProfileTags({
           Key Information
         </CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
-          Track important details from calls and interactions to personalize
+          Track important details from calls and interactions to personalise
           their skincare journey
         </p>
       </CardHeader>
