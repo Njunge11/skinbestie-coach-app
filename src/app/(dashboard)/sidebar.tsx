@@ -78,7 +78,7 @@ export default function Sidebar({
                   href={item.href}
                   prefetch={true}
                   onClick={() => setIsMobileOpen(false)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-6 text-sm font-medium transition-colors ${
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-4 text-sm font-medium transition-colors ${
                     isActive
                       ? "text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
