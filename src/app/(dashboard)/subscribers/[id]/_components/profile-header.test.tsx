@@ -45,6 +45,7 @@ describe("ProfileHeader - UI Tests", () => {
     currentWeek: 1,
     startDate: "2025-10-15",
     hasRoutine: true,
+    feedbackSurveyVisible: false,
     tags: [],
     createdAt: new Date("2025-01-01"),
   };

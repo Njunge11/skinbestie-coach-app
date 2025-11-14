@@ -67,6 +67,9 @@ export function makeUserProfile(
     productsReceived: false,
     routineStartDateSet: false,
 
+    // Survey visibility
+    feedbackSurveyVisible: false,
+
     // Completion tracking
     completedSteps: [],
     isCompleted: false,
@@ -128,6 +131,7 @@ export function makeClient(overrides: Partial<Client> = {}): Client {
     currentWeek: 1,
     startDate: new Date().toISOString().split("T")[0],
     hasRoutine: false,
+    feedbackSurveyVisible: false,
     tags: [],
     createdAt: new Date(),
     ...overrides,

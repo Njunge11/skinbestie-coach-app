@@ -205,6 +205,11 @@ export const userProfiles = pgTable(
       .notNull()
       .default(false),
 
+    // Feedback survey visibility (controlled by coach)
+    feedbackSurveyVisible: boolean("feedback_survey_visible")
+      .notNull()
+      .default(false),
+
     // Additional profile fields
     nickname: text("nickname"),
     occupation: text("occupation"),

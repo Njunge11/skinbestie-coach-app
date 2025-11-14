@@ -17,6 +17,8 @@ describe("POST /api/admin/surveys", () => {
   });
 
   it("should create a survey successfully with valid data", async () => {
+    const adminId = "450e8400-e29b-41d4-a716-446655440000";
+
     const mockService = {
       createSurveyWithQuestions: vi.fn().mockResolvedValue({
         success: true,
@@ -25,7 +27,7 @@ describe("POST /api/admin/surveys", () => {
           title: "Test Survey",
           description: null,
           status: "draft",
-          createdBy: "450e8400-e29b-41d4-a716-446655440000",
+          createdBy: adminId,
           questions: [
             {
               id: "question-id-1",
@@ -50,6 +52,7 @@ describe("POST /api/admin/surveys", () => {
       body: JSON.stringify({
         title: "Test Survey",
         status: "draft",
+        createdBy: adminId,
         questions: [
           {
             questionText: "Do you like this?",
@@ -72,7 +75,7 @@ describe("POST /api/admin/surveys", () => {
       title: "Test Survey",
       description: null,
       status: "draft",
-      createdBy: "450e8400-e29b-41d4-a716-446655440000",
+      createdBy: adminId,
       questions: [
         {
           questionText: "Do you like this?",
@@ -127,6 +130,7 @@ describe("POST /api/admin/surveys", () => {
       body: JSON.stringify({
         title: "Test Survey",
         status: "draft",
+        createdBy: "450e8400-e29b-41d4-a716-446655440000",
       }),
     });
 
@@ -154,6 +158,7 @@ describe("POST /api/admin/surveys", () => {
       body: JSON.stringify({
         title: "Test Survey",
         status: "draft",
+        createdBy: "450e8400-e29b-41d4-a716-446655440000",
       }),
     });
 
@@ -166,6 +171,8 @@ describe("POST /api/admin/surveys", () => {
   });
 
   it("should handle survey with description and multiple questions", async () => {
+    const adminId = "450e8400-e29b-41d4-a716-446655440000";
+
     const mockService = {
       createSurveyWithQuestions: vi.fn().mockResolvedValue({
         success: true,
@@ -174,7 +181,7 @@ describe("POST /api/admin/surveys", () => {
           title: "Customer Feedback",
           description: "Tell us about your experience",
           status: "published",
-          createdBy: "450e8400-e29b-41d4-a716-446655440000",
+          createdBy: adminId,
           questions: [
             {
               id: "q1",
@@ -209,6 +216,7 @@ describe("POST /api/admin/surveys", () => {
         title: "Customer Feedback",
         description: "Tell us about your experience",
         status: "published",
+        createdBy: adminId,
         questions: [
           {
             questionText: "Are you satisfied?",
@@ -234,5 +242,57 @@ describe("POST /api/admin/surveys", () => {
     expect(data.title).toBe("Customer Feedback");
     expect(data.description).toBe("Tell us about your experience");
     expect(data.questions).toHaveLength(2);
+  });
+
+  it("should return 400 when createdBy is missing", async () => {
+    const mockService = {
+      createSurveyWithQuestions: vi.fn(),
+    };
+
+    mockMakeSurveysService.mockReturnValue(
+      mockService as unknown as MockSurveysService,
+    );
+
+    const request = new NextRequest("http://localhost:3000/api/admin/surveys", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Test Survey",
+        status: "draft",
+        // Missing createdBy
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error.code).toBe("INVALID_REQUEST");
+    expect(mockService.createSurveyWithQuestions).not.toHaveBeenCalled();
+  });
+
+  it("should return 400 when createdBy is not a valid UUID", async () => {
+    const mockService = {
+      createSurveyWithQuestions: vi.fn(),
+    };
+
+    mockMakeSurveysService.mockReturnValue(
+      mockService as unknown as MockSurveysService,
+    );
+
+    const request = new NextRequest("http://localhost:3000/api/admin/surveys", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Test Survey",
+        status: "draft",
+        createdBy: "not-a-uuid",
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error.code).toBe("INVALID_REQUEST");
+    expect(mockService.createSurveyWithQuestions).not.toHaveBeenCalled();
   });
 });

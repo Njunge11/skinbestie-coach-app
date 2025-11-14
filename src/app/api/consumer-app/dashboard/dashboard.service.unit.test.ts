@@ -40,6 +40,7 @@ describe("DashboardService", () => {
     occupation: null,
     bio: null,
     timezone: "Europe/London",
+    feedbackSurveyVisible: false,
     hasCompletedSkinTest: false,
     hasCompletedBooking: false,
     productsReceived: false,
@@ -144,6 +145,7 @@ describe("DashboardService", () => {
           occupation: null,
           bio: null,
           timezone: "Europe/London",
+          feedbackSurveyVisible: false,
           profileTags: [],
         });
         expect(result.data.setupProgress).toEqual({
@@ -435,6 +437,7 @@ describe("DashboardService", () => {
         occupation: null,
         bio: null,
         timezone: "Europe/London",
+        feedbackSurveyVisible: false,
         hasCompletedSkinTest: true,
         hasCompletedBooking: false,
         productsReceived: false,

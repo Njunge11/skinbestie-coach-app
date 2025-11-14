@@ -295,6 +295,13 @@
       "when": 1763075221351,
       "tag": "0041_nasty_jackal",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1763117414226,
+      "tag": "0042_mixed_karnak",
+      "breakpoints": true
     }
   ]
 }

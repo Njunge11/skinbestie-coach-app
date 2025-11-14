@@ -46,6 +46,7 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
           occupation: schema.userProfiles.occupation,
           bio: schema.userProfiles.bio,
           timezone: schema.userProfiles.timezone,
+          feedbackSurveyVisible: schema.userProfiles.feedbackSurveyVisible,
           hasCompletedSkinTest: schema.userProfiles.hasCompletedSkinTest,
           hasCompletedBooking: schema.userProfiles.hasCompletedBooking,
           productsReceived: schema.userProfiles.productsReceived,

@@ -44,6 +44,7 @@ import {
   addProfileTag,
   removeProfileTag,
 } from "../profile-tags-actions/actions";
+import { toggleSurveyVisibility } from "../survey-visibility-actions/actions";
 import type {
   Client,
   Goal,
@@ -722,10 +723,37 @@ export function ClientPageWrapper({
     }
   };
 
+  const handleToggleSurveyVisibility = async () => {
+    // Optimistic update
+    const previousClient = client;
+    setClient((prev) => ({
+      ...prev,
+      feedbackSurveyVisible: !prev.feedbackSurveyVisible,
+    }));
+
+    // Call server action
+    const result = await toggleSurveyVisibility(userId);
+
+    if (result.success) {
+      toast.success(
+        result.data.feedbackSurveyVisible
+          ? "Feedback survey is now visible to client"
+          : "Feedback survey is now hidden from client",
+      );
+    } else {
+      // Revert on failure
+      setClient(previousClient);
+      toast.error(result.error);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
       <div className="space-y-6">
-        <ProfileHeader client={client} />
+        <ProfileHeader
+          client={client}
+          onToggleSurveyVisibility={handleToggleSurveyVisibility}
+        />
 
         <ProfileTags
           tags={tags}

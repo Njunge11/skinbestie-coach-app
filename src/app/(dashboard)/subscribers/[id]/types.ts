@@ -56,6 +56,7 @@ export interface Client {
   currentWeek: number;
   startDate: string;
   hasRoutine: boolean;
+  feedbackSurveyVisible: boolean;
   tags: ProfileTag[];
   createdAt: Date;
 }

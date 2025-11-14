@@ -3,16 +3,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { makeSurveysService } from "@/app/api/admin/surveys/surveys.service";
 import { submitResponsesRequestSchema } from "../../surveys.types";
+import { validateApiKey } from "../../../shared/auth";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Step 1: Get survey ID from params
+    // Step 1: Validate API key
+    const isValid = await validateApiKey();
+    if (!isValid) {
+      return NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "Invalid API key" } },
+        { status: 401 },
+      );
+    }
+
+    // Step 2: Get survey ID from params
     const { id: surveyId } = await params;
 
-    // Step 2: Parse and validate request body
+    // Step 3: Parse and validate request body
     const body = await request.json();
     const validation = submitResponsesRequestSchema.safeParse(body);
 
@@ -31,7 +41,7 @@ export async function POST(
 
     const validatedData = validation.data;
 
-    // Step 3: Call service to submit responses
+    // Step 4: Call service to submit responses
     const service = makeSurveysService();
     const result = await service.submitResponses({
       userId: validatedData.userId,
@@ -43,7 +53,7 @@ export async function POST(
       })),
     });
 
-    // Step 4: Handle service errors
+    // Step 5: Handle service errors
     if (!result.success) {
       return NextResponse.json(
         {
@@ -56,7 +66,7 @@ export async function POST(
       );
     }
 
-    // Step 5: Return success response
+    // Step 6: Return success response
     return NextResponse.json(
       {
         message: "Survey responses submitted successfully",
@@ -84,10 +94,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Step 1: Get survey ID from params
+    // Step 1: Validate API key
+    const isValid = await validateApiKey();
+    if (!isValid) {
+      return NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "Invalid API key" } },
+        { status: 401 },
+      );
+    }
+
+    // Step 2: Get survey ID from params
     const { id: surveyId } = await params;
 
-    // Step 2: Get userId from query params
+    // Step 3: Get userId from query params
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get("userId");
 
@@ -103,11 +122,11 @@ export async function GET(
       );
     }
 
-    // Step 3: Call service to get submission history
+    // Step 4: Call service to get submission history
     const service = makeSurveysService();
     const result = await service.getUserSubmissionHistory(surveyId, userId);
 
-    // Step 4: Handle service errors
+    // Step 5: Handle service errors
     if (!result.success) {
       return NextResponse.json(
         {
@@ -120,7 +139,7 @@ export async function GET(
       );
     }
 
-    // Step 5: Return success response
+    // Step 6: Return success response
     return NextResponse.json(result.data, { status: 200 });
   } catch (error) {
     console.error("[GetSubmissionHistoryRoute] Unexpected error:", error);

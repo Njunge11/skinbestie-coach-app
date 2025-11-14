@@ -6,14 +6,36 @@ import { GET } from "../route";
 import * as surveysService from "@/app/api/admin/surveys/surveys.service";
 import type { MockSurveysService } from "@/app/api/admin/surveys/__tests__/test-types";
 
-// Mock the surveys service
+// Mock dependencies
 vi.mock("@/app/api/admin/surveys/surveys.service");
+vi.mock("../../../shared/auth", () => ({
+  validateApiKey: vi.fn(),
+}));
+
+import { validateApiKey } from "../../../shared/auth";
 
 describe("GET /api/consumer-app/surveys/[id]", () => {
   const mockMakeSurveysService = vi.mocked(surveysService.makeSurveysService);
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: API key is valid
+    vi.mocked(validateApiKey).mockResolvedValue(true);
+  });
+
+  it("returns 401 when API key is invalid", async () => {
+    vi.mocked(validateApiKey).mockResolvedValue(false);
+
+    const request = new NextRequest(
+      "http://localhost:3000/api/consumer-app/surveys/survey-id-123",
+    );
+    const params = Promise.resolve({ id: "survey-id-123" });
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error.code).toBe("UNAUTHORIZED");
   });
 
   it("should return survey with consumer-relevant fields only", async () => {

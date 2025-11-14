@@ -88,6 +88,7 @@ export function makeDashboardService(deps: DashboardServiceDeps = {}) {
             occupation: userData.occupation,
             bio: userData.bio,
             timezone: userData.timezone,
+            feedbackSurveyVisible: userData.feedbackSurveyVisible,
             profileTags: profileTags,
           },
           setupProgress: {
