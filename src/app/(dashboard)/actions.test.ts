@@ -26,9 +26,6 @@ describe("Dashboard Stats - Integration Tests (PGlite)", () => {
   // This week: Nov 10-16, 2025 (Monday-Sunday)
   // Last week: Nov 3-9, 2025 (Monday-Sunday)
   const fixedNow = new Date("2025-11-13T12:00:00Z"); // Thursday of this week
-  const thisWeekStart = new Date("2025-11-10T00:00:00Z"); // Monday
-  const lastWeekStart = new Date("2025-11-03T00:00:00Z"); // Previous Monday
-  const lastWeekEnd = new Date("2025-11-09T23:59:59Z"); // Previous Sunday
 
   beforeEach(async () => {
     const setup = await createTestDatabase();

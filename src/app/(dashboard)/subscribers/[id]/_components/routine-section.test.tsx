@@ -16,6 +16,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   const mockOnUpdateProduct = vi.fn();
   const mockOnDeleteProduct = vi.fn();
   const mockOnReorderProducts = vi.fn();
+  const mockOnSaveAsTemplate = vi.fn();
 
   const mockTemplates = [
     {
@@ -1139,5 +1140,130 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User sees frequency badge with days displayed
     expect(screen.getByText(/2x per week/)).toBeInTheDocument();
     expect(screen.getByText(/Mon, Thu/)).toBeInTheDocument();
+  });
+
+  // ========================================
+  // Save as Template Switch Tests
+  // ========================================
+  it("shows save as template switch when routine is published and not saved", async () => {
+    const publishedRoutine = makeRoutine({
+      id: "routine-1",
+      status: "published",
+      savedAsTemplate: false,
+    });
+
+    render(
+      <RoutineSection
+        routine={publishedRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+        onSaveAsTemplate={mockOnSaveAsTemplate}
+      />,
+    );
+
+    // User sees save as template switch and label
+    expect(screen.getByRole("switch")).toBeInTheDocument();
+    expect(screen.getByText(/save as template/i)).toBeInTheDocument();
+  });
+
+  it("does NOT show banner when routine is draft", async () => {
+    const draftRoutine = makeRoutine({
+      id: "routine-1",
+      status: "draft",
+      savedAsTemplate: false,
+    });
+
+    render(
+      <RoutineSection
+        routine={draftRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+        onSaveAsTemplate={mockOnSaveAsTemplate}
+      />,
+    );
+
+    // Switch should not be visible
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+
+  it("does NOT show switch when routine already saved as template", async () => {
+    const savedRoutine = makeRoutine({
+      id: "routine-1",
+      status: "published",
+      savedAsTemplate: true,
+    });
+
+    render(
+      <RoutineSection
+        routine={savedRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+        onSaveAsTemplate={mockOnSaveAsTemplate}
+      />,
+    );
+
+    // Switch should not be visible
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+
+  it("calls onSaveAsTemplate when user toggles switch on", async () => {
+    const user = userEvent.setup();
+
+    const publishedRoutine = makeRoutine({
+      id: "routine-1",
+      status: "published",
+      savedAsTemplate: false,
+    });
+
+    render(
+      <RoutineSection
+        routine={publishedRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+        onSaveAsTemplate={mockOnSaveAsTemplate}
+      />,
+    );
+
+    // User toggles switch on
+    await user.click(screen.getByRole("switch"));
+
+    // Verify handler was called
+    expect(mockOnSaveAsTemplate).toHaveBeenCalledTimes(1);
   });
 });

@@ -25,6 +25,7 @@ import {
   updateRoutine as updateRoutineAction,
   deleteRoutine as deleteRoutineAction,
   publishRoutine as publishRoutineAction,
+  saveRoutineAsTemplate as saveRoutineAsTemplateAction,
 } from "../routine-info-actions/actions";
 import { copyTemplateToUser } from "@/app/(dashboard)/routine-management/template-actions/copy-template";
 import {
@@ -381,6 +382,22 @@ export function ClientPageWrapper({
     } else {
       setRoutine(result.data);
       toast.success("Routine published successfully");
+    }
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!routine) return;
+
+    // Call server action
+    const result = await saveRoutineAsTemplateAction(routine.id, adminId);
+
+    if (!result.success) {
+      console.error("Failed to save routine as template:", result.error);
+      toast.error(result.error || "Failed to save routine as template");
+    } else {
+      // Update routine to mark it as saved
+      setRoutine((prev) => (prev ? { ...prev, savedAsTemplate: true } : prev));
+      toast.success("Routine saved as template successfully");
     }
   };
 
@@ -754,6 +771,7 @@ export function ClientPageWrapper({
             onUpdateProduct={handleUpdateRoutineProduct}
             onDeleteProduct={handleDeleteRoutineProduct}
             onReorderProducts={handleReorderRoutineProducts}
+            onSaveAsTemplate={handleSaveAsTemplate}
           />
 
           <ProgressPhotos

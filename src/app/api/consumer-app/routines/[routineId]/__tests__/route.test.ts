@@ -175,6 +175,7 @@ describe("PATCH /api/consumer-app/routines/[routineId]", () => {
           startDate: new Date("2025-11-17"),
           endDate: null,
           status: "published" as const,
+          savedAsTemplate: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -210,6 +211,7 @@ describe("PATCH /api/consumer-app/routines/[routineId]", () => {
         startDate: new Date("2025-11-17"),
         endDate: new Date("2025-12-31"),
         status: "published" as const,
+        savedAsTemplate: false,
         createdAt: new Date("2025-11-01"),
         updatedAt: new Date("2025-11-12"),
       };

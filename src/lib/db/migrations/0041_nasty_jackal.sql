@@ -1,0 +1,1 @@
+ALTER TABLE "skincare_routines" ADD COLUMN "saved_as_template" boolean DEFAULT false NOT NULL;

@@ -969,6 +969,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
         startDate: new Date("2025-01-15"),
         endDate: null,
         status: "draft" as const,
+        savedAsTemplate: false,
         userProfileId: "user-1",
         createdAt: new Date(),
         updatedAt: new Date(),

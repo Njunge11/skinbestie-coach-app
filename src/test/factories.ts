@@ -160,6 +160,7 @@ export function makeRoutine(overrides: Partial<Routine> = {}): Routine {
     startDate,
     endDate: null,
     status: "draft",
+    savedAsTemplate: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

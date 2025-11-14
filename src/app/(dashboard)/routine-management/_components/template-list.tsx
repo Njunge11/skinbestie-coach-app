@@ -125,18 +125,20 @@ export function TemplateList({
   // Empty state
   if (templates.length === 0) {
     return (
-      <Card className="bg-white">
-        <CardContent className="flex flex-col items-center justify-center py-12 px-8 min-h-[60vh]">
-          <p className="text-sm text-gray-500 mb-1">No templates yet</p>
-          <p className="text-xs text-gray-400 mb-6">
-            Create your first routine template to get started
-          </p>
-          <Button variant="outline" onClick={onCreateClick}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Template
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="mt-10">
+        <Card className="bg-white">
+          <CardContent className="flex flex-col items-center justify-center py-12 px-8 min-h-[60vh]">
+            <p className="text-sm text-gray-500 mb-1">No templates yet</p>
+            <p className="text-xs text-gray-400 mb-6">
+              Create your first routine template to get started
+            </p>
+            <Button variant="outline" onClick={onCreateClick}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Template
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

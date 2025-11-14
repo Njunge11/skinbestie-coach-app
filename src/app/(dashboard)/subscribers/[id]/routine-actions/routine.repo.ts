@@ -43,6 +43,8 @@ export function makeRoutineProductsRepo() {
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,
           instructions: skincareRoutineProducts.instructions,
+          productPurchaseInstructions:
+            skincareRoutineProducts.productPurchaseInstructions,
           frequency: skincareRoutineProducts.frequency,
           days: skincareRoutineProducts.days,
           timeOfDay: skincareRoutineProducts.timeOfDay,
@@ -52,6 +54,35 @@ export function makeRoutineProductsRepo() {
         })
         .from(skincareRoutineProducts)
         .where(eq(skincareRoutineProducts.userProfileId, userId))
+        .orderBy(
+          asc(skincareRoutineProducts.timeOfDay),
+          asc(skincareRoutineProducts.order),
+        );
+
+      return products as RoutineProduct[];
+    },
+
+    async findByRoutineId(routineId: string): Promise<RoutineProduct[]> {
+      const products = await db
+        .select({
+          id: skincareRoutineProducts.id,
+          routineId: skincareRoutineProducts.routineId,
+          userProfileId: skincareRoutineProducts.userProfileId,
+          routineStep: skincareRoutineProducts.routineStep,
+          productName: skincareRoutineProducts.productName,
+          productUrl: skincareRoutineProducts.productUrl,
+          instructions: skincareRoutineProducts.instructions,
+          productPurchaseInstructions:
+            skincareRoutineProducts.productPurchaseInstructions,
+          frequency: skincareRoutineProducts.frequency,
+          days: skincareRoutineProducts.days,
+          timeOfDay: skincareRoutineProducts.timeOfDay,
+          order: skincareRoutineProducts.order,
+          createdAt: skincareRoutineProducts.createdAt,
+          updatedAt: skincareRoutineProducts.updatedAt,
+        })
+        .from(skincareRoutineProducts)
+        .where(eq(skincareRoutineProducts.routineId, routineId))
         .orderBy(
           asc(skincareRoutineProducts.timeOfDay),
           asc(skincareRoutineProducts.order),
@@ -73,6 +104,8 @@ export function makeRoutineProductsRepo() {
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,
           instructions: skincareRoutineProducts.instructions,
+          productPurchaseInstructions:
+            skincareRoutineProducts.productPurchaseInstructions,
           frequency: skincareRoutineProducts.frequency,
           days: skincareRoutineProducts.days,
           timeOfDay: skincareRoutineProducts.timeOfDay,
@@ -102,6 +135,8 @@ export function makeRoutineProductsRepo() {
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,
           instructions: skincareRoutineProducts.instructions,
+          productPurchaseInstructions:
+            skincareRoutineProducts.productPurchaseInstructions,
           frequency: skincareRoutineProducts.frequency,
           days: skincareRoutineProducts.days,
           timeOfDay: skincareRoutineProducts.timeOfDay,
@@ -128,6 +163,8 @@ export function makeRoutineProductsRepo() {
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,
           instructions: skincareRoutineProducts.instructions,
+          productPurchaseInstructions:
+            skincareRoutineProducts.productPurchaseInstructions,
           frequency: skincareRoutineProducts.frequency,
           days: skincareRoutineProducts.days,
           timeOfDay: skincareRoutineProducts.timeOfDay,

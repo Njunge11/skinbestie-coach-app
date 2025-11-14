@@ -353,6 +353,9 @@ export const skincareRoutines = pgTable(
     status: routineStatusEnum("status").notNull().default("draft"), // "draft" or "published"
     productPurchaseInstructions: text("product_purchase_instructions"), // Optional instructions for purchasing products
 
+    // Template tracking
+    savedAsTemplate: boolean("saved_as_template").notNull().default(false), // Track if routine was saved as template
+
     // Timestamps
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

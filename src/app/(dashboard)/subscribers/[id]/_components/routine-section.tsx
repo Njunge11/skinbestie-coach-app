@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { RoutineItem } from "./routine-item";
 import { AddRoutineModal } from "./add-routine-modal";
@@ -105,6 +106,7 @@ interface RoutineSectionProps {
     timeOfDay: "morning" | "evening",
     reorderedProducts: RoutineProduct[],
   ) => Promise<void>;
+  onSaveAsTemplate?: () => Promise<void>;
 }
 
 export function RoutineSection({
@@ -120,6 +122,7 @@ export function RoutineSection({
   onUpdateProduct,
   onDeleteProduct,
   onReorderProducts,
+  onSaveAsTemplate,
 }: RoutineSectionProps) {
   const [isAddRoutineOpen, setIsAddRoutineOpen] = useState(false);
   const [isEditRoutineOpen, setIsEditRoutineOpen] = useState(false);
@@ -519,6 +522,24 @@ export function RoutineSection({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {routine.status === "published" && !routine.savedAsTemplate && (
+                <div className="flex items-center gap-2 mr-2">
+                  <Switch
+                    id="save-template"
+                    onCheckedChange={(checked) => {
+                      if (checked && onSaveAsTemplate) {
+                        onSaveAsTemplate();
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="save-template"
+                    className="text-xs font-medium text-gray-700 cursor-pointer"
+                  >
+                    Save as Template
+                  </label>
+                </div>
+              )}
               <Button
                 variant="outline"
                 size="sm"

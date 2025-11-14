@@ -43,5 +43,8 @@ export { publishRoutine } from "./publish-routine";
 export { updateRoutine } from "./update-routine";
 export { updateRoutineProduct } from "./update-routine-product";
 
+// Re-export save as template operation
+export { saveRoutineAsTemplate } from "./save-as-template";
+
 // Re-export utilities (if needed by consumers)
 export { toMidnightUTC } from "./utils";
