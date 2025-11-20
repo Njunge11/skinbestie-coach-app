@@ -660,7 +660,7 @@ try {
 1. Lookup user by email
    GET /api/user-profiles/by-email?email=user@example.com
 
-2. Use the returned profile data to authenticate and personalize the experience
+2. Use the returned profile data to authenticate and personalise the experience
 ```
 
 ### Workflow 3: Multi-Step Profile Completion

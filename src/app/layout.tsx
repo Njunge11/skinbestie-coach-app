@@ -15,8 +15,8 @@ const anton = Anton({
 });
 
 export const metadata: Metadata = {
-  title: "Skinbestie Coach App",
-  description: "Admin portal for Skinbestie Coach",
+  title: "SkinBestie Coach App",
+  description: "Admin portal for SkinBestie Coach",
 };
 
 export default function RootLayout({
