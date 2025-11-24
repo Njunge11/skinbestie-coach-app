@@ -157,12 +157,29 @@ export function RoutineSection({
 
   const handleAdd = (timeOfDay: "morning" | "evening") => {
     // Validate all required fields (instructions is now optional)
-    if (
+    const isValid =
       newProduct.routineStep &&
       newProduct.routineStep.trim() &&
       newProduct.productName.trim() &&
-      newProduct.frequency.trim()
-    ) {
+      newProduct.frequency.trim();
+
+    // Validate days are selected when frequency is not daily
+    const needsDays = newProduct.frequency !== "daily";
+    let daysValid = true;
+
+    if (needsDays) {
+      const match = newProduct.frequency.match(/^(\d+)x per week$/);
+      if (match) {
+        const requiredDays = parseInt(match[1], 10);
+        daysValid =
+          newProduct.days !== undefined &&
+          newProduct.days.length === requiredDays;
+      } else if (newProduct.frequency === "specific_days") {
+        daysValid = newProduct.days !== undefined && newProduct.days.length > 0;
+      }
+    }
+
+    if (isValid && daysValid) {
       onAddProduct(timeOfDay, newProduct);
 
       setNewProduct({

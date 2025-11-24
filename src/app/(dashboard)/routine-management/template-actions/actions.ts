@@ -277,7 +277,10 @@ const createTemplateProductSchema = z.object({
     (val) => (val === "" || val === null || val === undefined ? null : val),
     z.string().url().nullable().optional(),
   ),
-  instructions: z.string().optional(),
+  instructions: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? null : val),
+    z.string().nullable().optional(),
+  ),
   frequency: z.enum([
     "daily",
     "1x per week",
@@ -300,7 +303,10 @@ const updateTemplateProductSchema = z.object({
     (val) => (val === "" || val === null || val === undefined ? null : val),
     z.string().url().nullable().optional(),
   ),
-  instructions: requiredStringSchema.optional(),
+  instructions: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? null : val),
+    z.string().nullable().optional(),
+  ),
   frequency: z
     .enum([
       "daily",

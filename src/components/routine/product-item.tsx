@@ -77,12 +77,28 @@ export function ProductItem({
 
   const handleSave = () => {
     // Validate all required fields (instructions is now optional)
-    if (
+    const isValid =
       editData.routineStep &&
       editData.routineStep.trim() &&
       editData.productName.trim() &&
-      editData.frequency.trim()
-    ) {
+      editData.frequency.trim();
+
+    // Validate days are selected when frequency is not daily
+    const needsDays = editData.frequency !== "daily";
+    let daysValid = true;
+
+    if (needsDays) {
+      const match = editData.frequency.match(/^(\d+)x per week$/);
+      if (match) {
+        const requiredDays = parseInt(match[1], 10);
+        daysValid =
+          editData.days !== undefined && editData.days.length === requiredDays;
+      } else if (editData.frequency === "specific_days") {
+        daysValid = editData.days !== undefined && editData.days.length > 0;
+      }
+    }
+
+    if (isValid && daysValid) {
       onEdit(product.id, editData);
       setIsEditing(false);
     }

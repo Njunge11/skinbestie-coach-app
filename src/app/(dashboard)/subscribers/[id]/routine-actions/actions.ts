@@ -141,7 +141,10 @@ const createRoutineProductSchema = z.object({
     (val) => (val === "" ? null : val),
     z.string().url().nullable(),
   ),
-  instructions: z.string().nullable().optional(),
+  instructions: z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().nullable().optional(),
+  ),
   productPurchaseInstructions: z
     .preprocess((val) => (val === "" ? null : val), z.string().nullable())
     .optional(),
@@ -167,7 +170,10 @@ const updateRoutineProductSchema = z.object({
     (val) => (val === "" ? undefined : val),
     z.string().url().nullable().optional(),
   ),
-  instructions: z.string().trim().min(1).optional(),
+  instructions: z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().nullable().optional(),
+  ),
   frequency: z
     .enum([
       "daily",

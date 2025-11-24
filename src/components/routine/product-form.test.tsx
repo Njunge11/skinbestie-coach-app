@@ -167,13 +167,30 @@ describe("ProductForm", () => {
     await user.click(screen.getByRole("option", { name: /2x per week/i }));
 
     // Days selection should now appear
-    expect(await screen.findByText(/select 2 days/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /mon/i }),
+    ).toBeInTheDocument();
 
-    // User clicks Monday
+    // No error message yet (user hasn't interacted)
+    expect(
+      screen.queryByText(/please select exactly 2 days/i),
+    ).not.toBeInTheDocument();
+
+    // User clicks Monday (first interaction)
     await user.click(screen.getByRole("button", { name: /mon/i }));
+
+    // Error message should now appear (only 1 day selected, need 2)
+    expect(
+      screen.getByText(/please select exactly 2 days/i),
+    ).toBeInTheDocument();
 
     // User clicks Wednesday
     await user.click(screen.getByRole("button", { name: /wed/i }));
+
+    // Error message should now be gone (2 days selected)
+    expect(
+      screen.queryByText(/please select exactly 2 days/i),
+    ).not.toBeInTheDocument();
 
     // User clicks Add button
     await user.click(screen.getByRole("button", { name: /add/i }));
@@ -233,12 +250,24 @@ describe("ProductForm", () => {
     await user.click(screen.getByRole("option", { name: /3x per week/i }));
 
     // Days selection should now appear
-    expect(await screen.findByText(/select 3 days/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /mon/i }),
+    ).toBeInTheDocument();
+
+    // No error message yet (user hasn't interacted)
+    expect(
+      screen.queryByText(/please select exactly 3 days/i),
+    ).not.toBeInTheDocument();
 
     // User clicks Monday, Wednesday, Friday
     await user.click(screen.getByRole("button", { name: /mon/i }));
     await user.click(screen.getByRole("button", { name: /wed/i }));
     await user.click(screen.getByRole("button", { name: /fri/i }));
+
+    // Error message should not appear (3 days selected correctly)
+    expect(
+      screen.queryByText(/please select exactly 3 days/i),
+    ).not.toBeInTheDocument();
 
     // User clicks Add button
     await user.click(screen.getByRole("button", { name: /add/i }));
@@ -298,7 +327,9 @@ describe("ProductForm", () => {
     await user.click(screen.getByRole("option", { name: /2x per week/i }));
 
     // Days selection should appear
-    expect(await screen.findByText(/select 2 days/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /mon/i }),
+    ).toBeInTheDocument();
 
     // User clicks Monday and Friday
     await user.click(screen.getByRole("button", { name: /mon/i }));
@@ -317,5 +348,438 @@ describe("ProductForm", () => {
     expect(
       screen.queryByRole("button", { name: /mon/i }),
     ).not.toBeInTheDocument();
+  });
+
+  describe("Error Message Interaction Behavior", () => {
+    it("error message does NOT appear immediately after selecting non-daily frequency", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "daily",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // User selects "3x per week" frequency
+      const selectTriggers = screen.getAllByRole("combobox");
+      const frequencySelect = selectTriggers.find((el) =>
+        el.textContent?.includes("Daily"),
+      );
+      await user.click(frequencySelect!);
+      await user.click(screen.getByRole("option", { name: /3x per week/i }));
+
+      // Day buttons should appear
+      expect(
+        await screen.findByRole("button", { name: /mon/i }),
+      ).toBeInTheDocument();
+
+      // Error message should NOT appear (no interaction yet)
+      expect(
+        screen.queryByText(/please select exactly 3 days/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it("error message appears after first day button click with insufficient days", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "2x per week",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // No error initially
+      expect(
+        screen.queryByText(/please select exactly 2 days/i),
+      ).not.toBeInTheDocument();
+
+      // User clicks Monday (1 day selected, need 2)
+      await user.click(screen.getByRole("button", { name: /mon/i }));
+
+      // Error message should now appear
+      expect(
+        screen.getByText(/please select exactly 2 days/i),
+      ).toBeInTheDocument();
+    });
+
+    it("error message disappears when correct number of days selected", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "2x per week",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // Click Monday (error will appear)
+      await user.click(screen.getByRole("button", { name: /mon/i }));
+      expect(
+        screen.getByText(/please select exactly 2 days/i),
+      ).toBeInTheDocument();
+
+      // Click Tuesday (now have 2 days, error should disappear)
+      await user.click(screen.getByRole("button", { name: /tue/i }));
+      expect(
+        screen.queryByText(/please select exactly 2 days/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it("error message appears when clicking Save with no days selected", async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "3x per week",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={onSave}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // No error initially
+      expect(
+        screen.queryByText(/please select exactly 3 days/i),
+      ).not.toBeInTheDocument();
+
+      // Click Save button without selecting days
+      await user.click(screen.getByRole("button", { name: /add/i }));
+
+      // Error message should now appear
+      expect(
+        screen.getByText(/please select exactly 3 days/i),
+      ).toBeInTheDocument();
+    });
+
+    it("error message appears when clicking Save with wrong number of days", async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "4x per week",
+          days: ["Mon", "Tue"], // Only 2 days, need 4
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={onSave}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // No error initially (user hasn't interacted yet)
+      expect(
+        screen.queryByText(/please select exactly 4 days/i),
+      ).not.toBeInTheDocument();
+
+      // Click Save button with wrong number of days
+      await user.click(screen.getByRole("button", { name: /add/i }));
+
+      // Error message should now appear
+      expect(
+        screen.getByText(/please select exactly 4 days/i),
+      ).toBeInTheDocument();
+    });
+
+    it("error persists when user has wrong number selected and keeps interacting", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "3x per week",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // Click Monday
+      await user.click(screen.getByRole("button", { name: /mon/i }));
+      expect(
+        screen.getByText(/please select exactly 3 days/i),
+      ).toBeInTheDocument();
+
+      // Click Tuesday (still only 2 days, error should persist)
+      await user.click(screen.getByRole("button", { name: /tue/i }));
+      expect(
+        screen.getByText(/please select exactly 3 days/i),
+      ).toBeInTheDocument();
+
+      // Click Wednesday (now have 3 days, error should disappear)
+      await user.click(screen.getByRole("button", { name: /wed/i }));
+      expect(
+        screen.queryByText(/please select exactly 3 days/i),
+      ).not.toBeInTheDocument();
+
+      // Unclick Wednesday (back to 2 days, error should reappear)
+      await user.click(screen.getByRole("button", { name: /wed/i }));
+      expect(
+        screen.getByText(/please select exactly 3 days/i),
+      ).toBeInTheDocument();
+    });
+
+    it("specific_days frequency shows error after interaction with 0 days", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "specific_days",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // No error initially
+      expect(
+        screen.queryByText(/please select at least 1 day/i),
+      ).not.toBeInTheDocument();
+
+      // Click Save button without selecting days
+      await user.click(screen.getByRole("button", { name: /add/i }));
+
+      // Error message should now appear for specific_days
+      expect(
+        screen.getByText(/please select at least 1 day/i),
+      ).toBeInTheDocument();
+    });
+
+    it("specific_days error disappears after selecting any day", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "specific_days",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // Click Save to trigger error
+      await user.click(screen.getByRole("button", { name: /add/i }));
+      expect(
+        screen.getByText(/please select at least 1 day/i),
+      ).toBeInTheDocument();
+
+      // Click Monday (1 day is enough for specific_days)
+      await user.click(screen.getByRole("button", { name: /mon/i }));
+
+      // Error should disappear
+      expect(
+        screen.queryByText(/please select at least 1 day/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it("no error for daily frequency (no days required)", async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "daily",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={onSave}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // Day buttons should not be visible for daily frequency
+      expect(
+        screen.queryByRole("button", { name: /mon/i }),
+      ).not.toBeInTheDocument();
+
+      // Click Save button
+      await user.click(screen.getByRole("button", { name: /add/i }));
+
+      // No error message should appear
+      expect(screen.queryByText(/please select/i)).not.toBeInTheDocument();
+
+      // onSave should be called (validation passes)
+      expect(onSave).toHaveBeenCalled();
+    });
+
+    it("error state persists across multiple interactions", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "2x per week",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // Click Monday to trigger hasInteracted
+      await user.click(screen.getByRole("button", { name: /mon/i }));
+      expect(
+        screen.getByText(/please select exactly 2 days/i),
+      ).toBeInTheDocument();
+
+      // Change product name (different field interaction)
+      const productNameInput = screen.getByDisplayValue("Test Product");
+      await user.clear(productNameInput);
+      await user.type(productNameInput, "Updated Product");
+
+      // Error should still be visible (hasInteracted stays true)
+      expect(
+        screen.getByText(/please select exactly 2 days/i),
+      ).toBeInTheDocument();
+
+      // Click Tuesday to fix the error
+      await user.click(screen.getByRole("button", { name: /tue/i }));
+
+      // Error should now disappear
+      expect(
+        screen.queryByText(/please select exactly 2 days/i),
+      ).not.toBeInTheDocument();
+    });
   });
 });

@@ -59,6 +59,7 @@ export function ProductForm({
   saveLabel = "Add",
 }: ProductFormProps) {
   const [openRoutineStep, setOpenRoutineStep] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   return (
     <div className="rounded-lg border border-gray-200 p-4 space-y-3">
@@ -226,7 +227,7 @@ export function ProductForm({
           <label className="text-sm font-medium text-gray-700">
             Select Days
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             {(() => {
               // Extract max days dynamically from frequency string
               const getMaxDays = (frequency: string): number => {
@@ -248,6 +249,7 @@ export function ProductForm({
                     key={day.value}
                     type="button"
                     onClick={() => {
+                      setHasInteracted(true);
                       const currentDays = data.days || [];
                       if (isSelected) {
                         onChange({
@@ -262,10 +264,10 @@ export function ProductForm({
                       }
                     }}
                     className={cn(
-                      "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                      "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
                       isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200",
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-white text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50",
                       !canSelect &&
                         !isSelected &&
                         "opacity-50 cursor-not-allowed",
@@ -278,19 +280,42 @@ export function ProductForm({
               });
             })()}
           </div>
-          <p className="text-xs text-gray-500">
-            Select{" "}
-            {(() => {
+          {hasInteracted &&
+            (() => {
               const match = data.frequency.match(/^(\d+)x per week$/);
-              return match ? match[1] : "specific";
-            })()}{" "}
-            days
-          </p>
+              if (match) {
+                const requiredDays = parseInt(match[1], 10);
+                const selectedDays = data.days?.length || 0;
+                if (selectedDays !== requiredDays) {
+                  return (
+                    <p className="text-xs text-red-500">
+                      Please select exactly {requiredDays} days
+                    </p>
+                  );
+                }
+              } else if (data.frequency === "specific_days") {
+                const selectedDays = data.days?.length || 0;
+                if (selectedDays === 0) {
+                  return (
+                    <p className="text-xs text-red-500">
+                      Please select at least 1 day
+                    </p>
+                  );
+                }
+              }
+              return null;
+            })()}
         </div>
       )}
 
       <div className="flex gap-2 mt-4">
-        <Button size="sm" onClick={onSave}>
+        <Button
+          size="sm"
+          onClick={() => {
+            setHasInteracted(true);
+            onSave();
+          }}
+        >
           {saveLabel}
         </Button>
         <Button size="sm" variant="outline" onClick={onCancel}>
