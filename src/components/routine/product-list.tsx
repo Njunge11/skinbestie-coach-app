@@ -60,12 +60,11 @@ export function ProductList({
   );
 
   const handleAdd = () => {
-    // Validate all required fields
+    // Validate all required fields (instructions is now optional)
     if (
       newProduct.routineStep &&
       newProduct.routineStep.trim() &&
       newProduct.productName.trim() &&
-      newProduct.instructions.trim() &&
       newProduct.frequency.trim()
     ) {
       onAdd(newProduct);

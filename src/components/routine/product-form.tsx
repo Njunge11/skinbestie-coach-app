@@ -37,7 +37,7 @@ export interface ProductFormData {
   routineStep: string;
   productName: string;
   productUrl: string | null;
-  instructions: string;
+  instructions?: string | null;
   productPurchaseInstructions?: string | null;
   frequency: Frequency;
   days: string[] | undefined;
@@ -141,13 +141,15 @@ export function ProductForm({
 
       <div className="space-y-2">
         <label htmlFor="instructions" className="text-sm font-medium">
-          Instructions
+          Instructions (optional)
         </label>
         <Textarea
           id="instructions"
           placeholder="e.g., Apply to damp skin, massage gently"
-          value={data.instructions}
-          onChange={(e) => onChange({ ...data, instructions: e.target.value })}
+          value={data.instructions || ""}
+          onChange={(e) =>
+            onChange({ ...data, instructions: e.target.value || null })
+          }
           rows={2}
           className="text-sm resize-none mt-2"
         />
@@ -179,13 +181,32 @@ export function ProductForm({
         <label className="text-sm font-medium">Frequency</label>
         <Select
           value={data.frequency}
-          onValueChange={(value) =>
+          onValueChange={(value) => {
+            const newFrequency = value as Frequency;
+            let newDays: string[] | undefined = data.days || [];
+
+            // Clear days if switching to daily
+            if (newFrequency === "daily") {
+              newDays = undefined;
+            }
+            // If switching to an "Nx per week" frequency, trim days if we have too many
+            else {
+              const match = newFrequency.match(/^(\d+)x per week$/);
+              if (match) {
+                const maxDays = parseInt(match[1], 10);
+                // If currently selected days exceed new max, keep only first N days
+                if (newDays && newDays.length > maxDays) {
+                  newDays = newDays.slice(0, maxDays);
+                }
+              }
+            }
+
             onChange({
               ...data,
-              frequency: value as Frequency,
-              days: value === "daily" ? undefined : data.days || [],
-            })
-          }
+              frequency: newFrequency,
+              days: newDays,
+            });
+          }}
         >
           <SelectTrigger className="mt-2">
             <SelectValue placeholder="Select frequency" />
@@ -206,8 +227,7 @@ export function ProductForm({
             Select Days
           </label>
           <div className="flex flex-wrap gap-2">
-            {DAYS_OF_WEEK.map((day) => {
-              const isSelected = data.days?.includes(day.value);
+            {(() => {
               // Extract max days dynamically from frequency string
               const getMaxDays = (frequency: string): number => {
                 if (frequency === "daily") return 7;
@@ -217,42 +237,46 @@ export function ProductForm({
                 return match ? parseInt(match[1], 10) : 7;
               };
               const maxDays = getMaxDays(data.frequency);
-              const canSelect =
-                isSelected || (data.days?.length || 0) < maxDays;
 
-              return (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => {
-                    const currentDays = data.days || [];
-                    if (isSelected) {
-                      onChange({
-                        ...data,
-                        days: currentDays.filter((d) => d !== day.value),
-                      });
-                    } else if (canSelect) {
-                      onChange({
-                        ...data,
-                        days: [...currentDays, day.value],
-                      });
-                    }
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                    isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200",
-                    !canSelect &&
-                      !isSelected &&
-                      "opacity-50 cursor-not-allowed",
-                  )}
-                  disabled={!canSelect && !isSelected}
-                >
-                  {day.label}
-                </button>
-              );
-            })}
+              return DAYS_OF_WEEK.map((day) => {
+                const isSelected = data.days?.includes(day.value);
+                const canSelect =
+                  isSelected || (data.days?.length || 0) < maxDays;
+
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => {
+                      const currentDays = data.days || [];
+                      if (isSelected) {
+                        onChange({
+                          ...data,
+                          days: currentDays.filter((d) => d !== day.value),
+                        });
+                      } else if (canSelect) {
+                        onChange({
+                          ...data,
+                          days: [...currentDays, day.value],
+                        });
+                      }
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200",
+                      !canSelect &&
+                        !isSelected &&
+                        "opacity-50 cursor-not-allowed",
+                    )}
+                    disabled={!canSelect && !isSelected}
+                  >
+                    {day.label}
+                  </button>
+                );
+              });
+            })()}
           </div>
           <p className="text-xs text-gray-500">
             Select{" "}

@@ -495,6 +495,7 @@ export function ClientPageWrapper({
       routineId: routine.id,
       userProfileId: userId,
       ...data,
+      instructions: data.instructions ?? null,
       productUrl: data.productUrl ?? null,
       productPurchaseInstructions: data.productPurchaseInstructions ?? null,
       days: data.days ?? null,

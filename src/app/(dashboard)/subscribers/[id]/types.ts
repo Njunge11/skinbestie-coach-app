@@ -23,6 +23,7 @@ export type Photo = Pick<
 // Type aliases matching database enums for type safety
 export type Frequency =
   | "daily"
+  | "1x per week"
   | "2x per week"
   | "3x per week"
   | "4x per week"
@@ -82,7 +83,7 @@ export interface RoutineProductFormData {
   routineStep: string;
   productName: string;
   productUrl: string;
-  instructions: string;
+  instructions?: string | null;
   productPurchaseInstructions?: string | null;
   frequency: Frequency;
   days?: string[];

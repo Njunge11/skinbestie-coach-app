@@ -156,12 +156,11 @@ export function RoutineSection({
   );
 
   const handleAdd = (timeOfDay: "morning" | "evening") => {
-    // Validate all required fields
+    // Validate all required fields (instructions is now optional)
     if (
       newProduct.routineStep &&
       newProduct.routineStep.trim() &&
       newProduct.productName.trim() &&
-      newProduct.instructions.trim() &&
       newProduct.frequency.trim()
     ) {
       onAddProduct(timeOfDay, newProduct);
@@ -318,9 +317,12 @@ export function RoutineSection({
         <Textarea
           id="instructions"
           placeholder="e.g., Apply to damp skin, massage gently"
-          value={newProduct.instructions}
+          value={newProduct.instructions || ""}
           onChange={(e) =>
-            setNewProduct((prev) => ({ ...prev, instructions: e.target.value }))
+            setNewProduct((prev) => ({
+              ...prev,
+              instructions: e.target.value || null,
+            }))
           }
           rows={2}
           className="text-sm resize-none mt-2"

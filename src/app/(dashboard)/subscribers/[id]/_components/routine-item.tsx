@@ -94,12 +94,11 @@ export function RoutineItem({
   };
 
   const handleSave = () => {
-    // Validate all required fields
+    // Validate all required fields (instructions is now optional)
     if (
       editData.routineStep &&
       editData.routineStep.trim() &&
       editData.productName.trim() &&
-      editData.instructions.trim() &&
       editData.frequency.trim()
     ) {
       onEdit(product.id, editData);
@@ -202,9 +201,12 @@ export function RoutineItem({
           <Textarea
             id="edit-instructions"
             placeholder="e.g., Apply to damp skin, massage gently"
-            value={editData.instructions}
+            value={editData.instructions || ""}
             onChange={(e) =>
-              setEditData((prev) => ({ ...prev, instructions: e.target.value }))
+              setEditData((prev) => ({
+                ...prev,
+                instructions: e.target.value || null,
+              }))
             }
             rows={2}
             className="text-sm resize-none mt-2"

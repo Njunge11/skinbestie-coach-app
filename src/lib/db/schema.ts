@@ -24,6 +24,7 @@ export const routineStatusEnum = pgEnum("routine_status", [
 ]);
 export const frequencyEnum = pgEnum("frequency", [
   "daily",
+  "1x per week",
   "2x per week",
   "3x per week",
   "4x per week",
@@ -393,11 +394,11 @@ export const skincareRoutineProducts = pgTable(
       .notNull()
       .references(() => userProfiles.id, { onDelete: "cascade" }),
 
-    // Product details (all required except productUrl and productPurchaseInstructions)
+    // Product details (all required except productUrl, instructions, and productPurchaseInstructions)
     routineStep: text("routine_step").notNull(),
     productName: text("product_name").notNull(),
     productUrl: text("product_url"), // Optional link to product
-    instructions: text("instructions").notNull(),
+    instructions: text("instructions"), // Optional usage instructions
     productPurchaseInstructions: text("product_purchase_instructions"), // Optional instructions for purchasing this product
 
     // Frequency and scheduling
@@ -484,7 +485,7 @@ export const routineTemplateProducts = pgTable(
     routineStep: text("routine_step").notNull(),
     productName: text("product_name").notNull(),
     productUrl: text("product_url"), // Optional link to product
-    instructions: text("instructions").notNull(),
+    instructions: text("instructions"), // Optional usage instructions
 
     // Frequency and scheduling
     frequency: frequencyEnum("frequency").notNull(), // "daily", "2x per week", "3x per week", "specific_days"

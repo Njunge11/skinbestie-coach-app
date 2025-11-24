@@ -19,7 +19,7 @@ export interface Product {
   routineStep: string;
   productName: string;
   productUrl: string | null;
-  instructions: string;
+  instructions: string | null;
   frequency: Frequency;
   days: string[] | null;
   timeOfDay: TimeOfDay;
@@ -76,12 +76,11 @@ export function ProductItem({
   };
 
   const handleSave = () => {
-    // Validate all required fields
+    // Validate all required fields (instructions is now optional)
     if (
       editData.routineStep &&
       editData.routineStep.trim() &&
       editData.productName.trim() &&
-      editData.instructions.trim() &&
       editData.frequency.trim()
     ) {
       onEdit(product.id, editData);

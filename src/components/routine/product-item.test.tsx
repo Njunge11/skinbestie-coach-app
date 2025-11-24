@@ -194,7 +194,7 @@ describe("ProductItem", () => {
     await user.type(nameInput, "Updated Moisturizer");
 
     // User changes the instructions
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.clear(instructionsInput);
     await user.type(instructionsInput, "Apply twice daily");
 

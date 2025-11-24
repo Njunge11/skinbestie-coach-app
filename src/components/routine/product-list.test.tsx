@@ -45,7 +45,7 @@ describe("ProductList", () => {
     const nameInput = screen.getByPlaceholderText(/product name/i);
     await user.type(nameInput, "CeraVe Cleanser");
 
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.type(instructionsInput, "Apply to damp skin");
 
     // User clicks Add button
@@ -115,7 +115,7 @@ describe("ProductList", () => {
     const nameInput = screen.getByPlaceholderText(/product name/i);
     await user.type(nameInput, "Retinol Eye Cream");
 
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.type(instructionsInput, "Apply around eyes");
 
     // User clicks Add button

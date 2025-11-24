@@ -101,7 +101,7 @@ export type CreateRoutineProductInput = {
   routineStep: string;
   productName: string;
   productUrl: string | null;
-  instructions: string;
+  instructions?: string | null;
   frequency: string;
   days: string[] | null;
   timeOfDay: "morning" | "evening";
@@ -111,7 +111,7 @@ export type UpdateRoutineProductInput = {
   routineStep?: string;
   productName?: string;
   productUrl?: string | null;
-  instructions?: string;
+  instructions?: string | null;
   frequency?: string;
   days?: string[] | null;
 };
@@ -141,12 +141,13 @@ const createRoutineProductSchema = z.object({
     (val) => (val === "" ? null : val),
     z.string().url().nullable(),
   ),
-  instructions: requiredStringSchema,
+  instructions: z.string().nullable().optional(),
   productPurchaseInstructions: z
     .preprocess((val) => (val === "" ? null : val), z.string().nullable())
     .optional(),
   frequency: z.enum([
     "daily",
+    "1x per week",
     "2x per week",
     "3x per week",
     "4x per week",
@@ -333,7 +334,7 @@ export async function createRoutineProduct(
         routineStep: validation.data.routineStep,
         productName: validation.data.productName,
         productUrl: validation.data.productUrl ?? null,
-        instructions: validation.data.instructions,
+        instructions: validation.data.instructions ?? null,
         productPurchaseInstructions:
           validation.data.productPurchaseInstructions ?? null,
         frequency: validation.data.frequency,

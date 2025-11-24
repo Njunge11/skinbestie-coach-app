@@ -302,6 +302,20 @@
       "when": 1763117414226,
       "tag": "0042_mixed_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1763994306345,
+      "tag": "0043_fresh_spirit",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1763995854839,
+      "tag": "0044_eager_cannonball",
+      "breakpoints": true
     }
   ]
 }

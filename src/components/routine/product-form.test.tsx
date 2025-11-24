@@ -46,7 +46,7 @@ describe("ProductForm", () => {
     await user.type(productUrlInput, "https://example.com/product");
 
     // User fills instructions
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.type(instructionsInput, "Apply to damp skin, massage gently");
 
     // Frequency is already "Daily" by default - no days selection shown
@@ -95,7 +95,7 @@ describe("ProductForm", () => {
     // User skips product URL (optional field)
 
     // User fills instructions
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.type(instructionsInput, "Apply after treat");
 
     // User clicks Add button
@@ -154,7 +154,7 @@ describe("ProductForm", () => {
     await user.type(productNameInput, "Vitamin C treat");
 
     // User fills instructions
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.type(instructionsInput, "Apply in the morning");
 
     // User selects "2x per week" frequency
@@ -221,7 +221,7 @@ describe("ProductForm", () => {
     await user.type(productNameInput, "Hydrating Toner");
 
     // User fills instructions
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.type(instructionsInput, "Apply with cotton pad");
 
     // User selects "3x per week" frequency
@@ -286,7 +286,7 @@ describe("ProductForm", () => {
     await user.type(productNameInput, "Gentle cleanse");
 
     // User fills instructions
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.type(instructionsInput, "Use twice daily");
 
     // User selects "2x per week" frequency

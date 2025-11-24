@@ -93,7 +93,7 @@ describe("StorageService - Generate Presigned Upload URL", () => {
     expect(result1.s3Key).not.toBe(result2.s3Key);
   });
 
-  it("includes date in S3 key for organization", async () => {
+  it("includes date in S3 key for organisation", async () => {
     // When
     const result = await service.generatePresignedUploadUrl({
       userProfileId: userId,

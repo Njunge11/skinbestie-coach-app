@@ -174,7 +174,7 @@ export function AddRoutineModal({
                       From template
                     </h3>
                     <p className="text-muted-foreground text-sm">
-                      Use a template as starting point. Customize it as needed.
+                      Use a template as starting point. Customise it as needed.
                     </p>
                   </div>
                 </div>
@@ -306,11 +306,11 @@ export function AddRoutineModal({
           <>
             <DialogHeader className="px-6 pt-6 pb-4 border-b">
               <DialogTitle className="text-xl font-semibold">
-                {useTemplate ? "Customize routine" : "Create routine"}
+                {useTemplate ? "Customise routine" : "Create routine"}
               </DialogTitle>
               <p className="text-muted-foreground text-sm mt-1">
                 {useTemplate
-                  ? "Customize the routine details."
+                  ? "Customise the routine details."
                   : "Enter the routine details."}
               </p>
             </DialogHeader>
