@@ -289,7 +289,8 @@ export function ProductForm({
                 if (selectedDays !== requiredDays) {
                   return (
                     <p className="text-xs text-red-500">
-                      Please select exactly {requiredDays} days
+                      Please select exactly {requiredDays}{" "}
+                      {requiredDays === 1 ? "day" : "days"}
                     </p>
                   );
                 }

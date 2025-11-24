@@ -781,5 +781,78 @@ describe("ProductForm", () => {
         screen.queryByText(/please select exactly 2 days/i),
       ).not.toBeInTheDocument();
     });
+
+    it("uses singular 'day' for 1x per week frequency", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "1x per week",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // Click Save to trigger error
+      await user.click(screen.getByRole("button", { name: /add/i }));
+
+      // Error should use singular "day" not "days"
+      expect(
+        screen.getByText(/please select exactly 1 day$/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/please select exactly 1 days/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it("uses plural 'days' for 2x+ per week frequencies", async () => {
+      const user = userEvent.setup();
+
+      function FormWrapper() {
+        const [data, setData] = React.useState<ProductFormData>({
+          routineStep: "Cleanse",
+          productName: "Test Product",
+          productUrl: null,
+          instructions: "",
+          frequency: "5x per week",
+          days: undefined,
+        });
+
+        return (
+          <ProductForm
+            data={data}
+            onChange={setData}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+            saveLabel="Add"
+          />
+        );
+      }
+
+      render(<FormWrapper />);
+
+      // Click Save to trigger error
+      await user.click(screen.getByRole("button", { name: /add/i }));
+
+      // Error should use plural "days"
+      expect(
+        screen.getByText(/please select exactly 5 days$/i),
+      ).toBeInTheDocument();
+    });
   });
 });

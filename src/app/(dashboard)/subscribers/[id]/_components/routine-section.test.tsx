@@ -407,8 +407,11 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.click(comboboxes[1]); // Frequency combobox
     await user.click(screen.getByText("2x per week"));
 
-    // User sees day selector and prompt
-    expect(screen.getByText(/select 2 days/i)).toBeInTheDocument();
+    // User sees day selector (no error initially)
+    expect(screen.getByRole("button", { name: /mon/i })).toBeInTheDocument();
+    expect(
+      screen.queryByText(/please select exactly 2 days/i),
+    ).not.toBeInTheDocument();
 
     // User selects Mon and Thu
     await user.click(screen.getByRole("button", { name: /mon/i }));

@@ -134,6 +134,7 @@ export function RoutineSection({
 
   const [addingTo, setAddingTo] = useState<"morning" | "evening" | null>(null);
   const [openRoutineStep, setOpenRoutineStep] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [newProduct, setNewProduct] = useState<RoutineProductFormData>({
     routineStep: "",
     productName: "",
@@ -156,6 +157,8 @@ export function RoutineSection({
   );
 
   const handleAdd = (timeOfDay: "morning" | "evening") => {
+    setHasInteracted(true);
+
     // Validate all required fields (instructions is now optional)
     const isValid =
       newProduct.routineStep &&
@@ -192,6 +195,7 @@ export function RoutineSection({
         days: undefined,
       });
       setAddingTo(null);
+      setHasInteracted(false);
     }
   };
 
@@ -225,6 +229,7 @@ export function RoutineSection({
 
   const handleCancel = () => {
     setAddingTo(null);
+    setHasInteracted(false);
     setNewProduct({
       routineStep: "",
       productName: "",
@@ -401,53 +406,87 @@ export function RoutineSection({
           <label className="text-sm font-medium text-gray-700">
             Select Days
           </label>
-          <div className="flex flex-wrap gap-2">
-            {DAYS_OF_WEEK.map((day) => {
-              const isSelected = newProduct.days?.includes(day.value);
-              const maxDays = newProduct.frequency === "2x per week" ? 2 : 3;
-              const canSelect =
-                isSelected || (newProduct.days?.length || 0) < maxDays;
+          <div className="flex flex-wrap gap-2 mt-2">
+            {(() => {
+              // Extract max days dynamically from frequency string
+              const getMaxDays = (frequency: string): number => {
+                if (frequency === "daily") return 7;
+                if (frequency === "specific_days") return 7;
+                const match = frequency.match(/^(\d+)x per week$/);
+                return match ? parseInt(match[1], 10) : 7;
+              };
+              const maxDays = getMaxDays(newProduct.frequency);
 
-              return (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => {
-                    setNewProduct((prev) => {
-                      const currentDays = prev.days || [];
-                      if (isSelected) {
-                        return {
-                          ...prev,
-                          days: currentDays.filter((d) => d !== day.value),
-                        };
-                      } else if (canSelect) {
-                        return {
-                          ...prev,
-                          days: [...currentDays, day.value],
-                        };
-                      }
-                      return prev;
-                    });
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                    isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200",
-                    !canSelect &&
-                      !isSelected &&
-                      "opacity-50 cursor-not-allowed",
-                  )}
-                  disabled={!canSelect && !isSelected}
-                >
-                  {day.label}
-                </button>
-              );
-            })}
+              return DAYS_OF_WEEK.map((day) => {
+                const isSelected = newProduct.days?.includes(day.value);
+                const canSelect =
+                  isSelected || (newProduct.days?.length || 0) < maxDays;
+
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => {
+                      setHasInteracted(true);
+                      setNewProduct((prev) => {
+                        const currentDays = prev.days || [];
+                        if (isSelected) {
+                          return {
+                            ...prev,
+                            days: currentDays.filter((d) => d !== day.value),
+                          };
+                        } else if (canSelect) {
+                          return {
+                            ...prev,
+                            days: [...currentDays, day.value],
+                          };
+                        }
+                        return prev;
+                      });
+                    }}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-white text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50",
+                      !canSelect &&
+                        !isSelected &&
+                        "opacity-50 cursor-not-allowed",
+                    )}
+                    disabled={!canSelect && !isSelected}
+                  >
+                    {day.label}
+                  </button>
+                );
+              });
+            })()}
           </div>
-          <p className="text-xs text-gray-500">
-            Select {newProduct.frequency === "2x per week" ? "2" : "3"} days
-          </p>
+          {hasInteracted &&
+            (() => {
+              const match = newProduct.frequency.match(/^(\d+)x per week$/);
+              if (match) {
+                const requiredDays = parseInt(match[1], 10);
+                const selectedDays = newProduct.days?.length || 0;
+                if (selectedDays !== requiredDays) {
+                  return (
+                    <p className="text-xs text-red-500">
+                      Please select exactly {requiredDays}{" "}
+                      {requiredDays === 1 ? "day" : "days"}
+                    </p>
+                  );
+                }
+              } else if (newProduct.frequency === "specific_days") {
+                const selectedDays = newProduct.days?.length || 0;
+                if (selectedDays === 0) {
+                  return (
+                    <p className="text-xs text-red-500">
+                      Please select at least 1 day
+                    </p>
+                  );
+                }
+              }
+              return null;
+            })()}
         </div>
       )}
 
