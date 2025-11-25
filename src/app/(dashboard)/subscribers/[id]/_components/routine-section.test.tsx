@@ -932,8 +932,8 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User clicks on product to edit
     await user.click(screen.getByText("AHA Toner"));
 
-    // User sees current frequency is 2x per week with day selection UI
-    expect(screen.getByText(/select 2 days/i)).toBeInTheDocument();
+    // User sees current frequency is 2x per week with day buttons visible
+    expect(screen.getByRole("button", { name: /mon/i })).toBeInTheDocument();
 
     // User changes frequency back to Daily
     const comboboxes = screen.getAllByRole("combobox");
@@ -942,7 +942,9 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Day selection UI should disappear
     await waitFor(() => {
-      expect(screen.queryByText(/select 2 days/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /mon/i }),
+      ).not.toBeInTheDocument();
     });
 
     // User saves

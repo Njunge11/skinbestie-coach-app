@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, Trash2, CalendarDays } from "lucide-react";
 import {
-  Plus,
-  Check,
-  ChevronsUpDown,
-  Trash2,
-  CalendarDays,
-} from "lucide-react";
+  ProductForm,
+  type ProductFormData,
+} from "@/components/routine/product-form";
 import {
   DndContext,
   closestCenter,
@@ -25,31 +23,8 @@ import {
 } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 import { RoutineItem } from "./routine-item";
 import { AddRoutineModal } from "./add-routine-modal";
 import { EditRoutineDialog } from "./edit-routine-dialog";
@@ -64,13 +39,7 @@ import type {
   RoutineProduct,
   RoutineProductFormData,
   RoutineFormData,
-  Frequency,
 } from "../types";
-import {
-  ROUTINE_STEPS,
-  FREQUENCIES,
-  DAYS_OF_WEEK,
-} from "@/lib/routine-constants";
 
 interface Template {
   id: string;
@@ -133,14 +102,12 @@ export function RoutineSection({
   const eveningProducts = products.filter((p) => p.timeOfDay === "evening");
 
   const [addingTo, setAddingTo] = useState<"morning" | "evening" | null>(null);
-  const [openRoutineStep, setOpenRoutineStep] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
-  const [newProduct, setNewProduct] = useState<RoutineProductFormData>({
+  const [newProduct, setNewProduct] = useState<ProductFormData>({
     routineStep: "",
     productName: "",
-    productUrl: "",
-    instructions: "",
-    productPurchaseInstructions: "",
+    productUrl: null,
+    instructions: null,
+    productPurchaseInstructions: null,
     frequency: "daily",
     days: undefined,
   });
@@ -157,9 +124,7 @@ export function RoutineSection({
   );
 
   const handleAdd = (timeOfDay: "morning" | "evening") => {
-    setHasInteracted(true);
-
-    // Validate all required fields (instructions is now optional)
+    // Validate all required fields (ProductForm handles validation)
     const isValid =
       newProduct.routineStep &&
       newProduct.routineStep.trim() &&
@@ -183,19 +148,29 @@ export function RoutineSection({
     }
 
     if (isValid && daysValid) {
-      onAddProduct(timeOfDay, newProduct);
+      // Convert ProductFormData to RoutineProductFormData for onAddProduct
+      const routineProductData: RoutineProductFormData = {
+        routineStep: newProduct.routineStep,
+        productName: newProduct.productName,
+        productUrl: newProduct.productUrl || "",
+        instructions: newProduct.instructions,
+        productPurchaseInstructions:
+          newProduct.productPurchaseInstructions || "",
+        frequency: newProduct.frequency,
+        days: newProduct.days,
+      };
+      onAddProduct(timeOfDay, routineProductData);
 
       setNewProduct({
         routineStep: "",
         productName: "",
-        productUrl: "",
-        instructions: "",
-        productPurchaseInstructions: "",
+        productUrl: null,
+        instructions: null,
+        productPurchaseInstructions: null,
         frequency: "daily",
         days: undefined,
       });
       setAddingTo(null);
-      setHasInteracted(false);
     }
   };
 
@@ -229,13 +204,12 @@ export function RoutineSection({
 
   const handleCancel = () => {
     setAddingTo(null);
-    setHasInteracted(false);
     setNewProduct({
       routineStep: "",
       productName: "",
-      productUrl: "",
-      instructions: "",
-      productPurchaseInstructions: "",
+      productUrl: null,
+      instructions: null,
+      productPurchaseInstructions: null,
       frequency: "daily",
       days: undefined,
     });
@@ -247,258 +221,13 @@ export function RoutineSection({
   };
 
   const renderAddForm = (timeOfDay: "morning" | "evening") => (
-    <div className="rounded-lg border border-gray-200 p-4 space-y-3">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Routine Step</label>
-        <Popover open={openRoutineStep} onOpenChange={setOpenRoutineStep}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={openRoutineStep}
-              className="w-full justify-between font-normal mt-2"
-            >
-              {newProduct.routineStep || "Select routine step..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-[var(--radix-popover-trigger-width)] p-0"
-            align="start"
-          >
-            <Command>
-              <CommandInput placeholder="Search routine step..." />
-              <CommandList>
-                <CommandEmpty>No routine step found.</CommandEmpty>
-                <CommandGroup>
-                  {ROUTINE_STEPS.map((step) => (
-                    <CommandItem
-                      key={step}
-                      value={step}
-                      onSelect={() => {
-                        setNewProduct((prev) => ({
-                          ...prev,
-                          routineStep: step,
-                        }));
-                        setOpenRoutineStep(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          newProduct.routineStep === step
-                            ? "opacity-100"
-                            : "opacity-0",
-                        )}
-                      />
-                      {step}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="product-name" className="text-sm font-medium">
-          Product Name
-        </label>
-        <Input
-          id="product-name"
-          placeholder="Product name"
-          value={newProduct.productName}
-          onChange={(e) =>
-            setNewProduct((prev) => ({ ...prev, productName: e.target.value }))
-          }
-          className="font-medium mt-2"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="product-url" className="text-sm font-medium">
-          Product URL (optional)
-        </label>
-        <Input
-          id="product-url"
-          placeholder="Product URL (optional)"
-          value={newProduct.productUrl || ""}
-          onChange={(e) =>
-            setNewProduct((prev) => ({ ...prev, productUrl: e.target.value }))
-          }
-          type="url"
-          className="text-sm mt-2"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="instructions" className="text-sm font-medium">
-          Instructions
-        </label>
-        <Textarea
-          id="instructions"
-          placeholder="e.g., Apply to damp skin, massage gently"
-          value={newProduct.instructions || ""}
-          onChange={(e) =>
-            setNewProduct((prev) => ({
-              ...prev,
-              instructions: e.target.value || null,
-            }))
-          }
-          rows={2}
-          className="text-sm resize-none mt-2"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label
-          htmlFor="product-purchase-instructions"
-          className="text-sm font-medium"
-        >
-          Purchase Instructions (optional)
-        </label>
-        <p className="text-xs text-gray-500">
-          Where to buy this product or any special purchasing notes
-        </p>
-        <Textarea
-          id="product-purchase-instructions"
-          placeholder="e.g., Available at Sephora, Use code SAVE10 for discount"
-          value={newProduct.productPurchaseInstructions || ""}
-          onChange={(e) =>
-            setNewProduct((prev) => ({
-              ...prev,
-              productPurchaseInstructions: e.target.value,
-            }))
-          }
-          rows={2}
-          className="text-sm resize-none mt-2"
-        />
-      </div>
-
-      <div className="space-y-2 mt-4">
-        <label className="text-sm font-medium">Frequency</label>
-        <Select
-          value={newProduct.frequency}
-          onValueChange={(value) =>
-            setNewProduct((prev) => ({
-              ...prev,
-              frequency: value as Frequency,
-              days: value === "daily" ? undefined : prev.days || [],
-            }))
-          }
-        >
-          <SelectTrigger className="mt-2">
-            <SelectValue placeholder="Select frequency" />
-          </SelectTrigger>
-          <SelectContent>
-            {FREQUENCIES.map((freq) => (
-              <SelectItem key={freq.value} value={freq.value}>
-                {freq.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {newProduct.frequency !== "daily" && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Select Days
-          </label>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {(() => {
-              // Extract max days dynamically from frequency string
-              const getMaxDays = (frequency: string): number => {
-                if (frequency === "daily") return 7;
-                if (frequency === "specific_days") return 7;
-                const match = frequency.match(/^(\d+)x per week$/);
-                return match ? parseInt(match[1], 10) : 7;
-              };
-              const maxDays = getMaxDays(newProduct.frequency);
-
-              return DAYS_OF_WEEK.map((day) => {
-                const isSelected = newProduct.days?.includes(day.value);
-                const canSelect =
-                  isSelected || (newProduct.days?.length || 0) < maxDays;
-
-                return (
-                  <button
-                    key={day.value}
-                    type="button"
-                    onClick={() => {
-                      setHasInteracted(true);
-                      setNewProduct((prev) => {
-                        const currentDays = prev.days || [];
-                        if (isSelected) {
-                          return {
-                            ...prev,
-                            days: currentDays.filter((d) => d !== day.value),
-                          };
-                        } else if (canSelect) {
-                          return {
-                            ...prev,
-                            days: [...currentDays, day.value],
-                          };
-                        }
-                        return prev;
-                      });
-                    }}
-                    className={cn(
-                      "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
-                      isSelected
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-white text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50",
-                      !canSelect &&
-                        !isSelected &&
-                        "opacity-50 cursor-not-allowed",
-                    )}
-                    disabled={!canSelect && !isSelected}
-                  >
-                    {day.label}
-                  </button>
-                );
-              });
-            })()}
-          </div>
-          {hasInteracted &&
-            (() => {
-              const match = newProduct.frequency.match(/^(\d+)x per week$/);
-              if (match) {
-                const requiredDays = parseInt(match[1], 10);
-                const selectedDays = newProduct.days?.length || 0;
-                if (selectedDays !== requiredDays) {
-                  return (
-                    <p className="text-xs text-red-500">
-                      Please select exactly {requiredDays}{" "}
-                      {requiredDays === 1 ? "day" : "days"}
-                    </p>
-                  );
-                }
-              } else if (newProduct.frequency === "specific_days") {
-                const selectedDays = newProduct.days?.length || 0;
-                if (selectedDays === 0) {
-                  return (
-                    <p className="text-xs text-red-500">
-                      Please select at least 1 day
-                    </p>
-                  );
-                }
-              }
-              return null;
-            })()}
-        </div>
-      )}
-
-      <div className="flex gap-2 mt-4">
-        <Button size="sm" onClick={() => handleAdd(timeOfDay)}>
-          Add
-        </Button>
-        <Button size="sm" variant="outline" onClick={handleCancel}>
-          Cancel
-        </Button>
-      </div>
-    </div>
+    <ProductForm
+      data={newProduct}
+      onChange={setNewProduct}
+      onSave={() => handleAdd(timeOfDay)}
+      onCancel={handleCancel}
+      saveLabel="Add"
+    />
   );
 
   // Empty state when no routine exists

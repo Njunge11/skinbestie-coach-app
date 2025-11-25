@@ -1,45 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Trash2, GripVertical, ChevronsUpDown } from "lucide-react";
+import { Trash2, GripVertical } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type {
-  RoutineProduct,
-  RoutineProductFormData,
-  Frequency,
-} from "../types";
 import {
-  getFrequencyLabel,
-  ROUTINE_STEPS,
-  FREQUENCIES,
-  DAYS_OF_WEEK,
-} from "@/lib/routine-constants";
+  ProductForm,
+  type ProductFormData,
+} from "@/components/routine/product-form";
+import type { RoutineProduct, RoutineProductFormData } from "../types";
+import { getFrequencyLabel } from "@/lib/routine-constants";
 
 interface RoutineItemProps {
   product: RoutineProduct;
@@ -55,13 +28,12 @@ export function RoutineItem({
   onDelete,
 }: RoutineItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [openRoutineStep, setOpenRoutineStep] = useState(false);
-  const [editData, setEditData] = useState<RoutineProductFormData>({
+  const [editData, setEditData] = useState<ProductFormData>({
     routineStep: product.routineStep,
     productName: product.productName,
-    productUrl: product.productUrl || "",
+    productUrl: product.productUrl || null,
     instructions: product.instructions,
-    productPurchaseInstructions: product.productPurchaseInstructions || "",
+    productPurchaseInstructions: product.productPurchaseInstructions || null,
     frequency: product.frequency,
     days: product.days ?? undefined,
   });
@@ -84,9 +56,9 @@ export function RoutineItem({
     setEditData({
       routineStep: product.routineStep,
       productName: product.productName,
-      productUrl: product.productUrl || "",
+      productUrl: product.productUrl || null,
       instructions: product.instructions,
-      productPurchaseInstructions: product.productPurchaseInstructions || "",
+      productPurchaseInstructions: product.productPurchaseInstructions || null,
       frequency: product.frequency,
       days: product.days ?? undefined,
     });
@@ -94,14 +66,40 @@ export function RoutineItem({
   };
 
   const handleSave = () => {
-    // Validate all required fields (instructions is now optional)
-    if (
+    // Validate all required fields (ProductForm handles validation)
+    const isValid =
       editData.routineStep &&
       editData.routineStep.trim() &&
       editData.productName.trim() &&
-      editData.frequency.trim()
-    ) {
-      onEdit(product.id, editData);
+      editData.frequency.trim();
+
+    // Validate days are selected when frequency is not daily
+    const needsDays = editData.frequency !== "daily";
+    let daysValid = true;
+
+    if (needsDays) {
+      const match = editData.frequency.match(/^(\d+)x per week$/);
+      if (match) {
+        const requiredDays = parseInt(match[1], 10);
+        daysValid =
+          editData.days !== undefined && editData.days.length === requiredDays;
+      } else if (editData.frequency === "specific_days") {
+        daysValid = editData.days !== undefined && editData.days.length > 0;
+      }
+    }
+
+    if (isValid && daysValid) {
+      // Convert ProductFormData back to RoutineProductFormData for onEdit
+      const routineProductData: RoutineProductFormData = {
+        routineStep: editData.routineStep,
+        productName: editData.productName,
+        productUrl: editData.productUrl || "",
+        instructions: editData.instructions,
+        productPurchaseInstructions: editData.productPurchaseInstructions || "",
+        frequency: editData.frequency,
+        days: editData.days,
+      };
+      onEdit(product.id, routineProductData);
       setIsEditing(false);
     }
   };
@@ -112,221 +110,13 @@ export function RoutineItem({
 
   if (isEditing) {
     return (
-      <div className="rounded-lg border border-gray-200 p-4 space-y-3">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Routine Step</label>
-          <Popover open={openRoutineStep} onOpenChange={setOpenRoutineStep}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={openRoutineStep}
-                className="w-full justify-between font-normal mt-2"
-              >
-                {editData.routineStep || "Select routine step..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search routine step..." />
-                <CommandList>
-                  <CommandEmpty>No routine step found.</CommandEmpty>
-                  <CommandGroup>
-                    {ROUTINE_STEPS.map((step) => (
-                      <CommandItem
-                        key={step}
-                        value={step}
-                        onSelect={() => {
-                          setEditData((prev) => ({
-                            ...prev,
-                            routineStep: step,
-                          }));
-                          setOpenRoutineStep(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            editData.routineStep === step
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        {step}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="edit-product-name" className="text-sm font-medium">
-            Product Name
-          </label>
-          <Input
-            id="edit-product-name"
-            placeholder="Product name"
-            value={editData.productName}
-            onChange={(e) =>
-              setEditData((prev) => ({ ...prev, productName: e.target.value }))
-            }
-            className="font-medium mt-2"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="edit-product-url" className="text-sm font-medium">
-            Product URL (optional)
-          </label>
-          <Input
-            id="edit-product-url"
-            placeholder="Product URL (optional)"
-            value={editData.productUrl || ""}
-            onChange={(e) =>
-              setEditData((prev) => ({ ...prev, productUrl: e.target.value }))
-            }
-            type="url"
-            className="text-sm mt-2"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="edit-instructions" className="text-sm font-medium">
-            Instructions
-          </label>
-          <Textarea
-            id="edit-instructions"
-            placeholder="e.g., Apply to damp skin, massage gently"
-            value={editData.instructions || ""}
-            onChange={(e) =>
-              setEditData((prev) => ({
-                ...prev,
-                instructions: e.target.value || null,
-              }))
-            }
-            rows={2}
-            className="text-sm resize-none mt-2"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="edit-product-purchase-instructions"
-            className="text-sm font-medium"
-          >
-            Purchase Instructions (optional)
-          </label>
-          <p className="text-xs text-gray-500">
-            Where to buy this product or any special purchasing notes
-          </p>
-          <Textarea
-            id="edit-product-purchase-instructions"
-            placeholder="e.g., Available at Sephora, Use code SAVE10 for discount"
-            value={editData.productPurchaseInstructions || ""}
-            onChange={(e) =>
-              setEditData((prev) => ({
-                ...prev,
-                productPurchaseInstructions: e.target.value,
-              }))
-            }
-            rows={2}
-            className="text-sm resize-none mt-2"
-          />
-        </div>
-
-        <div className="space-y-2 mt-4">
-          <label className="text-sm font-medium">Frequency</label>
-          <Select
-            value={editData.frequency}
-            onValueChange={(value) =>
-              setEditData((prev) => ({
-                ...prev,
-                frequency: value as Frequency,
-                days: value === "daily" ? undefined : prev.days || [],
-              }))
-            }
-          >
-            <SelectTrigger className="mt-2">
-              <SelectValue placeholder="Select frequency" />
-            </SelectTrigger>
-            <SelectContent>
-              {FREQUENCIES.map((freq) => (
-                <SelectItem key={freq.value} value={freq.value}>
-                  {freq.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {editData.frequency !== "daily" && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Select Days
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {DAYS_OF_WEEK.map((day) => {
-                const isSelected = editData.days?.includes(day.value);
-                const maxDays = editData.frequency === "2x per week" ? 2 : 3;
-                const canSelect =
-                  isSelected || (editData.days?.length || 0) < maxDays;
-
-                return (
-                  <button
-                    key={day.value}
-                    type="button"
-                    onClick={() => {
-                      setEditData((prev) => {
-                        const currentDays = prev.days || [];
-                        if (isSelected) {
-                          return {
-                            ...prev,
-                            days: currentDays.filter((d) => d !== day.value),
-                          };
-                        } else if (canSelect) {
-                          return {
-                            ...prev,
-                            days: [...currentDays, day.value],
-                          };
-                        }
-                        return prev;
-                      });
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200",
-                      !canSelect &&
-                        !isSelected &&
-                        "opacity-50 cursor-not-allowed",
-                    )}
-                    disabled={!canSelect && !isSelected}
-                  >
-                    {day.label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-gray-500">
-              Select {editData.frequency === "2x per week" ? "2" : "3"} days
-            </p>
-          </div>
-        )}
-
-        <div className="flex gap-2 mt-4">
-          <Button size="sm" onClick={handleSave}>
-            Save
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-        </div>
-      </div>
+      <ProductForm
+        data={editData}
+        onChange={setEditData}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        saveLabel="Save"
+      />
     );
   }
 
