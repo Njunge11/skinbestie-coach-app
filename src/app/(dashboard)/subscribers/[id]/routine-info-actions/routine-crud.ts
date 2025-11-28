@@ -80,6 +80,7 @@ export async function createRoutine(
       startDate: validation.data.startDate,
       endDate: validation.data.endDate || null,
       status: "draft",
+      savedAsTemplate: false,
     };
 
     const routine = await repo.create(newRoutine);

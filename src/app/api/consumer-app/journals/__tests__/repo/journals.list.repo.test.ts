@@ -53,26 +53,36 @@ describe("Journals Repository - List Tests (PGlite)", () => {
 
   describe("findJournalsByUserProfileId", () => {
     it("should return journals for user ordered by lastModified DESC", async () => {
-      // Create journals with different lastModified times
+      // Create journals then set different lastModified times
       const journal1 = await repo.createJournal({
         userProfileId: testUserId,
         title: "First",
       });
-
-      // Wait a bit to ensure different timestamps
-      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const journal2 = await repo.createJournal({
         userProfileId: testUserId,
         title: "Second",
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
       const journal3 = await repo.createJournal({
         userProfileId: testUserId,
         title: "Third",
       });
+
+      // Set explicit lastModified times for ordering
+      const baseTime = new Date("2025-01-01T12:00:00Z");
+      await db
+        .update(schema.journals)
+        .set({ lastModified: new Date(baseTime.getTime()) })
+        .where(eq(schema.journals.id, journal1.id));
+      await db
+        .update(schema.journals)
+        .set({ lastModified: new Date(baseTime.getTime() + 1000) })
+        .where(eq(schema.journals.id, journal2.id));
+      await db
+        .update(schema.journals)
+        .set({ lastModified: new Date(baseTime.getTime() + 2000) })
+        .where(eq(schema.journals.id, journal3.id));
 
       const result = await repo.findJournalsByUserProfileId({
         userProfileId: testUserId,
@@ -163,13 +173,17 @@ describe("Journals Repository - List Tests (PGlite)", () => {
     });
 
     it("should return first page when no cursor provided", async () => {
-      // Create 5 journals
+      // Create 5 journals with explicit ordering
+      const baseTime = new Date("2025-01-01T12:00:00Z");
       for (let i = 1; i <= 5; i++) {
-        await repo.createJournal({
+        const journal = await repo.createJournal({
           userProfileId: testUserId,
           title: `Journal ${i}`,
         });
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await db
+          .update(schema.journals)
+          .set({ lastModified: new Date(baseTime.getTime() + i * 1000) })
+          .where(eq(schema.journals.id, journal.id));
       }
 
       const result = await repo.findJournalsByUserProfileId({
@@ -181,15 +195,19 @@ describe("Journals Repository - List Tests (PGlite)", () => {
     });
 
     it("should return second page when cursor provided", async () => {
-      // Create 5 journals
+      // Create 5 journals with explicit ordering
+      const baseTime = new Date("2025-01-01T12:00:00Z");
       const journals = [];
       for (let i = 1; i <= 5; i++) {
         const journal = await repo.createJournal({
           userProfileId: testUserId,
           title: `Journal ${i}`,
         });
+        await db
+          .update(schema.journals)
+          .set({ lastModified: new Date(baseTime.getTime() + i * 1000) })
+          .where(eq(schema.journals.id, journal.id));
         journals.push(journal);
-        await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
       // Get first page
@@ -219,13 +237,17 @@ describe("Journals Repository - List Tests (PGlite)", () => {
     });
 
     it("should return empty array when cursor points to last item", async () => {
-      // Create 3 journals
+      // Create 3 journals with explicit ordering
+      const baseTime = new Date("2025-01-01T12:00:00Z");
       for (let i = 1; i <= 3; i++) {
-        await repo.createJournal({
+        const journal = await repo.createJournal({
           userProfileId: testUserId,
           title: `Journal ${i}`,
         });
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await db
+          .update(schema.journals)
+          .set({ lastModified: new Date(baseTime.getTime() + i * 1000) })
+          .where(eq(schema.journals.id, journal.id));
       }
 
       // Get all journals
@@ -301,7 +323,6 @@ describe("Journals Repository - List Tests (PGlite)", () => {
           userProfileId: testUserId,
           title: `Journal ${i}`,
         });
-        await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
       const result = await repo.findJournalsByUserProfileId({
@@ -336,7 +357,6 @@ describe("Journals Repository - List Tests (PGlite)", () => {
           userProfileId: testUserId,
           title: `Journal ${i}`,
         });
-        await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
       const result = await repo.findJournalsByUserProfileId({

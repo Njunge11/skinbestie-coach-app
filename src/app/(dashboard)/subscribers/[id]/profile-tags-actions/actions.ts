@@ -74,7 +74,7 @@ export async function addProfileTag(
       success: true,
       data: newTag,
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: "Failed to add tag",
@@ -98,7 +98,7 @@ export async function getProfileTags(
       success: true,
       data: tags,
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: "Failed to fetch tags",
@@ -140,7 +140,7 @@ export async function removeProfileTag(
     return {
       success: true,
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: "Failed to remove tag",

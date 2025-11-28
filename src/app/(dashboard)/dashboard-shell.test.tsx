@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import DashboardShell from "./dashboard-shell";
 
 // Use vi.hoisted to ensure mocks are available before module loading
@@ -44,7 +44,7 @@ describe("DashboardShell - UI Integration Tests", () => {
     render(
       <DashboardShell user={mockUser}>
         <div>Dashboard Content</div>
-      </DashboardShell>
+      </DashboardShell>,
     );
 
     expect(screen.getByText("Dashboard Content")).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe("DashboardShell - UI Integration Tests", () => {
     render(
       <DashboardShell user={mockUser}>
         <div>Content</div>
-      </DashboardShell>
+      </DashboardShell>,
     );
 
     expect(screen.getByText("Jane Smith")).toBeInTheDocument();
@@ -62,14 +62,14 @@ describe("DashboardShell - UI Integration Tests", () => {
   });
 
   it("user logs out from header dropdown", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     mockSignOut.mockResolvedValueOnce(undefined);
 
     render(
       <DashboardShell user={mockUser}>
         <div>Content</div>
-      </DashboardShell>
+      </DashboardShell>,
     );
 
     // Open header dropdown
@@ -85,14 +85,14 @@ describe("DashboardShell - UI Integration Tests", () => {
   });
 
   it("user logs out from sidebar button", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     mockSignOut.mockResolvedValueOnce(undefined);
 
     render(
       <DashboardShell user={mockUser}>
         <div>Content</div>
-      </DashboardShell>
+      </DashboardShell>,
     );
 
     // Click logout in sidebar
@@ -107,12 +107,12 @@ describe("DashboardShell - UI Integration Tests", () => {
   });
 
   it("mobile menu toggles open and closed", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <DashboardShell user={mockUser}>
         <div>Content</div>
-      </DashboardShell>
+      </DashboardShell>,
     );
 
     const sidebar = screen.getByRole("complementary");
@@ -143,12 +143,12 @@ describe("DashboardShell - UI Integration Tests", () => {
   });
 
   it("mobile menu closes when user clicks backdrop", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <DashboardShell user={mockUser}>
         <div>Content</div>
-      </DashboardShell>
+      </DashboardShell>,
     );
 
     const sidebar = screen.getByRole("complementary");

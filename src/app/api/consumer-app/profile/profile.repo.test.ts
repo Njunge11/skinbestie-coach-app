@@ -6,6 +6,7 @@ import {
 } from "@/test/db-helper";
 import { makeProfileRepo } from "./profile.repo";
 import * as schema from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import type { PGlite } from "@electric-sql/pglite";
 
 describe("ProfileRepo - Integration Tests", () => {
@@ -89,6 +90,66 @@ describe("ProfileRepo - Integration Tests", () => {
       });
 
       expect(result).toBeNull();
+    });
+
+    it("updates productsReceived field", async () => {
+      const result = await repo.updateProfile(userId, {
+        productsReceived: true,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.firstName).toBe("John");
+      expect(result!.productsReceived).toBe(true);
+
+      // Verify in database
+      const dbRecord = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.userId, userId))
+        .limit(1);
+
+      expect(dbRecord[0].productsReceived).toBe(true);
+    });
+
+    it("updates routineStartDateSet field", async () => {
+      const result = await repo.updateProfile(userId, {
+        routineStartDateSet: true,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.firstName).toBe("John");
+      expect(result!.routineStartDateSet).toBe(true);
+
+      // Verify in database
+      const dbRecord = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.userId, userId))
+        .limit(1);
+
+      expect(dbRecord[0].routineStartDateSet).toBe(true);
+    });
+
+    it("updates both productsReceived and routineStartDateSet together", async () => {
+      const result = await repo.updateProfile(userId, {
+        productsReceived: true,
+        routineStartDateSet: true,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.firstName).toBe("John");
+      expect(result!.productsReceived).toBe(true);
+      expect(result!.routineStartDateSet).toBe(true);
+
+      // Verify both fields in database
+      const dbRecord = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.userId, userId))
+        .limit(1);
+
+      expect(dbRecord[0].productsReceived).toBe(true);
+      expect(dbRecord[0].routineStartDateSet).toBe(true);
     });
   });
 });

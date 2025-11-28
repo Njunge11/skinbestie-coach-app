@@ -16,6 +16,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   const mockOnUpdateProduct = vi.fn();
   const mockOnDeleteProduct = vi.fn();
   const mockOnReorderProducts = vi.fn();
+  const mockOnSaveAsTemplate = vi.fn();
 
   const mockTemplates = [
     {
@@ -35,12 +36,17 @@ describe("RoutineSection - Complete User Workflows", () => {
     },
   ];
 
+  // Configure userEvent to skip delays between actions for faster tests.
+  // This prevents timeouts in tests with many sequential user interactions.
+  // See: https://testing-library.com/docs/user-event/options/#delay
+  const setupUser = () => userEvent.setup({ delay: null });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("user edits routine name and dates successfully", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -99,7 +105,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user deletes routine with confirmation and sees empty state", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -167,7 +173,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user adds evening product with all required fields", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -198,6 +204,18 @@ describe("RoutineSection - Complete User Workflows", () => {
     const addStepButtons = screen.getAllByRole("button", { name: /add step/i });
     await user.click(addStepButtons[1]); // Evening is second
 
+    // User sees modal with step type selection
+    expect(screen.getByText(/add a new step/i)).toBeInTheDocument();
+
+    // User selects "Product Step" card (first card in the grid)
+    const productStepCard = screen
+      .getByText(/add a step that uses a skincare product/i)
+      .closest("button");
+    await user.click(productStepCard as HTMLElement);
+
+    // User sees form for product step
+    expect(screen.getByText(/add product step/i)).toBeInTheDocument();
+
     // User selects routine step
     const comboboxes = screen.getAllByRole("combobox");
     await user.click(comboboxes[0]);
@@ -222,6 +240,8 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify product was added to evening
     expect(mockOnAddProduct).toHaveBeenCalledWith("evening", {
+      stepType: "product",
+      stepName: undefined,
       routineStep: "Moisturise",
       productName: "Night Moisturizer",
       productUrl: "https://example.com/moisturizer",
@@ -230,10 +250,10 @@ describe("RoutineSection - Complete User Workflows", () => {
       frequency: "daily",
       days: undefined,
     });
-  });
+  }, 10000);
 
   it("user edits existing product instructions and saves", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -295,6 +315,8 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify update was called
     expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
+      stepType: "product",
+      stepName: undefined,
       routineStep: "Cleanse",
       productName: "CeraVe Cleanser",
       productUrl: "",
@@ -306,7 +328,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user deletes a product", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -359,7 +381,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user adds product with 2x per week frequency and selects days", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -390,6 +412,12 @@ describe("RoutineSection - Complete User Workflows", () => {
     const addStepButtons = screen.getAllByRole("button", { name: /add step/i });
     await user.click(addStepButtons[0]);
 
+    // User selects "Product Step" card
+    const productStepCard = screen
+      .getByText(/add a step that uses a skincare product/i)
+      .closest("button");
+    await user.click(productStepCard as HTMLElement);
+
     // User selects routine step
     const comboboxes = screen.getAllByRole("combobox");
     await user.click(comboboxes[0]);
@@ -406,8 +434,11 @@ describe("RoutineSection - Complete User Workflows", () => {
     await user.click(comboboxes[1]); // Frequency combobox
     await user.click(screen.getByText("2x per week"));
 
-    // User sees day selector and prompt
-    expect(screen.getByText(/select 2 days/i)).toBeInTheDocument();
+    // User sees day selector (no error initially)
+    expect(screen.getByRole("button", { name: /mon/i })).toBeInTheDocument();
+    expect(
+      screen.queryByText(/please select exactly 2 days/i),
+    ).not.toBeInTheDocument();
 
     // User selects Mon and Thu
     await user.click(screen.getByRole("button", { name: /mon/i }));
@@ -418,6 +449,8 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify product was added with frequency and days
     expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
+      stepType: "product",
+      stepName: undefined,
       routineStep: "Treat",
       productName: "AHA Toner",
       productUrl: "",
@@ -429,7 +462,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user sees validation errors when creating routine, corrects them, and succeeds", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     // Mock will fail first, then succeed
     mockOnCreateBlank
@@ -489,7 +522,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user searches templates and sees filtered results", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <RoutineSection
@@ -530,7 +563,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user sees 'No templates found' when search returns no results", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <RoutineSection
@@ -564,7 +597,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user cancels routine creation and modal resets", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <RoutineSection
@@ -609,7 +642,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user sees validation errors when adding product, corrects them, and succeeds", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -640,6 +673,12 @@ describe("RoutineSection - Complete User Workflows", () => {
     const addStepButtons = screen.getAllByRole("button", { name: /add step/i });
     await user.click(addStepButtons[0]);
 
+    // User selects "Product Step" card
+    const productStepCard = screen
+      .getByText(/add a step that uses a skincare product/i)
+      .closest("button");
+    await user.click(productStepCard as HTMLElement);
+
     // User tries to add without selecting routine step
     await user.type(
       screen.getByPlaceholderText(/product name/i),
@@ -664,6 +703,8 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Server action should be called
     expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
+      stepType: "product",
+      stepName: undefined,
       routineStep: "Cleanse",
       productName: "Some Product",
       productUrl: "",
@@ -675,7 +716,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user sees error when routine creation fails and can retry", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     // Mock server action to fail first, then succeed
     mockOnCreateBlank
@@ -749,7 +790,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user navigates back through modal steps without losing data", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <RoutineSection
@@ -813,7 +854,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user cancels editing a product without saving changes", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -883,7 +924,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user changes frequency from 2x per week back to Daily and days are cleared", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -928,8 +969,8 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User clicks on product to edit
     await user.click(screen.getByText("AHA Toner"));
 
-    // User sees current frequency is 2x per week with day selection UI
-    expect(screen.getByText(/select 2 days/i)).toBeInTheDocument();
+    // User sees current frequency is 2x per week with day buttons visible
+    expect(screen.getByRole("button", { name: /mon/i })).toBeInTheDocument();
 
     // User changes frequency back to Daily
     const comboboxes = screen.getAllByRole("combobox");
@@ -938,7 +979,9 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Day selection UI should disappear
     await waitFor(() => {
-      expect(screen.queryByText(/select 2 days/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /mon/i }),
+      ).not.toBeInTheDocument();
     });
 
     // User saves
@@ -946,6 +989,8 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify days are cleared (undefined)
     expect(mockOnUpdateProduct).toHaveBeenCalledWith("product-1", {
+      stepType: "product",
+      stepName: undefined,
       routineStep: "Treat",
       productName: "AHA Toner",
       productUrl: "",
@@ -957,7 +1002,7 @@ describe("RoutineSection - Complete User Workflows", () => {
   });
 
   it("user deselects a day and cannot select more than max days", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const existingRoutine = makeRoutine({
       id: "routine-1",
@@ -987,6 +1032,12 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User clicks "Add Step" in morning section
     const addStepButtons = screen.getAllByRole("button", { name: /add step/i });
     await user.click(addStepButtons[0]);
+
+    // User selects "Product Step" card
+    const productStepCard = screen
+      .getByText(/add a step that uses a skincare product/i)
+      .closest("button");
+    await user.click(productStepCard as HTMLElement);
 
     // User selects routine step and fills basics
     const comboboxes = screen.getAllByRole("combobox");
@@ -1032,6 +1083,8 @@ describe("RoutineSection - Complete User Workflows", () => {
 
     // Verify product added with Thursday and Wednesday (not Monday)
     expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
+      stepType: "product",
+      stepName: undefined,
       routineStep: "Treat",
       productName: "Vitamin C Serum",
       productUrl: "",
@@ -1042,7 +1095,185 @@ describe("RoutineSection - Complete User Workflows", () => {
     });
   });
 
-  it("user sees product with URL displayed as clickable link", async () => {
+  it("user adds No Product step with instructions and sees badge", async () => {
+    const user = setupUser();
+
+    const existingRoutine = makeRoutine({
+      id: "routine-1",
+      name: "My Routine",
+      startDate: new Date("2025-01-01"),
+      endDate: null,
+      status: "draft",
+    });
+
+    const { rerender } = render(
+      <RoutineSection
+        routine={existingRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+      />,
+    );
+
+    // User clicks "Add Step" in morning section
+    const addStepButtons = screen.getAllByRole("button", { name: /add step/i });
+    await user.click(addStepButtons[0]);
+
+    // User sees modal with step type selection
+    expect(screen.getByText(/add a new step/i)).toBeInTheDocument();
+
+    // User selects "Non-Product Step" card
+    const nonProductStepCard = screen
+      .getByText(/add an action or instruction like washing face/i)
+      .closest("button");
+    await user.click(nonProductStepCard as HTMLElement);
+
+    // User sees form for non-product step
+    expect(screen.getByText(/add non-product step/i)).toBeInTheDocument();
+
+    // User fills in instructions (required for instruction_only type)
+    await user.type(
+      screen.getByPlaceholderText(/e\.g\., apply toner to clean skin/i),
+      "Pat face dry with clean towel",
+    );
+
+    // User clicks Add
+    await user.click(screen.getByRole("button", { name: /^add$/i }));
+
+    // Verify product was added with instruction_only type
+    expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
+      stepType: "instruction_only",
+      stepName: undefined,
+      routineStep: undefined,
+      productName: "",
+      productUrl: "",
+      instructions: "Pat face dry with clean towel",
+      productPurchaseInstructions: "",
+      frequency: "daily",
+      days: undefined,
+    });
+
+    // Simulate server adding the product - rerender with new product
+    const newProduct: RoutineProduct = {
+      id: "product-1",
+      stepType: "instruction_only",
+      stepName: null,
+      routineStep: null,
+      productName: null,
+      productUrl: null,
+      instructions: "Pat face dry with clean towel",
+      productPurchaseInstructions: null,
+      frequency: "daily",
+      days: null,
+      timeOfDay: "morning",
+      order: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userProfileId: "user-1",
+      routineId: "routine-1",
+    };
+
+    rerender(
+      <RoutineSection
+        routine={existingRoutine}
+        products={[newProduct]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+      />,
+    );
+
+    // User sees the "No Product" badge on the card
+    expect(screen.getByText(/no product/i)).toBeInTheDocument();
+    expect(
+      screen.getByText("Pat face dry with clean towel"),
+    ).toBeInTheDocument();
+  });
+
+  it("user sees validation error when adding No Product step without instructions", async () => {
+    const user = setupUser();
+
+    const existingRoutine = makeRoutine({
+      id: "routine-1",
+      name: "My Routine",
+      startDate: new Date("2025-01-01"),
+      endDate: null,
+      status: "draft",
+    });
+
+    render(
+      <RoutineSection
+        routine={existingRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+      />,
+    );
+
+    // User clicks "Add Step" in morning section
+    const addStepButtons = screen.getAllByRole("button", { name: /add step/i });
+    await user.click(addStepButtons[0]);
+
+    // User selects "Non-Product Step" card
+    const nonProductStepCard = screen
+      .getByText(/add an action or instruction like washing face/i)
+      .closest("button");
+    await user.click(nonProductStepCard as HTMLElement);
+
+    // User does NOT fill in instructions (which are required for instruction_only)
+    // User clicks Add without filling required fields
+    await user.click(screen.getByRole("button", { name: /^add$/i }));
+
+    // Server action should not be called (validation failed)
+    expect(mockOnAddProduct).not.toHaveBeenCalled();
+
+    // User now fills in instructions
+    await user.type(
+      screen.getByPlaceholderText(/e\.g\., apply toner to clean skin/i),
+      "Wait 2 minutes before next step",
+    );
+
+    // User clicks Add again
+    await user.click(screen.getByRole("button", { name: /^add$/i }));
+
+    // Server action should now be called
+    expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
+      stepType: "instruction_only",
+      stepName: undefined,
+      routineStep: undefined,
+      productName: "",
+      productUrl: "",
+      instructions: "Wait 2 minutes before next step",
+      productPurchaseInstructions: "",
+      frequency: "daily",
+      days: undefined,
+    });
+  });
+
+  it("user sees product with URL as plain text (no hyperlink)", async () => {
     const existingRoutine = makeRoutine({
       id: "routine-1",
       name: "My Routine",
@@ -1083,16 +1314,11 @@ describe("RoutineSection - Complete User Workflows", () => {
       />,
     );
 
-    // User sees product name as clickable link
-    const productLink = screen.getByRole("link", {
-      name: /cerave moisturizer/i,
-    });
-    expect(productLink).toHaveAttribute(
-      "href",
-      "https://example.com/cerave-moisturizer",
-    );
-    expect(productLink).toHaveAttribute("target", "_blank");
-    expect(productLink).toHaveAttribute("rel", "noopener noreferrer");
+    // User sees product name as plain text (not a link)
+    expect(screen.getByText("CeraVe Moisturizer")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /cerave moisturizer/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("user sees days displayed in frequency badge for product with 2x per week", async () => {
@@ -1139,5 +1365,130 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User sees frequency badge with days displayed
     expect(screen.getByText(/2x per week/)).toBeInTheDocument();
     expect(screen.getByText(/Mon, Thu/)).toBeInTheDocument();
+  });
+
+  // ========================================
+  // Save as Template Switch Tests
+  // ========================================
+  it("shows save as template switch when routine is published and not saved", async () => {
+    const publishedRoutine = makeRoutine({
+      id: "routine-1",
+      status: "published",
+      savedAsTemplate: false,
+    });
+
+    render(
+      <RoutineSection
+        routine={publishedRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+        onSaveAsTemplate={mockOnSaveAsTemplate}
+      />,
+    );
+
+    // User sees save as template switch and label
+    expect(screen.getByRole("switch")).toBeInTheDocument();
+    expect(screen.getByText(/save as template/i)).toBeInTheDocument();
+  });
+
+  it("does NOT show banner when routine is draft", async () => {
+    const draftRoutine = makeRoutine({
+      id: "routine-1",
+      status: "draft",
+      savedAsTemplate: false,
+    });
+
+    render(
+      <RoutineSection
+        routine={draftRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+        onSaveAsTemplate={mockOnSaveAsTemplate}
+      />,
+    );
+
+    // Switch should not be visible
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+
+  it("does NOT show switch when routine already saved as template", async () => {
+    const savedRoutine = makeRoutine({
+      id: "routine-1",
+      status: "published",
+      savedAsTemplate: true,
+    });
+
+    render(
+      <RoutineSection
+        routine={savedRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+        onSaveAsTemplate={mockOnSaveAsTemplate}
+      />,
+    );
+
+    // Switch should not be visible
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+
+  it("calls onSaveAsTemplate when user toggles switch on", async () => {
+    const user = setupUser();
+
+    const publishedRoutine = makeRoutine({
+      id: "routine-1",
+      status: "published",
+      savedAsTemplate: false,
+    });
+
+    render(
+      <RoutineSection
+        routine={publishedRoutine}
+        products={[]}
+        templates={mockTemplates}
+        onCreateFromTemplate={mockOnCreateFromTemplate}
+        onCreateBlank={mockOnCreateBlank}
+        onUpdateRoutine={mockOnUpdateRoutine}
+        onPublishRoutine={mockOnPublishRoutine}
+        onDeleteRoutine={mockOnDeleteRoutine}
+        onAddProduct={mockOnAddProduct}
+        onUpdateProduct={mockOnUpdateProduct}
+        onDeleteProduct={mockOnDeleteProduct}
+        onReorderProducts={mockOnReorderProducts}
+        onSaveAsTemplate={mockOnSaveAsTemplate}
+      />,
+    );
+
+    // User toggles switch on
+    await user.click(screen.getByRole("switch"));
+
+    // Verify handler was called
+    expect(mockOnSaveAsTemplate).toHaveBeenCalledTimes(1);
   });
 });

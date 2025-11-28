@@ -76,7 +76,7 @@ const GOALS = [
   },
   {
     name: "Improve Texture",
-    description: "Improve skin texture and minimize pores",
+    description: "Improve skin texture and minimise pores",
     timeframe: "4 months",
   },
   {

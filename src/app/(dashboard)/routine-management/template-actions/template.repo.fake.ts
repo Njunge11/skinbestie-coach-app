@@ -17,10 +17,13 @@ export type RoutineTemplateProduct = Pick<
   RoutineTemplateProductRow,
   | "id"
   | "templateId"
+  | "stepType"
+  | "stepName"
   | "routineStep"
   | "productName"
   | "productUrl"
   | "instructions"
+  | "productPurchaseInstructions"
   | "frequency"
   | "days"
   | "timeOfDay"

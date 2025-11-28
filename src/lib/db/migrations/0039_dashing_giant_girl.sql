@@ -1,0 +1,1 @@
+ALTER TABLE "user_profiles" ADD COLUMN "products_received" boolean DEFAULT false NOT NULL;

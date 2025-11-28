@@ -1138,4 +1138,122 @@ describe("updateRoutine - Integration Tests (PGlite)", () => {
       );
     });
   });
+
+  describe("User profile routineStartDateSet flag", () => {
+    it("sets routineStartDateSet to true when start date is updated", async () => {
+      // GIVEN: User profile with routineStartDateSet = false
+      const profile = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.id, user1Id))
+        .limit(1);
+
+      expect(profile[0].routineStartDateSet).toBe(false);
+
+      // AND: Published routine
+      await db.insert(schema.skincareRoutines).values({
+        id: routineId,
+        userProfileId: user1Id,
+        name: "Morning Routine",
+        startDate: new Date("2025-10-31"),
+        endDate: null,
+        status: "published",
+      });
+
+      await db.insert(schema.skincareRoutineProducts).values({
+        id: product1Id,
+        routineId,
+        userProfileId: user1Id,
+        routineStep: "cleanse",
+        productName: "Cleanse",
+        instructions: "Apply to face",
+        frequency: "daily",
+        days: null,
+        timeOfDay: "morning",
+        order: 1,
+      });
+
+      // WHEN: Update start date
+      await updateRoutine(
+        routineId,
+        { startDate: new Date("2025-11-10") },
+        deps,
+      );
+
+      // THEN: routineStartDateSet is true
+      const updatedProfile = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.id, user1Id))
+        .limit(1);
+
+      expect(updatedProfile[0].routineStartDateSet).toBe(true);
+    });
+
+    it("does not change routineStartDateSet when only name is updated", async () => {
+      // GIVEN: User profile with routineStartDateSet = false
+      const profile = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.id, user1Id))
+        .limit(1);
+
+      expect(profile[0].routineStartDateSet).toBe(false);
+
+      // AND: Published routine
+      await db.insert(schema.skincareRoutines).values({
+        id: routineId,
+        userProfileId: user1Id,
+        name: "Morning Routine",
+        startDate: new Date("2025-10-31"),
+        endDate: null,
+        status: "published",
+      });
+
+      // WHEN: Update only name (not start date)
+      await updateRoutine(routineId, { name: "Evening Routine" }, deps);
+
+      // THEN: routineStartDateSet remains false
+      const updatedProfile = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.id, user1Id))
+        .limit(1);
+
+      expect(updatedProfile[0].routineStartDateSet).toBe(false);
+    });
+
+    it("does not change routineStartDateSet when only end date is updated", async () => {
+      // GIVEN: User profile with routineStartDateSet = false
+      const profile = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.id, user1Id))
+        .limit(1);
+
+      expect(profile[0].routineStartDateSet).toBe(false);
+
+      // AND: Published routine
+      await db.insert(schema.skincareRoutines).values({
+        id: routineId,
+        userProfileId: user1Id,
+        name: "Morning Routine",
+        startDate: new Date("2025-10-31"),
+        endDate: null,
+        status: "published",
+      });
+
+      // WHEN: Update only end date (not start date)
+      await updateRoutine(routineId, { endDate: new Date("2025-12-31") }, deps);
+
+      // THEN: routineStartDateSet remains false
+      const updatedProfile = await db
+        .select()
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.id, user1Id))
+        .limit(1);
+
+      expect(updatedProfile[0].routineStartDateSet).toBe(false);
+    });
+  });
 });

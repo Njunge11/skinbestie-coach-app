@@ -19,7 +19,8 @@ import {
 } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { ProductItem, Product } from "./product-item";
-import { ProductForm, ProductFormData } from "./product-form";
+import { ProductFormData } from "./product-form";
+import { AddStepModal } from "@/app/(dashboard)/subscribers/[id]/_components/add-step-modal";
 
 interface ProductListProps {
   products: Product[];
@@ -38,15 +39,7 @@ export function ProductList({
   onDelete,
   onReorder,
 }: ProductListProps) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [newProduct, setNewProduct] = useState<ProductFormData>({
-    routineStep: "",
-    productName: "",
-    productUrl: "",
-    instructions: "",
-    frequency: "daily",
-    days: undefined,
-  });
+  const [isAddStepOpen, setIsAddStepOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -59,39 +52,8 @@ export function ProductList({
     }),
   );
 
-  const handleAdd = () => {
-    // Validate all required fields
-    if (
-      newProduct.routineStep &&
-      newProduct.routineStep.trim() &&
-      newProduct.productName.trim() &&
-      newProduct.instructions.trim() &&
-      newProduct.frequency.trim()
-    ) {
-      onAdd(newProduct);
-
-      setNewProduct({
-        routineStep: "",
-        productName: "",
-        productUrl: "",
-        instructions: "",
-        frequency: "daily",
-        days: undefined,
-      });
-      setIsAdding(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setIsAdding(false);
-    setNewProduct({
-      routineStep: "",
-      productName: "",
-      productUrl: "",
-      instructions: "",
-      frequency: "daily",
-      days: undefined,
-    });
+  const handleAddStep = (data: ProductFormData) => {
+    onAdd(data);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -141,33 +103,30 @@ export function ProductList({
               />
             ))}
 
-            {products.length === 0 && !isAdding && (
+            {products.length === 0 && (
               <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                 <p className="text-xs text-gray-400">No routine set</p>
               </div>
             )}
 
-            {isAdding ? (
-              <ProductForm
-                data={newProduct}
-                onChange={setNewProduct}
-                onSave={handleAdd}
-                onCancel={handleCancel}
-                saveLabel="Add"
-              />
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setIsAdding(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {products.length === 0 ? "Add Step" : "Add Another Step"}
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setIsAddStepOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {products.length === 0 ? "Add Step" : "Add Another Step"}
+            </Button>
           </div>
         </SortableContext>
       </DndContext>
+
+      <AddStepModal
+        open={isAddStepOpen}
+        onOpenChange={setIsAddStepOpen}
+        timeOfDay={timeOfDay}
+        onAdd={handleAddStep}
+      />
     </div>
   );
 }

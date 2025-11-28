@@ -26,6 +26,7 @@ export type UserProfile = Pick<
   | "occupation"
   | "bio"
   | "timezone"
+  | "feedbackSurveyVisible"
   | "completedSteps"
   | "isCompleted"
   | "completedAt"
@@ -54,6 +55,7 @@ export function makeUserProfileRepo() {
           occupation: userProfiles.occupation,
           bio: userProfiles.bio,
           timezone: userProfiles.timezone,
+          feedbackSurveyVisible: userProfiles.feedbackSurveyVisible,
           completedSteps: userProfiles.completedSteps,
           isCompleted: userProfiles.isCompleted,
           completedAt: userProfiles.completedAt,

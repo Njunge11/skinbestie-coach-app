@@ -1,0 +1,1 @@
+ALTER TYPE "public"."frequency" ADD VALUE '1x per week' BEFORE '2x per week';

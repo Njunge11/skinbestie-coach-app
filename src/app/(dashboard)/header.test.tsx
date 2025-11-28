@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import Header from "./header";
 
 describe("Header - UI Integration Tests", () => {
@@ -12,18 +12,14 @@ describe("Header - UI Integration Tests", () => {
   };
 
   it("displays user name and role", () => {
-    render(
-      <Header user={mockUser} onLogout={vi.fn()} onMenuClick={vi.fn()} />
-    );
+    render(<Header user={mockUser} onLogout={vi.fn()} onMenuClick={vi.fn()} />);
 
     expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("Admin")).toBeInTheDocument();
   });
 
   it("displays avatar fallback with user initials", () => {
-    render(
-      <Header user={mockUser} onLogout={vi.fn()} onMenuClick={vi.fn()} />
-    );
+    render(<Header user={mockUser} onLogout={vi.fn()} onMenuClick={vi.fn()} />);
 
     // Avatar fallback should show initials "JD"
     expect(screen.getByText("JD")).toBeInTheDocument();
@@ -44,11 +40,11 @@ describe("Header - UI Integration Tests", () => {
   });
 
   it("user opens dropdown menu and clicks logout", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onLogout = vi.fn();
 
     render(
-      <Header user={mockUser} onLogout={onLogout} onMenuClick={vi.fn()} />
+      <Header user={mockUser} onLogout={onLogout} onMenuClick={vi.fn()} />,
     );
 
     // Find and click the dropdown trigger button
@@ -63,11 +59,11 @@ describe("Header - UI Integration Tests", () => {
   });
 
   it("user clicks mobile menu button", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onMenuClick = vi.fn();
 
     render(
-      <Header user={mockUser} onLogout={vi.fn()} onMenuClick={onMenuClick} />
+      <Header user={mockUser} onLogout={vi.fn()} onMenuClick={onMenuClick} />,
     );
 
     // Find the menu icon button (it has no accessible name, just an icon)
@@ -86,29 +82,31 @@ describe("Header - UI Integration Tests", () => {
   });
 
   it("dropdown menu is initially closed", () => {
-    render(
-      <Header user={mockUser} onLogout={vi.fn()} onMenuClick={vi.fn()} />
-    );
+    render(<Header user={mockUser} onLogout={vi.fn()} onMenuClick={vi.fn()} />);
 
     // Menu item should not be visible initially
-    expect(screen.queryByRole("menuitem", { name: /log out/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /log out/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("dropdown menu opens when user clicks trigger", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
-    render(
-      <Header user={mockUser} onLogout={vi.fn()} onMenuClick={vi.fn()} />
-    );
+    render(<Header user={mockUser} onLogout={vi.fn()} onMenuClick={vi.fn()} />);
 
     // Initially closed
-    expect(screen.queryByRole("menuitem", { name: /log out/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /log out/i }),
+    ).not.toBeInTheDocument();
 
     // Click trigger to open
     const dropdownTrigger = screen.getByRole("button", { name: /john doe/i });
     await user.click(dropdownTrigger);
 
     // Now menu item should be visible
-    expect(screen.getByRole("menuitem", { name: /log out/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /log out/i }),
+    ).toBeInTheDocument();
   });
 });

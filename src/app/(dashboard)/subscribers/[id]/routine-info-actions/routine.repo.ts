@@ -13,6 +13,7 @@ export type Routine = Pick<
   | "startDate"
   | "endDate"
   | "status"
+  | "savedAsTemplate"
   | "createdAt"
   | "updatedAt"
 >;
@@ -30,6 +31,7 @@ export function makeRoutineRepo({ db = defaultDb }: { db?: DrizzleDB } = {}) {
           startDate: skincareRoutines.startDate,
           endDate: skincareRoutines.endDate,
           status: skincareRoutines.status,
+          savedAsTemplate: skincareRoutines.savedAsTemplate,
           createdAt: skincareRoutines.createdAt,
           updatedAt: skincareRoutines.updatedAt,
         })
@@ -50,6 +52,7 @@ export function makeRoutineRepo({ db = defaultDb }: { db?: DrizzleDB } = {}) {
             startDate: skincareRoutines.startDate,
             endDate: skincareRoutines.endDate,
             status: skincareRoutines.status,
+            savedAsTemplate: skincareRoutines.savedAsTemplate,
             createdAt: skincareRoutines.createdAt,
             updatedAt: skincareRoutines.updatedAt,
           })

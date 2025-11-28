@@ -2,20 +2,30 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { makeSurveysService } from "@/app/api/admin/surveys/surveys.service";
+import { validateApiKey } from "../../shared/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Step 1: Get survey ID from params
+    // Step 1: Validate API key
+    const isValid = await validateApiKey();
+    if (!isValid) {
+      return NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "Invalid API key" } },
+        { status: 401 },
+      );
+    }
+
+    // Step 2: Get survey ID from params
     const { id: surveyId } = await params;
 
-    // Step 2: Call service to get survey
+    // Step 3: Call service to get survey
     const service = makeSurveysService();
     const result = await service.getSurvey(surveyId);
 
-    // Step 3: Handle service errors
+    // Step 4: Handle service errors
     if (!result.success) {
       if (result.error === "Survey not found") {
         return NextResponse.json(
@@ -40,7 +50,7 @@ export async function GET(
       );
     }
 
-    // Step 4: Return survey (only include fields needed by consumer)
+    // Step 5: Return survey (only include fields needed by consumer)
     const { id, title, description, questions } = result.data;
 
     return NextResponse.json(

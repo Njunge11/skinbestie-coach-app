@@ -1,5 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -160,7 +160,7 @@ describe("SubscribersTable - UI Tests", () => {
   });
 
   it("user searches for subscribers by name", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<SubscribersTable />);
 
     // Wait for subscribers to load
@@ -183,7 +183,7 @@ describe("SubscribersTable - UI Tests", () => {
   });
 
   it("user searches for subscribers by email", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<SubscribersTable />);
 
     // Wait for subscribers to load
@@ -206,7 +206,7 @@ describe("SubscribersTable - UI Tests", () => {
   });
 
   it("user filters by completion status triggering API call", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     renderWithProviders(<SubscribersTable />);
 
@@ -236,7 +236,7 @@ describe("SubscribersTable - UI Tests", () => {
   });
 
   it("user filters by subscription status triggering API call", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<SubscribersTable />);
 
     // Wait for initial load
@@ -263,7 +263,7 @@ describe("SubscribersTable - UI Tests", () => {
   });
 
   it("user filters by date range triggering API call", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<SubscribersTable />);
 
     // Wait for initial load
@@ -322,7 +322,7 @@ describe("SubscribersTable - UI Tests", () => {
   });
 
   it("user clicks on a subscriber row to view details", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<SubscribersTable />);
 
     // Wait for subscribers to load
@@ -358,7 +358,7 @@ describe("SubscribersTable - UI Tests", () => {
       },
     });
 
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<SubscribersTable />);
 
     // Wait for initial load
@@ -378,7 +378,7 @@ describe("SubscribersTable - UI Tests", () => {
   });
 
   it("user applies multiple filters and sees URL with all params", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     // Start with search already in URL
     mockSearchParams = new URLSearchParams("search=test");
@@ -480,7 +480,7 @@ describe("SubscribersTable - UI Tests", () => {
   });
 
   it("cleans up URL by removing default values", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     // Start with some filters in URL
     mockSearchParams = new URLSearchParams("search=test&status=completed");

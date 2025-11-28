@@ -145,6 +145,24 @@ export function makeSurveysService(deps: SurveysServiceDeps = {}) {
     },
 
     /**
+     * Get the published survey with all questions
+     */
+    async getPublishedSurvey(): Promise<ServiceResult<SurveyWithQuestions>> {
+      try {
+        const survey = await repo.getPublishedSurvey();
+
+        if (!survey) {
+          return { success: false, error: "No published survey found" };
+        }
+
+        return { success: true, data: survey };
+      } catch (error) {
+        console.error("Error getting published survey:", error);
+        return { success: false, error: "Failed to get published survey" };
+      }
+    },
+
+    /**
      * Submit user responses to survey
      */
     async submitResponses(data: {

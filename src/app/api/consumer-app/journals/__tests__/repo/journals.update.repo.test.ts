@@ -162,10 +162,12 @@ describe("Journals Repository - Update Tests (PGlite)", () => {
         userProfileId: testUserId,
       });
 
-      const originalLastModified = journal.lastModified;
-
-      // Wait a tiny bit to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // Set lastModified to a known past time
+      const pastTime = new Date("2020-01-01T00:00:00Z");
+      await db
+        .update(schema.journals)
+        .set({ lastModified: pastTime })
+        .where(eq(schema.journals.id, journal.id));
 
       // Update
       const updated = await repo.updateJournal(journal.id, {
@@ -174,7 +176,7 @@ describe("Journals Repository - Update Tests (PGlite)", () => {
 
       expect(updated).toBeDefined();
       expect(updated?.lastModified.getTime()).toBeGreaterThan(
-        originalLastModified.getTime(),
+        pastTime.getTime(),
       );
     });
 
@@ -201,8 +203,12 @@ describe("Journals Repository - Update Tests (PGlite)", () => {
         userProfileId: testUserId,
       });
 
-      // Wait to ensure time difference
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // Set createdAt to a known past time
+      const pastTime = new Date("2020-01-01T00:00:00Z");
+      await db
+        .update(schema.journals)
+        .set({ createdAt: pastTime, lastModified: pastTime })
+        .where(eq(schema.journals.id, journal.id));
 
       // Update
       const updated = await repo.updateJournal(journal.id, {
