@@ -150,6 +150,8 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
       const result = await database
         .select({
           id: schema.routineStepCompletions.id,
+          stepType: schema.skincareRoutineProducts.stepType,
+          stepName: schema.skincareRoutineProducts.stepName,
           routineStep: schema.skincareRoutineProducts.routineStep,
           productName: schema.skincareRoutineProducts.productName,
           productUrl: schema.skincareRoutineProducts.productUrl,
@@ -162,12 +164,9 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         .from(schema.routineStepCompletions)
         .innerJoin(
           schema.skincareRoutineProducts,
-          and(
-            eq(
-              schema.routineStepCompletions.routineProductId,
-              schema.skincareRoutineProducts.id,
-            ),
-            eq(schema.skincareRoutineProducts.stepType, "product"),
+          eq(
+            schema.routineStepCompletions.routineProductId,
+            schema.skincareRoutineProducts.id,
           ),
         )
         .innerJoin(
@@ -192,11 +191,18 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         );
 
       // Map database status to API status format
-      return result.map((step) => ({
+      const response = result.map((step) => ({
         ...step,
         status:
           step.status === "on-time" ? ("completed" as const) : step.status,
       }));
+
+      console.log(
+        "📦 Today's routine steps to consumer app:",
+        JSON.stringify(response, null, 2),
+      );
+
+      return response;
     },
 
     /**
@@ -241,10 +247,12 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         return null;
       }
 
-      // Get all products for this routine (only product steps, not instruction-only steps)
+      // Get all products for this routine (both product and instruction-only steps)
       const products = await database
         .select({
           id: schema.skincareRoutineProducts.id,
+          stepType: schema.skincareRoutineProducts.stepType,
+          stepName: schema.skincareRoutineProducts.stepName,
           routineStep: schema.skincareRoutineProducts.routineStep,
           productName: schema.skincareRoutineProducts.productName,
           productUrl: schema.skincareRoutineProducts.productUrl,
@@ -256,10 +264,7 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         })
         .from(schema.skincareRoutineProducts)
         .where(
-          and(
-            eq(schema.skincareRoutineProducts.routineId, routineResult[0].id),
-            eq(schema.skincareRoutineProducts.stepType, "product"),
-          ),
+          eq(schema.skincareRoutineProducts.routineId, routineResult[0].id),
         )
         .orderBy(
           asc(schema.skincareRoutineProducts.timeOfDay),
@@ -270,11 +275,18 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
       const morning = products.filter((p) => p.timeOfDay === "morning");
       const evening = products.filter((p) => p.timeOfDay === "evening");
 
-      return {
+      const response = {
         ...routineResult[0],
         morning,
         evening,
       };
+
+      console.log(
+        "📦 Routine response to consumer app:",
+        JSON.stringify(response, null, 2),
+      );
+
+      return response;
     },
 
     /**
@@ -329,6 +341,8 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
       const result = await database
         .select({
           id: schema.routineStepCompletions.id,
+          stepType: schema.skincareRoutineProducts.stepType,
+          stepName: schema.skincareRoutineProducts.stepName,
           routineStep: schema.skincareRoutineProducts.routineStep,
           productName: schema.skincareRoutineProducts.productName,
           productUrl: schema.skincareRoutineProducts.productUrl,
@@ -343,12 +357,9 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         .from(schema.routineStepCompletions)
         .innerJoin(
           schema.skincareRoutineProducts,
-          and(
-            eq(
-              schema.routineStepCompletions.routineProductId,
-              schema.skincareRoutineProducts.id,
-            ),
-            eq(schema.skincareRoutineProducts.stepType, "product"),
+          eq(
+            schema.routineStepCompletions.routineProductId,
+            schema.skincareRoutineProducts.id,
           ),
         )
         .innerJoin(
@@ -379,11 +390,18 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         );
 
       // Map database status to API status format (same as getTodayRoutineSteps)
-      return result.map((step) => ({
+      const response = result.map((step) => ({
         ...step,
         status:
           step.status === "on-time" ? ("completed" as const) : step.status,
       }));
+
+      console.log(
+        "📦 Catch-up routine steps to consumer app:",
+        JSON.stringify(response, null, 2),
+      );
+
+      return response;
     },
   };
 }

@@ -449,11 +449,7 @@ export async function createRoutineProduct(
         .returning();
 
       // If routine is published, generate scheduled steps in SAME transaction
-      // Only generate scheduled steps for "product" type, not "instruction_only"
-      if (
-        routine.status === "published" &&
-        validation.data.stepType === "product"
-      ) {
+      if (routine.status === "published") {
         const userRepo = makeUserProfileRepo();
         const user = await userRepo.findById(validation.data.userId);
         if (!user) {
@@ -634,58 +630,55 @@ export async function updateRoutineProduct(
           )
           .returning();
 
-        // Only regenerate steps for "product" type
-        if (updatedProduct.stepType === "product") {
-          // Regenerate steps inline in SAME transaction
-          const userRepo = makeUserProfileRepo();
-          const user = await userRepo.findById(product.userProfileId);
-          if (!user) {
-            throw new Error("User profile not found");
+        // Regenerate steps inline in SAME transaction
+        const userRepo = makeUserProfileRepo();
+        const user = await userRepo.findById(product.userProfileId);
+        if (!user) {
+          throw new Error("User profile not found");
+        }
+
+        // Calculate end date
+        const endDate = routine.endDate ?? addMonths(today, 6);
+
+        // Generate new completion records
+        const completionsToCreate = [];
+        let currentDate = new Date(today);
+
+        while (currentDate <= endDate) {
+          if (
+            shouldGenerateForDate(
+              {
+                frequency: updatedProduct.frequency,
+                days: updatedProduct.days ?? undefined,
+              },
+              currentDate,
+            )
+          ) {
+            const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
+              currentDate,
+              updatedProduct.timeOfDay as "morning" | "evening",
+              user.timezone,
+            );
+
+            completionsToCreate.push({
+              routineProductId: updatedProduct.id,
+              userProfileId: product.userProfileId,
+              scheduledDate: new Date(currentDate),
+              scheduledTimeOfDay: updatedProduct.timeOfDay as
+                | "morning"
+                | "evening",
+              onTimeDeadline,
+              gracePeriodEnd,
+              completedAt: null,
+              status: "pending" as const,
+            });
           }
+          currentDate = addDays(currentDate, 1);
+        }
 
-          // Calculate end date
-          const endDate = routine.endDate ?? addMonths(today, 6);
-
-          // Generate new completion records
-          const completionsToCreate = [];
-          let currentDate = new Date(today);
-
-          while (currentDate <= endDate) {
-            if (
-              shouldGenerateForDate(
-                {
-                  frequency: updatedProduct.frequency,
-                  days: updatedProduct.days ?? undefined,
-                },
-                currentDate,
-              )
-            ) {
-              const { onTimeDeadline, gracePeriodEnd } = calculateDeadlines(
-                currentDate,
-                updatedProduct.timeOfDay as "morning" | "evening",
-                user.timezone,
-              );
-
-              completionsToCreate.push({
-                routineProductId: updatedProduct.id,
-                userProfileId: product.userProfileId,
-                scheduledDate: new Date(currentDate),
-                scheduledTimeOfDay: updatedProduct.timeOfDay as
-                  | "morning"
-                  | "evening",
-                onTimeDeadline,
-                gracePeriodEnd,
-                completedAt: null,
-                status: "pending" as const,
-              });
-            }
-            currentDate = addDays(currentDate, 1);
-          }
-
-          // Insert new scheduled steps using tx
-          if (completionsToCreate.length > 0) {
-            await tx.insert(routineStepCompletions).values(completionsToCreate);
-          }
+        // Insert new scheduled steps using tx
+        if (completionsToCreate.length > 0) {
+          await tx.insert(routineStepCompletions).values(completionsToCreate);
         }
       }
     });
