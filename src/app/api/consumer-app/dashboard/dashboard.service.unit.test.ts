@@ -76,6 +76,8 @@ describe("DashboardService", () => {
   const sampleRoutineSteps: RoutineStep[] = [
     {
       id: "step-1",
+      stepType: "product",
+      stepName: null,
       routineStep: "Cleanse",
       productName: "Gentle Cleanser",
       productUrl: null,

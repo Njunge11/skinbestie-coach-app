@@ -81,10 +81,13 @@ export async function saveRoutineAsTemplate(
     for (const product of products) {
       await templateRepo.createProduct({
         templateId: template.id,
+        stepType: product.stepType,
+        stepName: product.stepName,
         routineStep: product.routineStep,
         productName: product.productName,
         productUrl: product.productUrl,
         instructions: product.instructions,
+        productPurchaseInstructions: product.productPurchaseInstructions,
         frequency: product.frequency,
         days: product.days,
         timeOfDay: product.timeOfDay,

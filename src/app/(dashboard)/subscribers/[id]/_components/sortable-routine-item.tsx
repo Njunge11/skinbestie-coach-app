@@ -50,10 +50,14 @@ export function SortableRoutineItem({
               size="sm"
               onClick={() =>
                 onEdit(product.id, {
-                  routineStep: product.routineStep,
-                  productName: product.productName,
+                  stepType: product.stepType,
+                  stepName: product.stepName ?? undefined,
+                  routineStep: product.routineStep ?? undefined,
+                  productName: product.productName ?? undefined,
                   productUrl: product.productUrl || "",
                   instructions: product.instructions,
+                  productPurchaseInstructions:
+                    product.productPurchaseInstructions,
                   frequency: product.frequency,
                   days: product.days ?? undefined,
                 })

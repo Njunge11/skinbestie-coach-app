@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi } from "vitest";
 import { LoginFormState } from "./login-form-state";
 
@@ -19,7 +19,7 @@ describe("LoginFormState", () => {
   });
 
   it("allows user to type email and password", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<LoginFormState onForgotPassword={vi.fn()} />);
 
     const emailInput = screen.getByLabelText(/email address/i);
@@ -33,7 +33,7 @@ describe("LoginFormState", () => {
   });
 
   it("calls onSubmit with correct data when form is valid", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleSubmit = vi.fn();
     render(
       <LoginFormState onForgotPassword={vi.fn()} onSubmit={handleSubmit} />,
@@ -55,7 +55,7 @@ describe("LoginFormState", () => {
   });
 
   it("shows loading state while submitting", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const submitPromise = new Promise<void>(() => {
       // Never resolves - testing loading state
     });
@@ -81,7 +81,7 @@ describe("LoginFormState", () => {
   });
 
   it("prevents form submission when email is invalid", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleSubmit = vi.fn();
     render(
       <LoginFormState onForgotPassword={vi.fn()} onSubmit={handleSubmit} />,
@@ -96,7 +96,7 @@ describe("LoginFormState", () => {
   });
 
   it("shows error when email is empty", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<LoginFormState onForgotPassword={vi.fn()} />);
 
     await user.type(screen.getByLabelText(/password/i), "password123");
@@ -108,7 +108,7 @@ describe("LoginFormState", () => {
   });
 
   it("shows error when password is empty", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<LoginFormState onForgotPassword={vi.fn()} />);
 
     await user.type(
@@ -123,7 +123,7 @@ describe("LoginFormState", () => {
   });
 
   it("calls onForgotPassword when forgot password button is clicked", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleForgotPassword = vi.fn();
     render(<LoginFormState onForgotPassword={handleForgotPassword} />);
 

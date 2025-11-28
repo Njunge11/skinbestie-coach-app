@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ProfileTags } from "../profile-tags";
 import type { ProfileTag } from "../../../types";
@@ -71,7 +71,7 @@ describe("ProfileTags - UI Tests", () => {
   });
 
   it("user adds a new tag", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <ProfileTags
@@ -98,7 +98,7 @@ describe("ProfileTags - UI Tests", () => {
   });
 
   it("user adds a new tag by pressing Enter", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <ProfileTags
@@ -125,7 +125,7 @@ describe("ProfileTags - UI Tests", () => {
   });
 
   it("user cannot add empty tag", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <ProfileTags
@@ -157,7 +157,7 @@ describe("ProfileTags - UI Tests", () => {
   });
 
   it("user cannot add duplicate tag (case-insensitive)", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <ProfileTags
@@ -183,7 +183,7 @@ describe("ProfileTags - UI Tests", () => {
   });
 
   it("user removes a tag", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <ProfileTags
@@ -207,7 +207,7 @@ describe("ProfileTags - UI Tests", () => {
   });
 
   it("user sees tag input is trimmed", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <ProfileTags

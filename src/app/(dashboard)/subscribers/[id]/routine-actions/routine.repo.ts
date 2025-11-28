@@ -13,6 +13,8 @@ export type RoutineProduct = Pick<
   | "id"
   | "routineId"
   | "userProfileId"
+  | "stepType"
+  | "stepName"
   | "routineStep"
   | "productName"
   | "productUrl"
@@ -39,6 +41,8 @@ export function makeRoutineProductsRepo() {
           id: skincareRoutineProducts.id,
           routineId: skincareRoutineProducts.routineId,
           userProfileId: skincareRoutineProducts.userProfileId,
+          stepType: skincareRoutineProducts.stepType,
+          stepName: skincareRoutineProducts.stepName,
           routineStep: skincareRoutineProducts.routineStep,
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,
@@ -68,6 +72,8 @@ export function makeRoutineProductsRepo() {
           id: skincareRoutineProducts.id,
           routineId: skincareRoutineProducts.routineId,
           userProfileId: skincareRoutineProducts.userProfileId,
+          stepType: skincareRoutineProducts.stepType,
+          stepName: skincareRoutineProducts.stepName,
           routineStep: skincareRoutineProducts.routineStep,
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,
@@ -100,6 +106,8 @@ export function makeRoutineProductsRepo() {
           id: skincareRoutineProducts.id,
           routineId: skincareRoutineProducts.routineId,
           userProfileId: skincareRoutineProducts.userProfileId,
+          stepType: skincareRoutineProducts.stepType,
+          stepName: skincareRoutineProducts.stepName,
           routineStep: skincareRoutineProducts.routineStep,
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,
@@ -131,6 +139,8 @@ export function makeRoutineProductsRepo() {
           id: skincareRoutineProducts.id,
           routineId: skincareRoutineProducts.routineId,
           userProfileId: skincareRoutineProducts.userProfileId,
+          stepType: skincareRoutineProducts.stepType,
+          stepName: skincareRoutineProducts.stepName,
           routineStep: skincareRoutineProducts.routineStep,
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,
@@ -159,6 +169,8 @@ export function makeRoutineProductsRepo() {
           id: skincareRoutineProducts.id,
           routineId: skincareRoutineProducts.routineId,
           userProfileId: skincareRoutineProducts.userProfileId,
+          stepType: skincareRoutineProducts.stepType,
+          stepName: skincareRoutineProducts.stepName,
           routineStep: skincareRoutineProducts.routineStep,
           productName: skincareRoutineProducts.productName,
           productUrl: skincareRoutineProducts.productUrl,

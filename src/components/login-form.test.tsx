@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { LoginForm } from "./login-form";
 
@@ -50,7 +50,7 @@ describe("LoginForm - UI Tests", () => {
   });
 
   it("allows user to complete full password reset flow and return to login", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<LoginForm />);
 
     // 1. Start at login, click forgot password
@@ -115,7 +115,7 @@ describe("LoginForm - UI Tests", () => {
   });
 
   it("allows user to resend verification code", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<LoginForm />);
 
     // Navigate to verification code state
@@ -135,7 +135,7 @@ describe("LoginForm - UI Tests", () => {
   });
 
   it("maintains form state correctly through navigation", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<LoginForm />);
 
     // Type in login form
@@ -158,7 +158,7 @@ describe("LoginForm - UI Tests", () => {
   });
 
   it("validates form at each step before allowing progression", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<LoginForm />);
 
     // Go to forgot password

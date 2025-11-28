@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { InviteBookingModal } from "./invite-booking-modal";
@@ -52,7 +52,9 @@ describe("InviteBookingModal - UI Tests", () => {
 
   const renderWithProviders = (component: React.ReactElement) => {
     return render(
-      <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        {component}
+      </QueryClientProvider>,
     );
   };
 
@@ -62,27 +64,35 @@ describe("InviteBookingModal - UI Tests", () => {
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // User sees modal heading
-    expect(screen.getByRole("heading", { name: /invite to book/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /invite to book/i }),
+    ).toBeInTheDocument();
 
     // Wait for event types to load
     expect(await screen.findByRole("combobox")).toBeInTheDocument();
 
     // User opens dropdown to see available options
-    const user = userEvent.setup();
+    const user = setupUser();
     await user.click(screen.getByRole("combobox"));
 
     // User sees all available event types
-    expect(screen.getByRole("option", { name: /initial consultation/i })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /follow-up session/i })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /skin analysis/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /initial consultation/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /follow-up session/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /skin analysis/i }),
+    ).toBeInTheDocument();
   });
 
   it("user selects event type and generates booking link", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { generateBookingLink } = await import("../actions");
 
     renderWithProviders(
@@ -90,7 +100,7 @@ describe("InviteBookingModal - UI Tests", () => {
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Wait for event types to load
@@ -102,7 +112,9 @@ describe("InviteBookingModal - UI Tests", () => {
     await user.click(screen.getByRole("combobox"));
 
     // User selects an event type
-    await user.click(screen.getByRole("option", { name: /follow-up session/i }));
+    await user.click(
+      screen.getByRole("option", { name: /follow-up session/i }),
+    );
 
     // User clicks generate link button
     await user.click(screen.getByRole("button", { name: /generate link/i }));
@@ -113,19 +125,23 @@ describe("InviteBookingModal - UI Tests", () => {
     });
 
     // User sees the generated link
-    expect(await screen.findByText(/one-time booking url/i)).toBeInTheDocument();
-    expect(screen.getByText("https://calendly.com/booking/abc123")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/one-time booking url/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("https://calendly.com/booking/abc123"),
+    ).toBeInTheDocument();
   });
 
   it("user copies the generated booking link", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     renderWithProviders(
       <InviteBookingModal
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Wait for event types to load and generate link
@@ -134,11 +150,15 @@ describe("InviteBookingModal - UI Tests", () => {
     });
 
     await user.click(screen.getByRole("combobox"));
-    await user.click(screen.getByRole("option", { name: /initial consultation/i }));
+    await user.click(
+      screen.getByRole("option", { name: /initial consultation/i }),
+    );
     await user.click(screen.getByRole("button", { name: /generate link/i }));
 
     // Wait for link to be generated
-    expect(await screen.findByText(/one-time booking url/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/one-time booking url/i),
+    ).toBeInTheDocument();
 
     // User clicks copy button
     await user.click(screen.getByRole("button", { name: /copy/i }));
@@ -146,19 +166,19 @@ describe("InviteBookingModal - UI Tests", () => {
     // Copy callback is called
     expect(mockOnCopyLink).toHaveBeenCalledWith(
       "https://calendly.com/booking/abc123",
-      "Booking link copied"
+      "Booking link copied",
     );
   });
 
   it("user opens the generated booking link in new tab", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     renderWithProviders(
       <InviteBookingModal
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Wait for event types to load and generate link
@@ -167,15 +187,22 @@ describe("InviteBookingModal - UI Tests", () => {
     });
 
     await user.click(screen.getByRole("combobox"));
-    await user.click(screen.getByRole("option", { name: /initial consultation/i }));
+    await user.click(
+      screen.getByRole("option", { name: /initial consultation/i }),
+    );
     await user.click(screen.getByRole("button", { name: /generate link/i }));
 
     // Wait for link to be generated
-    expect(await screen.findByText(/one-time booking url/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/one-time booking url/i),
+    ).toBeInTheDocument();
 
     // User sees the Open link button
     const openLink = screen.getByRole("link", { name: /open/i });
-    expect(openLink).toHaveAttribute("href", "https://calendly.com/booking/abc123");
+    expect(openLink).toHaveAttribute(
+      "href",
+      "https://calendly.com/booking/abc123",
+    );
     expect(openLink).toHaveAttribute("target", "_blank");
     expect(openLink).toHaveAttribute("rel", "noopener noreferrer");
   });
@@ -192,21 +219,25 @@ describe("InviteBookingModal - UI Tests", () => {
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Wait for modal to render
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /invite to book/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: /invite to book/i }),
+      ).toBeInTheDocument();
     });
 
     // Generate button should be disabled (no event types available)
-    const generateButton = screen.getByRole("button", { name: /generate link/i });
+    const generateButton = screen.getByRole("button", {
+      name: /generate link/i,
+    });
     expect(generateButton).toBeDisabled();
   });
 
   it("user sees loading state while generating link", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { generateBookingLink } = await import("../actions");
 
     // Mock slow API response
@@ -219,9 +250,9 @@ describe("InviteBookingModal - UI Tests", () => {
                 success: true,
                 data: { link: "https://calendly.com/booking/xyz789" },
               }),
-            100
-          )
-        )
+            100,
+          ),
+        ),
     );
 
     renderWithProviders(
@@ -229,7 +260,7 @@ describe("InviteBookingModal - UI Tests", () => {
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Wait for event types to load
@@ -239,26 +270,34 @@ describe("InviteBookingModal - UI Tests", () => {
 
     // User selects event type and clicks generate
     await user.click(screen.getByRole("combobox"));
-    await user.click(screen.getByRole("option", { name: /initial consultation/i }));
+    await user.click(
+      screen.getByRole("option", { name: /initial consultation/i }),
+    );
     await user.click(screen.getByRole("button", { name: /generate link/i }));
 
     // User sees loading state
-    expect(screen.getByRole("button", { name: /generating.../i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /generating.../i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /generating.../i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /generating.../i }),
+    ).toBeDisabled();
 
     // Wait for link generation to complete
-    expect(await screen.findByText(/one-time booking url/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/one-time booking url/i),
+    ).toBeInTheDocument();
   });
 
   it("user closes modal and state resets", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     renderWithProviders(
       <InviteBookingModal
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Wait for event types to load and generate link
@@ -267,11 +306,15 @@ describe("InviteBookingModal - UI Tests", () => {
     });
 
     await user.click(screen.getByRole("combobox"));
-    await user.click(screen.getByRole("option", { name: /initial consultation/i }));
+    await user.click(
+      screen.getByRole("option", { name: /initial consultation/i }),
+    );
     await user.click(screen.getByRole("button", { name: /generate link/i }));
 
     // Wait for link to be generated
-    expect(await screen.findByText(/one-time booking url/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/one-time booking url/i),
+    ).toBeInTheDocument();
 
     // User closes modal
     await user.click(screen.getByRole("button", { name: /close/i }));
@@ -281,18 +324,20 @@ describe("InviteBookingModal - UI Tests", () => {
   });
 
   it("user completes full workflow: select event, generate link, copy, and close", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     renderWithProviders(
       <InviteBookingModal
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Step 1: User sees modal
-    expect(screen.getByRole("heading", { name: /invite to book/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /invite to book/i }),
+    ).toBeInTheDocument();
 
     // Step 2: User waits for event types to load
     await waitFor(() => {
@@ -307,14 +352,18 @@ describe("InviteBookingModal - UI Tests", () => {
     await user.click(screen.getByRole("button", { name: /generate link/i }));
 
     // Step 5: User sees generated link
-    expect(await screen.findByText(/one-time booking url/i)).toBeInTheDocument();
-    expect(screen.getByText("https://calendly.com/booking/abc123")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/one-time booking url/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("https://calendly.com/booking/abc123"),
+    ).toBeInTheDocument();
 
     // Step 6: User copies link
     await user.click(screen.getByRole("button", { name: /copy/i }));
     expect(mockOnCopyLink).toHaveBeenCalledWith(
       "https://calendly.com/booking/abc123",
-      "Booking link copied"
+      "Booking link copied",
     );
 
     // Step 7: User closes modal
@@ -334,21 +383,25 @@ describe("InviteBookingModal - UI Tests", () => {
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Modal should still render but with no event types
-    expect(screen.getByRole("heading", { name: /invite to book/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /invite to book/i }),
+    ).toBeInTheDocument();
 
     // Generate button should be disabled (no event type selected)
     await waitFor(() => {
-      const generateButton = screen.getByRole("button", { name: /generate link/i });
+      const generateButton = screen.getByRole("button", {
+        name: /generate link/i,
+      });
       expect(generateButton).toBeDisabled();
     });
   });
 
   it("handles API error gracefully when generating link", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { generateBookingLink } = await import("../actions");
     vi.mocked(generateBookingLink).mockResolvedValueOnce({
       success: false,
@@ -360,7 +413,7 @@ describe("InviteBookingModal - UI Tests", () => {
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Wait for event types to load
@@ -370,17 +423,21 @@ describe("InviteBookingModal - UI Tests", () => {
 
     // User tries to generate link
     await user.click(screen.getByRole("combobox"));
-    await user.click(screen.getByRole("option", { name: /initial consultation/i }));
+    await user.click(
+      screen.getByRole("option", { name: /initial consultation/i }),
+    );
     await user.click(screen.getByRole("button", { name: /generate link/i }));
 
     // User should not see the generated link view (mutation fails)
     await waitFor(() => {
-      expect(screen.queryByText(/one-time booking url/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/one-time booking url/i),
+      ).not.toBeInTheDocument();
     });
   });
 
   it("user can generate link immediately after modal opens without selecting event type", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { generateBookingLink } = await import("../actions");
 
     renderWithProviders(
@@ -388,18 +445,22 @@ describe("InviteBookingModal - UI Tests", () => {
         isOpen={true}
         onClose={mockOnClose}
         onCopyLink={mockOnCopyLink}
-      />
+      />,
     );
 
     // Wait for modal to be ready
     expect(await screen.findByRole("combobox")).toBeInTheDocument();
 
     // User can immediately click generate (first event type is pre-selected)
-    const generateButton = screen.getByRole("button", { name: /generate link/i });
+    const generateButton = screen.getByRole("button", {
+      name: /generate link/i,
+    });
     await user.click(generateButton);
 
     // Link is generated successfully
-    expect(await screen.findByText(/one-time booking url/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/one-time booking url/i),
+    ).toBeInTheDocument();
     expect(generateBookingLink).toHaveBeenCalledWith("Initial Consultation");
   });
 });

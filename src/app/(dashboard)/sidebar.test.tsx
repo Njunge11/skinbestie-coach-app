@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import Sidebar from "./sidebar";
 
 // Mock Next.js navigation
@@ -18,7 +18,7 @@ vi.mock("next/image", () => ({
 
 describe("Sidebar - UI Integration Tests", () => {
   it("user clicks logout button and callback is triggered", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { usePathname } = await import("next/navigation");
     vi.mocked(usePathname).mockReturnValue("/");
 
@@ -41,7 +41,7 @@ describe("Sidebar - UI Integration Tests", () => {
   });
 
   it("user clicks navigation link and mobile menu closes", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { usePathname } = await import("next/navigation");
     vi.mocked(usePathname).mockReturnValue("/");
 
@@ -95,7 +95,7 @@ describe("Sidebar - UI Integration Tests", () => {
   });
 
   it("user clicks backdrop overlay and mobile menu closes", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { usePathname } = await import("next/navigation");
     vi.mocked(usePathname).mockReturnValue("/");
 

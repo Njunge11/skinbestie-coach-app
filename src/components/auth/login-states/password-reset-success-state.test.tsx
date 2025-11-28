@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi } from "vitest";
 import { PasswordResetSuccessState } from "./password-reset-success-state";
 
@@ -19,7 +19,7 @@ describe("PasswordResetSuccessState", () => {
   });
 
   it("calls onBackToLogin when back to login button is clicked", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleBackToLogin = vi.fn();
     render(<PasswordResetSuccessState onBackToLogin={handleBackToLogin} />);
 

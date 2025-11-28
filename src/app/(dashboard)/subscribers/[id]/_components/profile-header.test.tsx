@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ProfileHeader } from "./profile-header";
@@ -129,7 +129,7 @@ describe("ProfileHeader - UI Tests", () => {
   });
 
   it("user generates booking link for client", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     // Mock successful booking link generation
     vi.mocked(generateBookingLink).mockResolvedValue({
@@ -169,7 +169,7 @@ describe("ProfileHeader - UI Tests", () => {
   });
 
   it("user copies booking link to clipboard", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     // Mock clipboard API
     const writeTextMock = vi.fn().mockResolvedValue(undefined);
@@ -219,7 +219,7 @@ describe("ProfileHeader - UI Tests", () => {
   });
 
   it("user closes booking link modal", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     renderWithQueryClient(<ProfileHeader client={mockClient} />);
 

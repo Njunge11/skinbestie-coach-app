@@ -12,6 +12,7 @@ import {
   pgEnum,
   primaryKey,
   jsonb,
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type { AdapterAccountType } from "next-auth/adapters";
@@ -33,6 +34,10 @@ export const frequencyEnum = pgEnum("frequency", [
   "specific_days",
 ]);
 export const timeOfDayEnum = pgEnum("time_of_day", ["morning", "evening"]);
+export const stepTypeEnum = pgEnum("step_type", [
+  "instruction_only",
+  "product",
+]);
 export const completionStatusEnum = pgEnum("completion_status", [
   "pending",
   "on-time",
@@ -394,14 +399,20 @@ export const skincareRoutineProducts = pgTable(
       .notNull()
       .references(() => userProfiles.id, { onDelete: "cascade" }),
 
-    // Product details (all required except productUrl, instructions, and productPurchaseInstructions)
-    routineStep: text("routine_step").notNull(),
-    productName: text("product_name").notNull(),
-    productUrl: text("product_url"), // Optional link to product
-    instructions: text("instructions"), // Optional usage instructions
-    productPurchaseInstructions: text("product_purchase_instructions"), // Optional instructions for purchasing this product
+    // Step type (determines which fields are required)
+    stepType: stepTypeEnum("step_type").notNull().default("product"), // "instruction_only" or "product"
 
-    // Frequency and scheduling
+    // Step name (optional for "instruction_only" type only)
+    stepName: text("step_name"), // Optional name for instruction-only steps
+
+    // Product details (required fields depend on stepType)
+    routineStep: text("routine_step"), // Required for "product", optional for "instruction_only"
+    productName: text("product_name"), // Required for "product", null for "instruction_only"
+    productUrl: text("product_url"), // Optional for "product", null for "instruction_only"
+    instructions: text("instructions"), // Required for "instruction_only", optional for "product"
+    productPurchaseInstructions: text("product_purchase_instructions"), // Optional for "product", null for "instruction_only"
+
+    // Frequency and scheduling (always required)
     frequency: frequencyEnum("frequency").notNull(), // "daily", "2x per week", "3x per week", "specific_days"
     days: text("days").array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
 
@@ -436,6 +447,18 @@ export const skincareRoutineProducts = pgTable(
     uniqueOrderPerRoutineAndTime: uniqueIndex(
       "skincare_routine_products_routine_time_order_idx",
     ).on(table.routineId, table.timeOfDay, table.order),
+
+    // Check constraints for step type validation
+    // When step_type = 'product', routine_step and product_name must not be null
+    productStepRequirements: check(
+      "product_step_requirements",
+      sql`${table.stepType} = 'instruction_only' OR (${table.routineStep} IS NOT NULL AND ${table.productName} IS NOT NULL)`,
+    ),
+    // When step_type = 'instruction_only', instructions must not be null
+    instructionOnlyRequirements: check(
+      "instruction_only_requirements",
+      sql`${table.stepType} = 'product' OR ${table.instructions} IS NOT NULL`,
+    ),
   }),
 );
 
@@ -481,11 +504,18 @@ export const routineTemplateProducts = pgTable(
       .notNull()
       .references(() => routineTemplates.id, { onDelete: "cascade" }),
 
-    // Product details (same as skincareRoutineProducts)
-    routineStep: text("routine_step").notNull(),
-    productName: text("product_name").notNull(),
+    // Step type (determines which fields are required)
+    stepType: stepTypeEnum("step_type").notNull().default("product"), // "instruction_only" or "product"
+
+    // Step name (optional for "instruction_only" type only)
+    stepName: text("step_name"), // Optional name for instruction-only steps
+
+    // Product details (required fields depend on stepType)
+    routineStep: text("routine_step"), // Required for "product", optional for "instruction_only"
+    productName: text("product_name"), // Required for "product", null for "instruction_only"
     productUrl: text("product_url"), // Optional link to product
-    instructions: text("instructions"), // Optional usage instructions
+    instructions: text("instructions"), // Optional usage instructions for "product", required for "instruction_only"
+    productPurchaseInstructions: text("product_purchase_instructions"), // Optional purchase instructions
 
     // Frequency and scheduling
     frequency: frequencyEnum("frequency").notNull(), // "daily", "2x per week", "3x per week", "specific_days"

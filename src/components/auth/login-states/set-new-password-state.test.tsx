@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi } from "vitest";
 import { SetNewPasswordState } from "./set-new-password-state";
 
@@ -19,7 +19,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("allows user to type new password and confirm password", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<SetNewPasswordState onContinue={vi.fn()} />);
 
     const newPasswordInput = screen.getByLabelText(/^new password$/i);
@@ -33,7 +33,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("calls onSubmit and onContinue when passwords match and are valid", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleSubmit = vi.fn();
     const handleContinue = vi.fn();
     render(
@@ -60,7 +60,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("shows loading state while submitting", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const submitPromise = new Promise<void>(() => {
       // Never resolves - testing loading state
     });
@@ -81,7 +81,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("shows error when password is less than 8 characters", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<SetNewPasswordState onContinue={vi.fn()} />);
 
     const passwordInput = screen.getByLabelText(/^new password$/i);
@@ -94,7 +94,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("shows error when password is missing uppercase letter", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<SetNewPasswordState onContinue={vi.fn()} />);
 
     await user.type(screen.getByLabelText(/^new password$/i), "password123");
@@ -108,7 +108,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("shows error when password is missing lowercase letter", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<SetNewPasswordState onContinue={vi.fn()} />);
 
     await user.type(screen.getByLabelText(/^new password$/i), "PASSWORD123");
@@ -122,7 +122,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("shows error when password is missing number", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<SetNewPasswordState onContinue={vi.fn()} />);
 
     await user.type(screen.getByLabelText(/^new password$/i), "PasswordOnly");
@@ -134,7 +134,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("shows error when passwords do not match", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<SetNewPasswordState onContinue={vi.fn()} />);
 
     await user.type(screen.getByLabelText(/^new password$/i), "ValidPass123");
@@ -150,7 +150,7 @@ describe("SetNewPasswordState", () => {
   });
 
   it("clears password mismatch error when passwords match after being touched", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<SetNewPasswordState onContinue={vi.fn()} />);
 
     const newPasswordInput = screen.getByLabelText(/^new password$/i);

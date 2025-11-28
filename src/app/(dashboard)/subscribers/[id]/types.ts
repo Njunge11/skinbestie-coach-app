@@ -31,6 +31,7 @@ export type Frequency =
   | "6x per week"
   | "specific_days";
 export type TimeOfDay = "morning" | "evening";
+export type StepType = "instruction_only" | "product";
 
 // Profile Tag DTO
 export interface ProfileTag {
@@ -80,9 +81,11 @@ export interface RoutineFormData {
 }
 
 export interface RoutineProductFormData {
-  routineStep: string;
-  productName: string;
-  productUrl: string;
+  stepType: StepType;
+  stepName?: string;
+  routineStep?: string;
+  productName?: string;
+  productUrl?: string;
   instructions?: string | null;
   productPurchaseInstructions?: string | null;
   frequency: Frequency;
