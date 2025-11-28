@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { Plus, Trash2, CalendarDays } from "lucide-react";
-import {
-  ProductForm,
-  type ProductFormData,
-} from "@/components/routine/product-form";
+import { type ProductFormData } from "@/components/routine/product-form";
+import { ProductItem } from "@/components/routine/product-item";
 import {
   DndContext,
   closestCenter,
@@ -25,8 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { RoutineItem } from "./routine-item";
 import { AddRoutineModal } from "./add-routine-modal";
+import { AddStepModal } from "./add-step-modal";
 import { EditRoutineDialog } from "./edit-routine-dialog";
 import { DeleteRoutineDialog } from "./delete-routine-dialog";
 import {
@@ -96,21 +94,14 @@ export function RoutineSection({
   const [isAddRoutineOpen, setIsAddRoutineOpen] = useState(false);
   const [isEditRoutineOpen, setIsEditRoutineOpen] = useState(false);
   const [isDeleteRoutineOpen, setIsDeleteRoutineOpen] = useState(false);
+  const [isAddStepOpen, setIsAddStepOpen] = useState(false);
+  const [addStepTimeOfDay, setAddStepTimeOfDay] = useState<
+    "morning" | "evening"
+  >("morning");
 
   // Split products into morning and evening
   const morningProducts = products.filter((p) => p.timeOfDay === "morning");
   const eveningProducts = products.filter((p) => p.timeOfDay === "evening");
-
-  const [addingTo, setAddingTo] = useState<"morning" | "evening" | null>(null);
-  const [newProduct, setNewProduct] = useState<ProductFormData>({
-    routineStep: "",
-    productName: "",
-    productUrl: null,
-    instructions: null,
-    productPurchaseInstructions: null,
-    frequency: "daily",
-    days: undefined,
-  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -123,59 +114,36 @@ export function RoutineSection({
     }),
   );
 
-  const handleAdd = (timeOfDay: "morning" | "evening") => {
-    // Validate all required fields (ProductForm handles validation)
-    const isValid =
-      newProduct.routineStep &&
-      newProduct.routineStep.trim() &&
-      newProduct.productName.trim() &&
-      newProduct.frequency.trim();
-
-    // Validate days are selected when frequency is not daily
-    const needsDays = newProduct.frequency !== "daily";
-    let daysValid = true;
-
-    if (needsDays) {
-      const match = newProduct.frequency.match(/^(\d+)x per week$/);
-      if (match) {
-        const requiredDays = parseInt(match[1], 10);
-        daysValid =
-          newProduct.days !== undefined &&
-          newProduct.days.length === requiredDays;
-      } else if (newProduct.frequency === "specific_days") {
-        daysValid = newProduct.days !== undefined && newProduct.days.length > 0;
-      }
-    }
-
-    if (isValid && daysValid) {
-      // Convert ProductFormData to RoutineProductFormData for onAddProduct
-      const routineProductData: RoutineProductFormData = {
-        routineStep: newProduct.routineStep,
-        productName: newProduct.productName,
-        productUrl: newProduct.productUrl || "",
-        instructions: newProduct.instructions,
-        productPurchaseInstructions:
-          newProduct.productPurchaseInstructions || "",
-        frequency: newProduct.frequency,
-        days: newProduct.days,
-      };
-      onAddProduct(timeOfDay, routineProductData);
-
-      setNewProduct({
-        routineStep: "",
-        productName: "",
-        productUrl: null,
-        instructions: null,
-        productPurchaseInstructions: null,
-        frequency: "daily",
-        days: undefined,
-      });
-      setAddingTo(null);
-    }
+  const handleAddStep = (data: ProductFormData) => {
+    // Convert ProductFormData to RoutineProductFormData for onAddProduct
+    const routineProductData: RoutineProductFormData = {
+      stepType: data.stepType || "product",
+      stepName: data.stepName,
+      routineStep: data.routineStep || undefined,
+      productName: data.productName || "",
+      productUrl: data.productUrl || "",
+      instructions: data.instructions,
+      productPurchaseInstructions: data.productPurchaseInstructions || "",
+      frequency: data.frequency || "daily",
+      days: data.days,
+    };
+    onAddProduct(addStepTimeOfDay, routineProductData);
   };
 
-  const handleEdit = (id: string, data: RoutineProductFormData) => {
-    onUpdateProduct(id, data);
+  const handleEdit = (id: string, data: ProductFormData) => {
+    // Convert ProductFormData to RoutineProductFormData
+    const routineProductData: RoutineProductFormData = {
+      stepType: data.stepType || "product",
+      stepName: data.stepName,
+      routineStep: data.routineStep,
+      productName: data.productName,
+      productUrl: data.productUrl || "",
+      instructions: data.instructions,
+      productPurchaseInstructions: data.productPurchaseInstructions || "",
+      frequency: data.frequency || "daily",
+      days: data.days,
+    };
+    onUpdateProduct(id, routineProductData);
   };
 
   const handleDelete = (id: string) => {
@@ -202,33 +170,15 @@ export function RoutineSection({
     }
   };
 
-  const handleCancel = () => {
-    setAddingTo(null);
-    setNewProduct({
-      routineStep: "",
-      productName: "",
-      productUrl: null,
-      instructions: null,
-      productPurchaseInstructions: null,
-      frequency: "daily",
-      days: undefined,
-    });
-  };
-
   const handleDeleteRoutine = () => {
     onDeleteRoutine();
     setIsDeleteRoutineOpen(false);
   };
 
-  const renderAddForm = (timeOfDay: "morning" | "evening") => (
-    <ProductForm
-      data={newProduct}
-      onChange={setNewProduct}
-      onSave={() => handleAdd(timeOfDay)}
-      onCancel={handleCancel}
-      saveLabel="Add"
-    />
-  );
+  const openAddStepModal = (timeOfDay: "morning" | "evening") => {
+    setAddStepTimeOfDay(timeOfDay);
+    setIsAddStepOpen(true);
+  };
 
   // Empty state when no routine exists
   if (!routine) {
@@ -373,7 +323,7 @@ export function RoutineSection({
               >
                 <div className="space-y-2">
                   {morningProducts.map((product, index) => (
-                    <RoutineItem
+                    <ProductItem
                       key={product.id}
                       product={product}
                       index={index}
@@ -382,26 +332,22 @@ export function RoutineSection({
                     />
                   ))}
 
-                  {morningProducts.length === 0 && addingTo !== "morning" && (
+                  {morningProducts.length === 0 && (
                     <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                       <p className="text-xs text-gray-400">No routine set</p>
                     </div>
                   )}
 
-                  {addingTo === "morning" ? (
-                    renderAddForm("morning")
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setAddingTo("morning")}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {morningProducts.length === 0
-                        ? "Add Step"
-                        : "Add Another Step"}
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => openAddStepModal("morning")}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {morningProducts.length === 0
+                      ? "Add Step"
+                      : "Add Another Step"}
+                  </Button>
                 </div>
               </SortableContext>
             </DndContext>
@@ -427,7 +373,7 @@ export function RoutineSection({
               >
                 <div className="space-y-2">
                   {eveningProducts.map((product, index) => (
-                    <RoutineItem
+                    <ProductItem
                       key={product.id}
                       product={product}
                       index={index}
@@ -436,26 +382,22 @@ export function RoutineSection({
                     />
                   ))}
 
-                  {eveningProducts.length === 0 && addingTo !== "evening" && (
+                  {eveningProducts.length === 0 && (
                     <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                       <p className="text-xs text-gray-400">No routine set</p>
                     </div>
                   )}
 
-                  {addingTo === "evening" ? (
-                    renderAddForm("evening")
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setAddingTo("evening")}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {eveningProducts.length === 0
-                        ? "Add Step"
-                        : "Add Another Step"}
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => openAddStepModal("evening")}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {eveningProducts.length === 0
+                      ? "Add Step"
+                      : "Add Another Step"}
+                  </Button>
                 </div>
               </SortableContext>
             </DndContext>
@@ -476,6 +418,13 @@ export function RoutineSection({
         onOpenChange={setIsDeleteRoutineOpen}
         onConfirm={handleDeleteRoutine}
         routineName={routine.name}
+      />
+
+      <AddStepModal
+        open={isAddStepOpen}
+        onOpenChange={setIsAddStepOpen}
+        timeOfDay={addStepTimeOfDay}
+        onAdd={handleAddStep}
       />
     </>
   );

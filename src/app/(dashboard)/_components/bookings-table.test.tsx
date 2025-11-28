@@ -1,5 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BookingsTable } from "./bookings-table";
@@ -140,7 +140,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user searches for bookings by client name", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<BookingsTable />);
 
     // Wait for bookings to load
@@ -159,7 +159,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user searches for bookings by email", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<BookingsTable />);
 
     // Wait for bookings to load
@@ -177,7 +177,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user filters bookings by date range triggering API call", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { fetchBookings } = await import("../actions");
 
     renderWithProviders(<BookingsTable />);
@@ -208,7 +208,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user filters bookings by status triggering API call", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { fetchBookings } = await import("../actions");
 
     renderWithProviders(<BookingsTable />);
@@ -245,7 +245,7 @@ describe("BookingsTable - UI Tests", () => {
   // The BookingsTable no longer has a host filter - only Search, Date Range, and Status filters remain
 
   it("user refreshes bookings and sees loading state", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { fetchBookings } = await import("../actions");
 
     renderWithProviders(<BookingsTable />);
@@ -279,7 +279,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user views booking details in drawer", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<BookingsTable />);
 
     // Wait for bookings to load
@@ -305,7 +305,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user joins an active meeting", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const windowOpenSpy = vi
       .spyOn(window, "open")
       .mockImplementation(() => null);
@@ -333,7 +333,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user cancels a booking and sees confirmation modal", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { cancelBooking } = await import("../actions");
     vi.mocked(cancelBooking).mockResolvedValue({
       success: true,
@@ -373,7 +373,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user cancels a booking but decides to keep it", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { cancelBooking } = await import("../actions");
 
     renderWithProviders(<BookingsTable />);
@@ -402,7 +402,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user opens invite booking modal to generate a link", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<BookingsTable />);
 
     // Wait for page to load
@@ -418,7 +418,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user applies multiple filters and sees combined results", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const { fetchBookings } = await import("../actions");
 
     renderWithProviders(<BookingsTable />);
@@ -467,7 +467,7 @@ describe("BookingsTable - UI Tests", () => {
   });
 
   it("user sees empty state when no bookings match filters", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<BookingsTable />);
 
     // Wait for bookings to load
@@ -491,7 +491,7 @@ describe("BookingsTable - UI Tests", () => {
       data: [mockBookings[2]], // Past canceled booking
     });
 
-    const user = userEvent.setup();
+    const user = setupUser();
     renderWithProviders(<BookingsTable />);
 
     // Wait for canceled booking to load

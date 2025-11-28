@@ -1,0 +1,4 @@
+-- Placeholder migration file
+-- This migration was applied to the database but the changes have been manually reverted
+-- The actual changes (adding step_type column and making product_name nullable) have been undone
+-- This file exists only to maintain migration history continuity

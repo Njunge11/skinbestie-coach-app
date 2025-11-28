@@ -1,12 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@/test/utils";
-import userEvent from "@testing-library/user-event";
+import { render, screen, setupUser } from "@/test/utils";
 import React from "react";
 import { ProductForm, ProductFormData } from "./product-form";
 
 describe("ProductForm", () => {
   it("user fills complete product form with Daily frequency", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onChange = vi.fn();
     const onSave = vi.fn();
     const onCancel = vi.fn();
@@ -59,7 +58,7 @@ describe("ProductForm", () => {
   });
 
   it("user creates product without optional URL", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onChange = vi.fn();
     const onSave = vi.fn();
     const onCancel = vi.fn();
@@ -106,7 +105,7 @@ describe("ProductForm", () => {
   });
 
   it("user selects 2x per week and chooses 2 days", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onSave = vi.fn();
     const onCancel = vi.fn();
 
@@ -200,7 +199,7 @@ describe("ProductForm", () => {
   });
 
   it("user selects 3x per week and chooses 3 days", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onSave = vi.fn();
     const onCancel = vi.fn();
 
@@ -277,7 +276,7 @@ describe("ProductForm", () => {
   });
 
   it("user changes from 2x per week to Daily and days selection disappears", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onSave = vi.fn();
     const onCancel = vi.fn();
 
@@ -352,7 +351,7 @@ describe("ProductForm", () => {
 
   describe("Error Message Interaction Behavior", () => {
     it("error message does NOT appear immediately after selecting non-daily frequency", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({
@@ -397,7 +396,7 @@ describe("ProductForm", () => {
     });
 
     it("error message appears after first day button click with insufficient days", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({
@@ -437,7 +436,7 @@ describe("ProductForm", () => {
     });
 
     it("error message disappears when correct number of days selected", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({
@@ -476,7 +475,7 @@ describe("ProductForm", () => {
     });
 
     it("error message appears when clicking Save with no days selected", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onSave = vi.fn();
 
       function FormWrapper() {
@@ -517,7 +516,7 @@ describe("ProductForm", () => {
     });
 
     it("error message appears when clicking Save with wrong number of days", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onSave = vi.fn();
 
       function FormWrapper() {
@@ -558,7 +557,7 @@ describe("ProductForm", () => {
     });
 
     it("error persists when user has wrong number selected and keeps interacting", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({
@@ -609,7 +608,7 @@ describe("ProductForm", () => {
     });
 
     it("specific_days frequency shows error after interaction with 0 days", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({
@@ -649,7 +648,7 @@ describe("ProductForm", () => {
     });
 
     it("specific_days error disappears after selecting any day", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({
@@ -690,7 +689,7 @@ describe("ProductForm", () => {
     });
 
     it("no error for daily frequency (no days required)", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onSave = vi.fn();
 
       function FormWrapper() {
@@ -732,7 +731,7 @@ describe("ProductForm", () => {
     });
 
     it("error state persists across multiple interactions", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({
@@ -783,7 +782,7 @@ describe("ProductForm", () => {
     });
 
     it("uses singular 'day' for 1x per week frequency", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({
@@ -821,7 +820,7 @@ describe("ProductForm", () => {
     });
 
     it("uses plural 'days' for 2x+ per week frequencies", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       function FormWrapper() {
         const [data, setData] = React.useState<ProductFormData>({

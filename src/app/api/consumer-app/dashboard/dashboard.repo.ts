@@ -162,9 +162,12 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         .from(schema.routineStepCompletions)
         .innerJoin(
           schema.skincareRoutineProducts,
-          eq(
-            schema.routineStepCompletions.routineProductId,
-            schema.skincareRoutineProducts.id,
+          and(
+            eq(
+              schema.routineStepCompletions.routineProductId,
+              schema.skincareRoutineProducts.id,
+            ),
+            eq(schema.skincareRoutineProducts.stepType, "product"),
           ),
         )
         .innerJoin(
@@ -238,7 +241,7 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         return null;
       }
 
-      // Get all products for this routine
+      // Get all products for this routine (only product steps, not instruction-only steps)
       const products = await database
         .select({
           id: schema.skincareRoutineProducts.id,
@@ -253,7 +256,10 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         })
         .from(schema.skincareRoutineProducts)
         .where(
-          eq(schema.skincareRoutineProducts.routineId, routineResult[0].id),
+          and(
+            eq(schema.skincareRoutineProducts.routineId, routineResult[0].id),
+            eq(schema.skincareRoutineProducts.stepType, "product"),
+          ),
         )
         .orderBy(
           asc(schema.skincareRoutineProducts.timeOfDay),
@@ -337,9 +343,12 @@ export function makeDashboardRepo(deps: DashboardRepoDeps = {}) {
         .from(schema.routineStepCompletions)
         .innerJoin(
           schema.skincareRoutineProducts,
-          eq(
-            schema.routineStepCompletions.routineProductId,
-            schema.skincareRoutineProducts.id,
+          and(
+            eq(
+              schema.routineStepCompletions.routineProductId,
+              schema.skincareRoutineProducts.id,
+            ),
+            eq(schema.skincareRoutineProducts.stepType, "product"),
           ),
         )
         .innerJoin(

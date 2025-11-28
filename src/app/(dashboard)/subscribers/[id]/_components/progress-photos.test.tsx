@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { ProgressPhotos } from "./progress-photos";
 import type { Photo } from "../types";
 
@@ -39,7 +39,7 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User sees week numbers
@@ -62,23 +62,27 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User sees empty state message
       expect(screen.getByText(/no progress photos yet/i)).toBeInTheDocument();
       expect(
-        screen.getByText(/progress photos will appear here once the subscriber uploads them/i)
+        screen.getByText(
+          /progress photos will appear here once the subscriber uploads them/i,
+        ),
       ).toBeInTheDocument();
 
       // Compare Photos button is hidden when there are no photos
-      expect(screen.queryByRole("button", { name: /compare photos/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /compare photos/i }),
+      ).not.toBeInTheDocument();
     });
   });
 
   describe("Opening and Viewing Photo Details", () => {
     it("user clicks photo and sees details modal with week, date, and feedback", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       render(
         <ProgressPhotos
@@ -88,13 +92,13 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks on a photo
       const photoButtons = screen.getAllByRole("button");
       const week3Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 3")
+        btn.textContent?.includes("Week 3"),
       );
       await user.click(week3Photo!);
 
@@ -102,11 +106,13 @@ describe("ProgressPhotos - User Workflows", () => {
       const dialog = screen.getByRole("dialog");
       expect(within(dialog).getByText("Week 3")).toBeInTheDocument();
       expect(within(dialog).getByText(/june 18, 2025/i)).toBeInTheDocument();
-      expect(screen.getByDisplayValue("Initial adjustment period.")).toBeInTheDocument();
+      expect(
+        screen.getByDisplayValue("Initial adjustment period."),
+      ).toBeInTheDocument();
     });
 
     it("user closes modal by clicking cancel and modal disappears", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       render(
         <ProgressPhotos
@@ -116,13 +122,13 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks on a photo
       const photoButtons = screen.getAllByRole("button");
       const week3Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 3")
+        btn.textContent?.includes("Week 3"),
       );
       await user.click(week3Photo!);
 
@@ -140,7 +146,7 @@ describe("ProgressPhotos - User Workflows", () => {
 
   describe("Editing Photo Feedback", () => {
     it("user edits feedback and saves successfully", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onUpdateFeedback = vi.fn().mockResolvedValue(undefined);
 
       render(
@@ -151,13 +157,13 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks on a photo
       const photoButtons = screen.getAllByRole("button");
       const week3Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 3")
+        btn.textContent?.includes("Week 3"),
       );
       await user.click(week3Photo!);
 
@@ -175,12 +181,12 @@ describe("ProgressPhotos - User Workflows", () => {
       // Server action was called with updated feedback
       expect(onUpdateFeedback).toHaveBeenCalledWith(
         "photo-1",
-        "Skin texture improving significantly"
+        "Skin texture improving significantly",
       );
     });
 
     it("user adds feedback to photo with no feedback", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onUpdateFeedback = vi.fn().mockResolvedValue(undefined);
 
       render(
@@ -191,19 +197,19 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks on photo with no feedback (Week 1)
       const photoButtons = screen.getAllByRole("button");
       const week1Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 1")
+        btn.textContent?.includes("Week 1"),
       );
       await user.click(week1Photo!);
 
       // User sees empty feedback textarea
       const textarea = screen.getByPlaceholderText(
-        /add your observations and feedback/i
+        /add your observations and feedback/i,
       );
       expect(textarea).toHaveValue("");
 
@@ -216,12 +222,12 @@ describe("ProgressPhotos - User Workflows", () => {
       // Server action was called
       expect(onUpdateFeedback).toHaveBeenCalledWith(
         "photo-3",
-        "Baseline photo - starting treatment"
+        "Baseline photo - starting treatment",
       );
     });
 
     it("user clears existing feedback", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onUpdateFeedback = vi.fn().mockResolvedValue(undefined);
 
       render(
@@ -232,18 +238,20 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks on a photo
       const photoButtons = screen.getAllByRole("button");
       const week2Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 2")
+        btn.textContent?.includes("Week 2"),
       );
       await user.click(week2Photo!);
 
       // User clears all feedback
-      const textarea = screen.getByDisplayValue("Starting routine compliance good.");
+      const textarea = screen.getByDisplayValue(
+        "Starting routine compliance good.",
+      );
       await user.clear(textarea);
 
       // User clicks save
@@ -254,7 +262,7 @@ describe("ProgressPhotos - User Workflows", () => {
     });
 
     it("user starts editing then cancels - changes are discarded", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onUpdateFeedback = vi.fn().mockResolvedValue(undefined);
 
       render(
@@ -265,13 +273,13 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks on a photo
       const photoButtons = screen.getAllByRole("button");
       const week3Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 3")
+        btn.textContent?.includes("Week 3"),
       );
       await user.click(week3Photo!);
 
@@ -290,7 +298,7 @@ describe("ProgressPhotos - User Workflows", () => {
 
   describe("Compare Mode - Complete Workflows", () => {
     it("user enters compare mode and sees instruction banner", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onToggleCompareMode = vi.fn();
 
       const { rerender } = render(
@@ -301,7 +309,7 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={onToggleCompareMode}
-        />
+        />,
       );
 
       // User clicks "Compare Photos" button
@@ -319,16 +327,18 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={onToggleCompareMode}
-        />
+        />,
       );
 
       // User sees compare mode banner with instructions
-      expect(screen.getByText(/select 2 photos to compare/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/select 2 photos to compare/i),
+      ).toBeInTheDocument();
       expect(screen.getByText(/0\/2 selected/i)).toBeInTheDocument();
     });
 
     it("user selects first photo and it becomes highlighted", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onPhotoSelect = vi.fn();
 
       render(
@@ -339,24 +349,24 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={onPhotoSelect}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks first photo
       const photoButtons = screen.getAllByRole("button");
       const week1Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 1")
+        btn.textContent?.includes("Week 1"),
       );
       await user.click(week1Photo!);
 
       // Photo selection handler was called
       expect(onPhotoSelect).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "photo-3", weekNumber: 1 })
+        expect.objectContaining({ id: "photo-3", weekNumber: 1 }),
       );
     });
 
     it("user selects two photos and compare modal opens automatically", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onPhotoSelect = vi.fn();
 
       // Start with one photo already selected
@@ -368,7 +378,7 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[mockPhotos[0]]}
           onPhotoSelect={onPhotoSelect}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User sees 1 photo selected
@@ -377,13 +387,13 @@ describe("ProgressPhotos - User Workflows", () => {
       // User clicks second photo
       const photoButtons = screen.getAllByRole("button");
       const week2Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 2")
+        btn.textContent?.includes("Week 2"),
       );
       await user.click(week2Photo!);
 
       // Selection handler was called
       expect(onPhotoSelect).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "photo-2", weekNumber: 2 })
+        expect.objectContaining({ id: "photo-2", weekNumber: 2 }),
       );
 
       // Simulate both photos now selected (parent updates state)
@@ -395,7 +405,7 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[mockPhotos[0], mockPhotos[1]]}
           onPhotoSelect={onPhotoSelect}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User sees both photos selected
@@ -403,7 +413,7 @@ describe("ProgressPhotos - User Workflows", () => {
     });
 
     it("user clicks cancel compare and exits compare mode", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onToggleCompareMode = vi.fn();
 
       render(
@@ -414,7 +424,7 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[mockPhotos[0]]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={onToggleCompareMode}
-        />
+        />,
       );
 
       // User clicks "Cancel Compare" button
@@ -425,7 +435,7 @@ describe("ProgressPhotos - User Workflows", () => {
     });
 
     it("user deselects photo by clicking it again", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const onPhotoSelect = vi.fn();
 
       render(
@@ -436,26 +446,26 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[mockPhotos[0]]}
           onPhotoSelect={onPhotoSelect}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks already-selected photo
       const photoButtons = screen.getAllByRole("button");
       const week3Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 3")
+        btn.textContent?.includes("Week 3"),
       );
       await user.click(week3Photo!);
 
       // Selection handler was called (parent will handle deselection logic)
       expect(onPhotoSelect).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "photo-1", weekNumber: 3 })
+        expect.objectContaining({ id: "photo-1", weekNumber: 3 }),
       );
     });
   });
 
   describe("Zoom Controls in Photo Detail Modal", () => {
     it("user can interact with zoom controls", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       render(
         <ProgressPhotos
@@ -465,20 +475,26 @@ describe("ProgressPhotos - User Workflows", () => {
           selectedPhotos={[]}
           onPhotoSelect={vi.fn()}
           onToggleCompareMode={vi.fn()}
-        />
+        />,
       );
 
       // User clicks on a photo
       const photoButtons = screen.getAllByRole("button");
       const week3Photo = photoButtons.find((btn) =>
-        btn.textContent?.includes("Week 3")
+        btn.textContent?.includes("Week 3"),
       );
       await user.click(week3Photo!);
 
       // User sees zoom controls
-      expect(screen.getByRole("button", { name: /zoom in/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /zoom out/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /reset zoom/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /zoom in/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /zoom out/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /reset zoom/i }),
+      ).toBeInTheDocument();
 
       // User can click zoom controls (just verify they're interactive)
       await user.click(screen.getByRole("button", { name: /zoom in/i }));

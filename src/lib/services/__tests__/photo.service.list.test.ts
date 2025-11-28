@@ -72,37 +72,38 @@ describe("PhotoService - List Photos", () => {
   });
 
   it("returns photos ordered by uploadedAt DESC", async () => {
-    // Given - create 3 photos with different upload times
-    await service.createPhoto({
-      userProfileId: TEST_USER_ID,
-      s3Key: "photo1.jpg",
-      s3Bucket: "test-bucket",
-      bytes: 1000000,
-      mime: "image/jpeg",
-      imageUrl: "https://s3.amazonaws.com/photo1.jpg",
-    });
+    // Given - insert 3 photos with explicit uploadedAt timestamps for ordering
+    const baseTime = new Date("2025-01-01T12:00:00Z");
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
-    await service.createPhoto({
-      userProfileId: TEST_USER_ID,
-      s3Key: "photo2.jpg",
-      s3Bucket: "test-bucket",
-      bytes: 2000000,
-      mime: "image/jpeg",
-      imageUrl: "https://s3.amazonaws.com/photo2.jpg",
-    });
-
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
-    await service.createPhoto({
-      userProfileId: TEST_USER_ID,
-      s3Key: "photo3.jpg",
-      s3Bucket: "test-bucket",
-      bytes: 3000000,
-      mime: "image/jpeg",
-      imageUrl: "https://s3.amazonaws.com/photo3.jpg",
-    });
+    await db.insert(schema.progressPhotos).values([
+      {
+        userProfileId: TEST_USER_ID,
+        s3Key: "photo1.jpg",
+        s3Bucket: "test-bucket",
+        bytes: 1000000,
+        mime: "image/jpeg",
+        imageUrl: "https://s3.amazonaws.com/photo1.jpg",
+        uploadedAt: new Date(baseTime.getTime()), // oldest
+      },
+      {
+        userProfileId: TEST_USER_ID,
+        s3Key: "photo2.jpg",
+        s3Bucket: "test-bucket",
+        bytes: 2000000,
+        mime: "image/jpeg",
+        imageUrl: "https://s3.amazonaws.com/photo2.jpg",
+        uploadedAt: new Date(baseTime.getTime() + 1000), // middle
+      },
+      {
+        userProfileId: TEST_USER_ID,
+        s3Key: "photo3.jpg",
+        s3Bucket: "test-bucket",
+        bytes: 3000000,
+        mime: "image/jpeg",
+        imageUrl: "https://s3.amazonaws.com/photo3.jpg",
+        uploadedAt: new Date(baseTime.getTime() + 2000), // newest
+      },
+    ]);
 
     // When
     const result = await service.listPhotos({
@@ -122,18 +123,21 @@ describe("PhotoService - List Photos", () => {
   });
 
   it("paginates results correctly", async () => {
-    // Given - create 5 photos
+    // Given - insert 5 photos with explicit uploadedAt timestamps
+    const baseTime = new Date("2025-01-01T12:00:00Z");
+    const photos = [];
     for (let i = 1; i <= 5; i++) {
-      await service.createPhoto({
+      photos.push({
         userProfileId: TEST_USER_ID,
         s3Key: `photo${i}.jpg`,
         s3Bucket: "test-bucket",
         bytes: 1000000 * i,
         mime: "image/jpeg",
         imageUrl: `https://s3.amazonaws.com/photo${i}.jpg`,
+        uploadedAt: new Date(baseTime.getTime() + i * 1000),
       });
-      await new Promise((resolve) => setTimeout(resolve, 10));
     }
+    await db.insert(schema.progressPhotos).values(photos);
 
     // When - get page 1 (limit 2, offset 0)
     const page1 = await service.listPhotos({

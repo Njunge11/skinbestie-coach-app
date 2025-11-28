@@ -31,16 +31,21 @@ import {
   FREQUENCIES,
   DAYS_OF_WEEK,
 } from "@/lib/routine-constants";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Frequency } from "@/app/(dashboard)/subscribers/[id]/types";
 
+export type StepType = "instruction_only" | "product";
+
 export interface ProductFormData {
-  routineStep: string;
-  productName: string;
-  productUrl: string | null;
+  stepType?: StepType;
+  stepName?: string;
+  routineStep?: string;
+  productName?: string;
+  productUrl?: string | null;
   instructions?: string | null;
   productPurchaseInstructions?: string | null;
-  frequency: Frequency;
-  days: string[] | undefined;
+  frequency?: Frequency;
+  days?: string[] | undefined;
 }
 
 interface ProductFormProps {
@@ -49,6 +54,9 @@ interface ProductFormProps {
   onSave: () => void;
   onCancel: () => void;
   saveLabel?: string;
+  isEditMode?: boolean;
+  stepNumber?: number;
+  stepTitle?: string;
 }
 
 export function ProductForm({
@@ -57,14 +65,44 @@ export function ProductForm({
   onSave,
   onCancel,
   saveLabel = "Add",
+  isEditMode = false,
+  stepNumber,
+  stepTitle,
 }: ProductFormProps) {
   const [openRoutineStep, setOpenRoutineStep] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
+  // Default to "product" step type if not set
+  const stepType = data.stepType || "product";
+
   return (
-    <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+    <div
+      className={cn(
+        "rounded-lg border p-4 space-y-3",
+        isEditMode ? "border-gray-300 bg-gray-50 shadow-sm" : "border-gray-200",
+      )}
+    >
+      {/* Edit mode header with step number and title */}
+      {isEditMode && stepNumber !== undefined && stepTitle && (
+        <div className="flex items-center gap-3 pb-3 border-b border-gray-200 mb-1">
+          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-sm font-semibold text-primary-foreground">
+              {stepNumber}
+            </span>
+          </div>
+          <h4 className="font-semibold text-gray-900">{stepTitle}</h4>
+        </div>
+      )}
+
+      {/* Routine Step - always visible */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Routine Step</label>
+        <label className="text-sm font-medium">
+          Routine Step
+          {stepType === "product" && <span className="text-red-500"> *</span>}
+          {stepType === "instruction_only" && (
+            <span className="text-gray-500 text-xs"> (optional)</span>
+          )}
+        </label>
         <Popover open={openRoutineStep} onOpenChange={setOpenRoutineStep}>
           <PopoverTrigger asChild>
             <Button
@@ -73,7 +111,10 @@ export function ProductForm({
               aria-expanded={openRoutineStep}
               className="w-full justify-between font-normal mt-2"
             >
-              {data.routineStep || "Select routine step..."}
+              {data.routineStep ||
+                (stepType === "product"
+                  ? "Select routine step"
+                  : "Select routine step (optional)")}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
@@ -113,40 +154,76 @@ export function ProductForm({
         </Popover>
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="product-name" className="text-sm font-medium">
-          Product Name
-        </label>
-        <Input
-          id="product-name"
-          placeholder="Product name"
-          value={data.productName}
-          onChange={(e) => onChange({ ...data, productName: e.target.value })}
-          className="font-medium mt-2"
-        />
-      </div>
+      {/* Product-specific fields */}
+      {stepType === "product" && (
+        <>
+          <div className="space-y-2">
+            <label htmlFor="product-name" className="text-sm font-medium">
+              Product Name <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="product-name"
+              placeholder="Product name"
+              value={data.productName || ""}
+              onChange={(e) =>
+                onChange({ ...data, productName: e.target.value })
+              }
+              className="font-medium mt-2"
+            />
+          </div>
 
-      <div className="space-y-2">
-        <label htmlFor="product-url" className="text-sm font-medium">
-          Product URL (optional)
-        </label>
-        <Input
-          id="product-url"
-          placeholder="Product URL (optional)"
-          value={data.productUrl || ""}
-          onChange={(e) => onChange({ ...data, productUrl: e.target.value })}
-          type="url"
-          className="text-sm mt-2"
-        />
-      </div>
+          <div className="space-y-2">
+            <label htmlFor="product-url" className="text-sm font-medium">
+              Product URL (optional)
+            </label>
+            <Input
+              id="product-url"
+              placeholder="Product URL (optional)"
+              value={data.productUrl || ""}
+              onChange={(e) =>
+                onChange({ ...data, productUrl: e.target.value })
+              }
+              type="url"
+              className="text-sm mt-2"
+            />
+          </div>
+        </>
+      )}
 
+      {/* Step Name field - only for instruction-only type */}
+      {stepType === "instruction_only" && (
+        <div className="space-y-2">
+          <label htmlFor="step-name" className="text-sm font-medium">
+            Step Name <span className="text-gray-500 text-xs">(optional)</span>
+          </label>
+          <Input
+            id="step-name"
+            placeholder="e.g., Apply toner"
+            value={data.stepName || ""}
+            onChange={(e) => onChange({ ...data, stepName: e.target.value })}
+            className="font-medium mt-2"
+          />
+        </div>
+      )}
+
+      {/* Instructions field - always visible */}
       <div className="space-y-2">
         <label htmlFor="instructions" className="text-sm font-medium">
-          Instructions (optional)
+          Instructions
+          {stepType === "instruction_only" && (
+            <span className="text-red-500"> *</span>
+          )}
+          {stepType === "product" && (
+            <span className="text-gray-500 text-xs"> (optional)</span>
+          )}
         </label>
         <Textarea
           id="instructions"
-          placeholder="e.g., Apply to damp skin, massage gently"
+          placeholder={
+            stepType === "instruction_only"
+              ? "e.g., Apply toner to clean skin"
+              : "e.g., Apply to damp skin, massage gently"
+          }
           value={data.instructions || ""}
           onChange={(e) =>
             onChange({ ...data, instructions: e.target.value || null })
@@ -156,30 +233,36 @@ export function ProductForm({
         />
       </div>
 
-      <div className="space-y-2">
-        <label
-          htmlFor="product-purchase-instructions"
-          className="text-sm font-medium"
-        >
-          Purchase Instructions (optional)
-        </label>
-        <p className="text-xs text-gray-500">
-          Where to buy this product or any special purchasing notes
-        </p>
-        <Textarea
-          id="product-purchase-instructions"
-          placeholder="e.g., Available at Sephora, Use code SAVE10 for discount"
-          value={data.productPurchaseInstructions || ""}
-          onChange={(e) =>
-            onChange({ ...data, productPurchaseInstructions: e.target.value })
-          }
-          rows={2}
-          className="text-sm resize-none mt-2"
-        />
-      </div>
+      {/* Product-specific: Purchase Instructions */}
+      {stepType === "product" && (
+        <div className="space-y-2">
+          <label
+            htmlFor="product-purchase-instructions"
+            className="text-sm font-medium"
+          >
+            Purchase Instructions (optional)
+          </label>
+          <p className="text-xs text-gray-500">
+            Where to buy this product or any special purchasing notes
+          </p>
+          <Textarea
+            id="product-purchase-instructions"
+            placeholder="e.g., Available at Sephora, Use code SAVE10 for discount"
+            value={data.productPurchaseInstructions || ""}
+            onChange={(e) =>
+              onChange({ ...data, productPurchaseInstructions: e.target.value })
+            }
+            rows={2}
+            className="text-sm resize-none mt-2"
+          />
+        </div>
+      )}
 
+      {/* Frequency - always visible */}
       <div className="space-y-2 mt-4">
-        <label className="text-sm font-medium">Frequency</label>
+        <label className="text-sm font-medium">
+          Frequency <span className="text-red-500">*</span>
+        </label>
         <Select
           value={data.frequency}
           onValueChange={(value) => {
@@ -222,6 +305,7 @@ export function ProductForm({
         </Select>
       </div>
 
+      {/* Days selector - visible when frequency is not daily */}
       {data.frequency !== "daily" && (
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
@@ -230,7 +314,8 @@ export function ProductForm({
           <div className="flex flex-wrap gap-2 mt-2">
             {(() => {
               // Extract max days dynamically from frequency string
-              const getMaxDays = (frequency: string): number => {
+              const getMaxDays = (frequency: string | undefined): number => {
+                if (!frequency) return 7;
                 if (frequency === "daily") return 7;
                 if (frequency === "specific_days") return 7;
                 // Match "2x per week" → 2, "3x per week" → 3, etc.
@@ -282,6 +367,7 @@ export function ProductForm({
           </div>
           {hasInteracted &&
             (() => {
+              if (!data.frequency) return null;
               const match = data.frequency.match(/^(\d+)x per week$/);
               if (match) {
                 const requiredDays = parseInt(match[1], 10);

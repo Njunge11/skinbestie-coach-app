@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClientPageWrapper } from "./client-page-wrapper";
@@ -101,7 +101,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
   describe("Optimistic Updates - Success Path", () => {
     it("Routine Product Delete Success - product disappears immediately, server called", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const routine = makeRoutine({
         id: "routine-1",
         name: "Routine",
@@ -144,16 +144,26 @@ describe("ClientPageWrapper - Integration Tests", () => {
         />,
       );
 
-      // Verify product renders
-      expect(screen.getByText("Morning Cleanser")).toBeInTheDocument();
+      // Get the routine section
+      const routineSection = screen
+        .getByText("Routine")
+        .closest("[data-slot='card']") as HTMLElement;
+      expect(routineSection).toBeInTheDocument();
+
+      // Verify product renders in routine section
+      expect(
+        within(routineSection!).getByText("Morning Cleanser"),
+      ).toBeInTheDocument();
 
       // Click delete button
       const deleteButton = screen.getByLabelText("Delete step");
       await user.click(deleteButton);
 
-      // Verify optimistic delete - product disappears immediately
+      // Verify optimistic delete - product disappears immediately from routine section
       await waitFor(() => {
-        expect(screen.queryByText("Morning Cleanser")).not.toBeInTheDocument();
+        expect(
+          within(routineSection!).queryByText("Morning Cleanser"),
+        ).not.toBeInTheDocument();
       });
 
       // Verify server action called
@@ -161,12 +171,14 @@ describe("ClientPageWrapper - Integration Tests", () => {
         expect(deleteRoutineProduct).toHaveBeenCalledWith("product-1");
       });
 
-      // Verify state persists (product stays deleted)
-      expect(screen.queryByText("Morning Cleanser")).not.toBeInTheDocument();
+      // Verify state persists (product stays deleted from routine section)
+      expect(
+        within(routineSection!).queryByText("Morning Cleanser"),
+      ).not.toBeInTheDocument();
     });
 
     it("Coach Note Add Success - note appears immediately, server called", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const newNote: CoachNote = {
         id: "note-1",
         userProfileId: "user-1",
@@ -231,7 +243,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Coach Note Update Success - changes show immediately, server called", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const note: CoachNote = {
         id: "note-1",
         userProfileId: "user-1",
@@ -304,7 +316,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Coach Note Delete Success - note disappears immediately, server called", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const note: CoachNote = {
         id: "note-1",
         userProfileId: "user-1",
@@ -363,7 +375,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Photo Feedback Update Success - feedback shows immediately, server called", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       // Mock successful update
       vi.mocked(updatePhotoFeedback).mockResolvedValueOnce({
@@ -412,7 +424,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Photo Feedback Update Failure - feedback typed, server fails, reverts, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       // Mock server failure
       vi.mocked(updatePhotoFeedback).mockResolvedValueOnce({
@@ -466,7 +478,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Routine Update Success - changes show immediately, server called", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
@@ -539,7 +551,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
   describe("Optimistic Updates - Failure & Revert", () => {
     it("Routine Product Delete Failure - product disappears, server fails, reappears, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const routine = makeRoutine({
         id: "routine-1",
         name: "Routine",
@@ -582,7 +594,15 @@ describe("ClientPageWrapper - Integration Tests", () => {
         />,
       );
 
-      expect(screen.getByText("Morning Cleanser")).toBeInTheDocument();
+      // Get the routine section
+      const routineSection = screen
+        .getByText("Routine")
+        .closest("[data-slot='card']") as HTMLElement;
+      expect(routineSection).toBeInTheDocument();
+
+      expect(
+        within(routineSection!).getByText("Morning Cleanser"),
+      ).toBeInTheDocument();
 
       // Click delete button
       const deleteButton = screen.getByLabelText("Delete step");
@@ -590,7 +610,9 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Wait for server response - product should still be there (delete failed and reverted)
       await waitFor(() => {
-        expect(screen.getByText("Morning Cleanser")).toBeInTheDocument();
+        expect(
+          within(routineSection!).getByText("Morning Cleanser"),
+        ).toBeInTheDocument();
       });
 
       // Verify error toast shown
@@ -605,7 +627,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Coach Note Update Failure - changes show, server fails, reverts, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const note: CoachNote = {
         id: "note-1",
         userProfileId: "user-1",
@@ -676,7 +698,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Coach Note Delete Failure - note disappears, server fails, reappears, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const note: CoachNote = {
         id: "note-1",
         userProfileId: "user-1",
@@ -738,7 +760,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
   describe("Cross-Cutting State Synchronization", () => {
     it("Delete Routine Success - routine cleared, products cleared, hasRoutine becomes false", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
@@ -781,9 +803,17 @@ describe("ClientPageWrapper - Integration Tests", () => {
         />,
       );
 
+      // Get the routine section
+      const routineSection = screen
+        .getByText("Morning Routine")
+        .closest("[data-slot='card']") as HTMLElement;
+      expect(routineSection).toBeInTheDocument();
+
       // Initially shows routine and product
       expect(screen.getByText("Morning Routine")).toBeInTheDocument();
-      expect(screen.getByText("Morning Cleanser Product")).toBeInTheDocument();
+      expect(
+        within(routineSection!).getByText("Morning Cleanser Product"),
+      ).toBeInTheDocument();
 
       // Click delete routine button
       const deleteButton = screen.getByLabelText("Delete routine");
@@ -808,7 +838,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Delete Routine Failure - ALL state reverts (routine + products + hasRoutine)", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
@@ -851,8 +881,16 @@ describe("ClientPageWrapper - Integration Tests", () => {
         />,
       );
 
+      // Get the routine section
+      const routineSection = screen
+        .getByText("Morning Routine")
+        .closest("[data-slot='card']") as HTMLElement;
+      expect(routineSection).toBeInTheDocument();
+
       expect(screen.getByText("Morning Routine")).toBeInTheDocument();
-      expect(screen.getByText("Morning Cleanser Product")).toBeInTheDocument();
+      expect(
+        within(routineSection!).getByText("Morning Cleanser Product"),
+      ).toBeInTheDocument();
 
       // Click delete routine button
       const deleteButton = screen.getByLabelText("Delete routine");
@@ -867,7 +905,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
       await waitFor(() => {
         expect(screen.getByText("Morning Routine")).toBeInTheDocument();
         expect(
-          screen.getByText("Morning Cleanser Product"),
+          within(routineSection!).getByText("Morning Cleanser Product"),
         ).toBeInTheDocument();
         // hasRoutine should still be true (no "Create a routine" message)
         expect(screen.queryByText(/Create a routine/i)).not.toBeInTheDocument();
@@ -885,7 +923,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
   describe("Routine Creation Workflows", () => {
     it("Create Routine From Template - Failure - template selected, server fails, routine not created, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const template = {
         id: "template-1",
         name: "Anti-Aging Template",
@@ -962,7 +1000,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Create Blank Routine - Success - routine created, appears in UI, hasRoutine becomes true, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const newRoutine = {
         id: "routine-1",
         name: "My Blank Routine",
@@ -1051,7 +1089,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Create Blank Routine - Failure - form filled, server fails, routine not created, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       // Mock server failure
       vi.mocked(createRoutineAction).mockResolvedValueOnce({
@@ -1154,7 +1192,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
     });
 
     it("Update Routine Product - Success - changes show immediately, server called, state persists", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
@@ -1197,12 +1235,24 @@ describe("ClientPageWrapper - Integration Tests", () => {
         />,
       );
 
+      // Get the routine section
+      const routineSection = screen
+        .getByText("Morning Routine")
+        .closest("[data-slot='card']") as HTMLElement;
+      expect(routineSection).toBeInTheDocument();
+
       // Verify initial product
-      expect(screen.getByText("Original Cleanser")).toBeInTheDocument();
-      expect(screen.getByText("Apply to wet face")).toBeInTheDocument();
+      expect(
+        within(routineSection!).getByText("Original Cleanser"),
+      ).toBeInTheDocument();
+      expect(
+        within(routineSection!).getByText("Apply to wet face"),
+      ).toBeInTheDocument();
 
       // Click on product to edit
-      const productCard = screen.getByText("Original Cleanser");
+      const productCard = within(routineSection!).getByText(
+        "Original Cleanser",
+      );
       await user.click(productCard);
 
       // Edit product details
@@ -1221,9 +1271,11 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Verify optimistic update
       await waitFor(() => {
-        expect(screen.getByText("Updated Cleanser")).toBeInTheDocument();
         expect(
-          screen.getByText("Massage gently for 60 seconds"),
+          within(routineSection!).getByText("Updated Cleanser"),
+        ).toBeInTheDocument();
+        expect(
+          within(routineSection!).getByText("Massage gently for 60 seconds"),
         ).toBeInTheDocument();
       });
 
@@ -1239,14 +1291,16 @@ describe("ClientPageWrapper - Integration Tests", () => {
       });
 
       // Verify state persists
-      expect(screen.getByText("Updated Cleanser")).toBeInTheDocument();
       expect(
-        screen.getByText("Massage gently for 60 seconds"),
+        within(routineSection!).getByText("Updated Cleanser"),
+      ).toBeInTheDocument();
+      expect(
+        within(routineSection!).getByText("Massage gently for 60 seconds"),
       ).toBeInTheDocument();
     });
 
     it("Update Routine Product - Failure - changes show, server fails, reverts, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
       const routine = makeRoutine({
         id: "routine-1",
         name: "Morning Routine",
@@ -1289,11 +1343,21 @@ describe("ClientPageWrapper - Integration Tests", () => {
         />,
       );
 
+      // Get the routine section
+      const routineSection = screen
+        .getByText("Morning Routine")
+        .closest("[data-slot='card']") as HTMLElement;
+      expect(routineSection).toBeInTheDocument();
+
       // Verify initial product
-      expect(screen.getByText("Original Cleanser")).toBeInTheDocument();
+      expect(
+        within(routineSection!).getByText("Original Cleanser"),
+      ).toBeInTheDocument();
 
       // Click on product to edit
-      const productCard = screen.getByText("Original Cleanser");
+      const productCard = within(routineSection!).getByText(
+        "Original Cleanser",
+      );
       await user.click(productCard);
 
       // Edit product name
@@ -1307,8 +1371,12 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
       // Wait for server response - should revert to original
       await waitFor(() => {
-        expect(screen.getByText("Original Cleanser")).toBeInTheDocument();
-        expect(screen.queryByText("Updated Cleanser")).not.toBeInTheDocument();
+        expect(
+          within(routineSection!).getByText("Original Cleanser"),
+        ).toBeInTheDocument();
+        expect(
+          within(routineSection!).queryByText("Updated Cleanser"),
+        ).not.toBeInTheDocument();
       });
 
       // Verify error toast shown
@@ -1330,7 +1398,7 @@ describe("ClientPageWrapper - Integration Tests", () => {
 
   describe("Coach Notes - Missing Coverage", () => {
     it("Add Coach Note - Failure - note typed, server fails, note not added, toast shown", async () => {
-      const user = userEvent.setup();
+      const user = setupUser();
 
       // Mock server failure
       vi.mocked(createCoachNote).mockResolvedValueOnce({

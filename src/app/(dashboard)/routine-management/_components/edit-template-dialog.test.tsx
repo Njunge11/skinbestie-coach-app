@@ -1,11 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@/test/utils";
-import userEvent from "@testing-library/user-event";
+import { render, screen, setupUser } from "@/test/utils";
 import { EditTemplateDialog } from "./edit-template-dialog";
 
 describe("EditTemplateDialog", () => {
   it("user edits template name and description", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
@@ -21,7 +20,7 @@ describe("EditTemplateDialog", () => {
         onOpenChange={onOpenChange}
         template={template}
         onUpdate={onUpdate}
-      />
+      />,
     );
 
     // User should see pre-filled values
@@ -53,7 +52,7 @@ describe("EditTemplateDialog", () => {
   });
 
   it("user clears template description", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
@@ -69,7 +68,7 @@ describe("EditTemplateDialog", () => {
         onOpenChange={onOpenChange}
         template={template}
         onUpdate={onUpdate}
-      />
+      />,
     );
 
     // User clears the description
@@ -90,7 +89,7 @@ describe("EditTemplateDialog", () => {
   });
 
   it("user cannot save empty template name", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
@@ -106,7 +105,7 @@ describe("EditTemplateDialog", () => {
         onOpenChange={onOpenChange}
         template={template}
         onUpdate={onUpdate}
-      />
+      />,
     );
 
     // User clears the name
@@ -128,12 +127,13 @@ describe("EditTemplateDialog", () => {
   });
 
   it("user sees loading state during save", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     let resolveUpdate: () => void;
     const onUpdate = vi.fn().mockImplementation(
-      () => new Promise<void>((resolve) => {
-        resolveUpdate = resolve;
-      })
+      () =>
+        new Promise<void>((resolve) => {
+          resolveUpdate = resolve;
+        }),
     );
     const onOpenChange = vi.fn();
 
@@ -149,7 +149,7 @@ describe("EditTemplateDialog", () => {
         onOpenChange={onOpenChange}
         template={template}
         onUpdate={onUpdate}
-      />
+      />,
     );
 
     // User clicks Save Changes
@@ -157,8 +157,12 @@ describe("EditTemplateDialog", () => {
     await user.click(saveButton);
 
     // Button should show loading state
-    expect(screen.getByRole("button", { name: /saving\.\.\./i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /saving\.\.\./i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /saving\.\.\./i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /saving\.\.\./i }),
+    ).toBeDisabled();
 
     // Resolve the update
     resolveUpdate!();
@@ -168,7 +172,7 @@ describe("EditTemplateDialog", () => {
   });
 
   it("user cancels editing", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onUpdate = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
@@ -184,7 +188,7 @@ describe("EditTemplateDialog", () => {
         onOpenChange={onOpenChange}
         template={template}
         onUpdate={onUpdate}
-      />
+      />,
     );
 
     // User makes changes

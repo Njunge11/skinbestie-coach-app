@@ -10,6 +10,7 @@ import { RoutineSection } from "./routine-section";
 import { ComplianceSection } from "./compliance-section";
 import { CoachNotesPanel } from "./coach-notes-panel";
 import { ProfileTags } from "./profile-tags/profile-tags";
+import { ProductRecommendationsTable } from "./product-recommendations-table";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import {
@@ -494,10 +495,14 @@ export function ClientPageWrapper({
       id: `temp-${Date.now()}`,
       routineId: routine.id,
       userProfileId: userId,
-      ...data,
-      instructions: data.instructions ?? null,
+      stepType: data.stepType,
+      stepName: data.stepName ?? null,
+      routineStep: data.routineStep ?? null,
+      productName: data.productName ?? null,
       productUrl: data.productUrl ?? null,
+      instructions: data.instructions ?? null,
       productPurchaseInstructions: data.productPurchaseInstructions ?? null,
+      frequency: data.frequency,
       days: data.days ?? null,
       timeOfDay,
       order: sameTimeProducts.length,
@@ -811,6 +816,8 @@ export function ClientPageWrapper({
             onPhotoSelect={handlePhotoSelect}
             onToggleCompareMode={handleToggleCompareMode}
           />
+
+          <ProductRecommendationsTable products={optimisticRoutineProducts} />
         </div>
 
         {/* Floating Action Button for Coach Notes */}

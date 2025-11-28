@@ -215,11 +215,14 @@ export function TemplateList({
                       // Create optimistic product with temp ID
                       const optimisticProduct: Product = {
                         id: `temp-${Date.now()}`,
-                        routineStep: data.routineStep,
-                        productName: data.productName,
+                        stepType: data.stepType || "product",
+                        stepName: data.stepName || null,
+                        routineStep: data.routineStep || null,
+                        productName: data.productName || null,
                         productUrl: data.productUrl || null,
                         instructions: data.instructions ?? null,
-                        frequency: data.frequency,
+                        productPurchaseInstructions: null,
+                        frequency: data.frequency || "daily",
                         days: data.days || null,
                         timeOfDay: "morning",
                         order: details.morning.length,
@@ -239,7 +242,16 @@ export function TemplateList({
                       });
 
                       const result = await createTemplateProduct(template.id, {
-                        ...data,
+                        stepType: data.stepType || "product",
+                        stepName: data.stepName,
+                        routineStep: data.routineStep,
+                        productName: data.productName,
+                        productUrl: data.productUrl,
+                        instructions: data.instructions,
+                        productPurchaseInstructions:
+                          data.productPurchaseInstructions,
+                        frequency: data.frequency || "daily",
+                        days: data.days,
                         timeOfDay: "morning",
                       });
 
@@ -334,11 +346,14 @@ export function TemplateList({
                       // Create optimistic product with temp ID
                       const optimisticProduct: Product = {
                         id: `temp-${Date.now()}`,
-                        routineStep: data.routineStep,
-                        productName: data.productName,
+                        stepType: data.stepType || "product",
+                        stepName: data.stepName || null,
+                        routineStep: data.routineStep || null,
+                        productName: data.productName || null,
                         productUrl: data.productUrl || null,
                         instructions: data.instructions ?? null,
-                        frequency: data.frequency,
+                        productPurchaseInstructions: null,
+                        frequency: data.frequency || "daily",
                         days: data.days || null,
                         timeOfDay: "evening",
                         order: details.evening.length,
@@ -358,7 +373,16 @@ export function TemplateList({
                       });
 
                       const result = await createTemplateProduct(template.id, {
-                        ...data,
+                        stepType: data.stepType || "product",
+                        stepName: data.stepName,
+                        routineStep: data.routineStep,
+                        productName: data.productName,
+                        productUrl: data.productUrl,
+                        instructions: data.instructions,
+                        productPurchaseInstructions:
+                          data.productPurchaseInstructions,
+                        frequency: data.frequency || "daily",
+                        days: data.days,
                         timeOfDay: "evening",
                       });
 
