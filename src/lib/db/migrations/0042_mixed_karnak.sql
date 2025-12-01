@@ -1,0 +1,1 @@
+ALTER TABLE "user_profiles" ADD COLUMN "feedback_survey_visible" boolean DEFAULT false NOT NULL;

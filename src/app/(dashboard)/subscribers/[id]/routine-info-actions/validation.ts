@@ -22,7 +22,16 @@ export const updateRoutineProductInputSchema = z.object({
   productName: requiredStringSchema.optional(),
   instructions: z.string().optional(),
   frequency: z
-    .enum(["daily", "2x per week", "3x per week", "specific_days"])
+    .enum([
+      "daily",
+      "1x per week",
+      "2x per week",
+      "3x per week",
+      "4x per week",
+      "5x per week",
+      "6x per week",
+      "specific_days",
+    ])
     .optional(),
   days: z.array(z.string()).nullable().optional(),
   timeOfDay: z.enum(["morning", "evening"]).optional(),

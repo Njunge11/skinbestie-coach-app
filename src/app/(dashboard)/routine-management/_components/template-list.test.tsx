@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@/test/utils";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, setupUser } from "@/test/utils";
 import { TemplateList } from "./template-list";
 
 // Mock server actions at network boundary
@@ -30,7 +29,7 @@ vi.mock("sonner", () => ({
 
 describe("TemplateList", () => {
   it("user sees empty state with create button", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     render(
@@ -61,7 +60,7 @@ describe("TemplateList", () => {
   });
 
   it("user expands template to see products", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const templates = [
@@ -106,7 +105,7 @@ describe("TemplateList", () => {
   });
 
   it("user collapses expanded template", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const templates = [
@@ -148,7 +147,7 @@ describe("TemplateList", () => {
   });
 
   it("user clicks edit button and edit dialog appears", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const templates = [
@@ -189,7 +188,7 @@ describe("TemplateList", () => {
   });
 
   it("user clicks delete button and confirmation dialog appears", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const templates = [
@@ -234,7 +233,7 @@ describe("TemplateList", () => {
   });
 
   it("user cancels template deletion", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const templates = [
@@ -286,7 +285,7 @@ describe("TemplateList", () => {
   });
 
   it("user deletes template successfully", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { deleteTemplate } = await import("../template-actions/actions");
@@ -346,7 +345,7 @@ describe("TemplateList", () => {
   });
 
   it("user sees error when template deletion fails", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { deleteTemplate } = await import("../template-actions/actions");
@@ -409,7 +408,7 @@ describe("TemplateList", () => {
   });
 
   it("user updates template successfully", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { updateTemplate } = await import("../template-actions/actions");
@@ -481,7 +480,7 @@ describe("TemplateList", () => {
   });
 
   it("user sees error when template update fails", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { updateTemplate } = await import("../template-actions/actions");
@@ -543,7 +542,7 @@ describe("TemplateList", () => {
   });
 
   it("user updates morning product successfully", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { updateTemplateProduct } = await import(
@@ -555,10 +554,13 @@ describe("TemplateList", () => {
       data: {
         id: "product-1",
         templateId: "template-1",
+        stepType: "product",
+        stepName: null,
         routineStep: "Cleanse",
         productName: "Updated Cleanser",
         productUrl: null,
         instructions: "Apply gently",
+        productPurchaseInstructions: null,
         frequency: "daily",
         days: null,
         timeOfDay: "morning",
@@ -585,6 +587,7 @@ describe("TemplateList", () => {
         morning: [
           {
             id: "product-1",
+            stepType: "product" as const,
             routineStep: "Cleanse",
             productName: "Gentle Cleanser",
             productUrl: null,
@@ -637,7 +640,7 @@ describe("TemplateList", () => {
   });
 
   it("user sees error when updating morning product fails", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { updateTemplateProduct } = await import(
@@ -667,6 +670,7 @@ describe("TemplateList", () => {
         morning: [
           {
             id: "product-1",
+            stepType: "product" as const,
             routineStep: "Cleanse",
             productName: "Gentle Cleanser",
             productUrl: null,
@@ -713,7 +717,7 @@ describe("TemplateList", () => {
   });
 
   it("user deletes morning product successfully", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { deleteTemplateProduct } = await import(
@@ -742,6 +746,7 @@ describe("TemplateList", () => {
         morning: [
           {
             id: "product-1",
+            stepType: "product" as const,
             routineStep: "Cleanse",
             productName: "Gentle Cleanser",
             productUrl: null,
@@ -778,7 +783,7 @@ describe("TemplateList", () => {
   });
 
   it("user sees error when deleting morning product fails", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { deleteTemplateProduct } = await import(
@@ -808,6 +813,7 @@ describe("TemplateList", () => {
         morning: [
           {
             id: "product-1",
+            stepType: "product" as const,
             routineStep: "Cleanse",
             productName: "Gentle Cleanser",
             productUrl: null,
@@ -848,7 +854,7 @@ describe("TemplateList", () => {
   });
 
   it("user updates evening product successfully", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { updateTemplateProduct } = await import(
@@ -860,10 +866,13 @@ describe("TemplateList", () => {
       data: {
         id: "product-2",
         templateId: "template-1",
+        stepType: "product",
+        stepName: null,
         routineStep: "Moisturizer / Cream",
         productName: "Updated Moisturizer",
         productUrl: null,
         instructions: "Apply before bed",
+        productPurchaseInstructions: null,
         frequency: "daily",
         days: null,
         timeOfDay: "evening",
@@ -891,6 +900,7 @@ describe("TemplateList", () => {
         evening: [
           {
             id: "product-2",
+            stepType: "product" as const,
             routineStep: "Moisturizer / Cream",
             productName: "Night Cream",
             productUrl: null,
@@ -938,7 +948,7 @@ describe("TemplateList", () => {
   });
 
   it("user sees error when updating evening product fails", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { updateTemplateProduct } = await import(
@@ -969,6 +979,7 @@ describe("TemplateList", () => {
         evening: [
           {
             id: "product-2",
+            stepType: "product" as const,
             routineStep: "Moisturizer / Cream",
             productName: "Night Cream",
             productUrl: null,
@@ -1013,7 +1024,7 @@ describe("TemplateList", () => {
   });
 
   it("user deletes evening product successfully", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { deleteTemplateProduct } = await import(
@@ -1043,6 +1054,7 @@ describe("TemplateList", () => {
         evening: [
           {
             id: "product-2",
+            stepType: "product" as const,
             routineStep: "Moisturizer / Cream",
             productName: "Night Cream",
             productUrl: null,
@@ -1077,7 +1089,7 @@ describe("TemplateList", () => {
   });
 
   it("user sees error when deleting evening product fails", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onCreateClick = vi.fn();
 
     const { deleteTemplateProduct } = await import(
@@ -1108,6 +1120,7 @@ describe("TemplateList", () => {
         evening: [
           {
             id: "product-2",
+            stepType: "product" as const,
             routineStep: "Moisturizer / Cream",
             productName: "Night Cream",
             productUrl: null,

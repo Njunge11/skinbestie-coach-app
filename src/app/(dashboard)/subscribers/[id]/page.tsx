@@ -99,6 +99,7 @@ export default async function SubscriberDetailPage({
       currentWeek: 1,
       startDate: profileData.createdAt.toISOString().split("T")[0],
       hasRoutine: initialRoutine !== null,
+      feedbackSurveyVisible: profileData.feedbackSurveyVisible,
       tags: initialTags,
       createdAt: profileData.createdAt,
     };

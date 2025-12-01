@@ -94,6 +94,14 @@ export async function updateRoutine(
         throw new Error("Routine not found");
       }
 
+      // 2. If start date was updated, mark routineStartDateSet as true on user profile
+      if (validation.data.startDate !== undefined) {
+        await tx
+          .update(userProfiles)
+          .set({ routineStartDateSet: true })
+          .where(eq(userProfiles.id, updated.userProfileId));
+      }
+
       // Only regenerate if routine is published
       if (updated.status === "published") {
         const today = toMidnightUTC(now());
@@ -112,6 +120,9 @@ export async function updateRoutine(
 
           // Start date moved FORWARD: Delete uncompleted tasks before new start
           if (newStart > oldStart) {
+            console.log(
+              `⏩ [UPDATE-ROUTINE] Start moved FORWARD. Deleting tasks before ${newStart.toISOString()}`,
+            );
             // Get product IDs for this routine
             const products = await tx
               .select({ id: skincareRoutineProducts.id })
@@ -124,13 +135,16 @@ export async function updateRoutine(
               );
 
             const productIds = products.map((p) => p.id);
+            console.log(
+              `🔍 [UPDATE-ROUTINE] Found ${productIds.length} products for routine`,
+            );
 
             if (productIds.length > 0) {
               // Delete only pending tasks BEFORE new start date
               // Keeps:
               // - All completed tasks (user's history is preserved)
               // - Pending tasks from new start onward (valid future tasks)
-              await tx
+              const deleteResult = await tx
                 .delete(routineStepCompletions)
                 .where(
                   and(
@@ -141,7 +155,16 @@ export async function updateRoutine(
                     lt(routineStepCompletions.scheduledDate, newStart),
                     eq(routineStepCompletions.status, "pending"),
                   ),
-                );
+                )
+                .returning();
+
+              console.log(
+                `✅ [UPDATE-ROUTINE] Deleted ${deleteResult.length} tasks before new start date`,
+              );
+            } else {
+              console.log(
+                `⚠️ [UPDATE-ROUTINE] No products found, skipping task deletion`,
+              );
             }
           }
 
@@ -182,6 +205,9 @@ export async function updateRoutine(
                 );
 
               const productIds = products.map((p) => p.id);
+              console.log(
+                `🔍 [UPDATE-ROUTINE] Found ${productIds.length} products for gap fill`,
+              );
 
               if (productIds.length > 0) {
                 // Calculate new 60-day window

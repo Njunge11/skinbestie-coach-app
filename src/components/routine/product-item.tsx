@@ -12,14 +12,18 @@ import { getFrequencyLabel } from "@/lib/routine-constants";
 import type {
   Frequency,
   TimeOfDay,
+  StepType,
 } from "@/app/(dashboard)/subscribers/[id]/types";
 
 export interface Product {
   id: string;
-  routineStep: string;
-  productName: string;
+  stepType: StepType;
+  stepName?: string | null;
+  routineStep?: string | null;
+  productName?: string | null;
   productUrl: string | null;
-  instructions: string;
+  instructions: string | null;
+  productPurchaseInstructions?: string | null;
   frequency: Frequency;
   days: string[] | null;
   timeOfDay: TimeOfDay;
@@ -41,10 +45,13 @@ export function ProductItem({
 }: ProductItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<ProductFormData>({
-    routineStep: product.routineStep,
-    productName: product.productName,
+    stepType: product.stepType,
+    stepName: product.stepName || undefined,
+    routineStep: product.routineStep || undefined,
+    productName: product.productName || undefined,
     productUrl: product.productUrl,
     instructions: product.instructions,
+    productPurchaseInstructions: product.productPurchaseInstructions || null,
     frequency: product.frequency,
     days: product.days || undefined,
   });
@@ -65,10 +72,13 @@ export function ProductItem({
 
   const handleStartEdit = () => {
     setEditData({
-      routineStep: product.routineStep,
-      productName: product.productName,
+      stepType: product.stepType,
+      stepName: product.stepName || undefined,
+      routineStep: product.routineStep || undefined,
+      productName: product.productName || undefined,
       productUrl: product.productUrl,
       instructions: product.instructions,
+      productPurchaseInstructions: product.productPurchaseInstructions || null,
       frequency: product.frequency,
       days: product.days || undefined,
     });
@@ -76,14 +86,42 @@ export function ProductItem({
   };
 
   const handleSave = () => {
-    // Validate all required fields
-    if (
-      editData.routineStep &&
-      editData.routineStep.trim() &&
-      editData.productName.trim() &&
-      editData.instructions.trim() &&
-      editData.frequency.trim()
-    ) {
+    const stepType = editData.stepType || "product";
+
+    // Validate based on step type
+    let isValid = false;
+
+    if (stepType === "product") {
+      // Product type: routineStep, productName, and frequency are required
+      isValid =
+        editData.routineStep !== undefined &&
+        editData.routineStep.trim() !== "" &&
+        editData.productName !== undefined &&
+        editData.productName.trim() !== "" &&
+        editData.frequency !== undefined &&
+        editData.frequency.trim() !== "";
+    } else {
+      // Instruction-only type: only frequency is required
+      isValid =
+        editData.frequency !== undefined && editData.frequency.trim() !== "";
+    }
+
+    // Validate days are selected when frequency is not daily
+    const needsDays = editData.frequency !== "daily";
+    let daysValid = true;
+
+    if (needsDays) {
+      const match = editData.frequency?.match(/^(\d+)x per week$/);
+      if (match) {
+        const requiredDays = parseInt(match[1], 10);
+        daysValid =
+          editData.days !== undefined && editData.days.length === requiredDays;
+      } else if (editData.frequency === "specific_days") {
+        daysValid = editData.days !== undefined && editData.days.length > 0;
+      }
+    }
+
+    if (isValid && daysValid) {
       onEdit(product.id, editData);
       setIsEditing(false);
     }
@@ -94,6 +132,12 @@ export function ProductItem({
   };
 
   if (isEditing) {
+    // Determine the step title based on step type
+    const stepTitle =
+      product.stepType === "product"
+        ? product.productName || "Product Step"
+        : product.stepName || product.routineStep || "Non-Product Step";
+
     return (
       <ProductForm
         data={editData}
@@ -101,6 +145,9 @@ export function ProductItem({
         onSave={handleSave}
         onCancel={handleCancel}
         saveLabel="Save"
+        isEditMode={true}
+        stepNumber={index + 1}
+        stepTitle={stepTitle}
       />
     );
   }
@@ -122,8 +169,8 @@ export function ProductItem({
         <GripVertical className="w-5 h-5" />
       </div>
 
-      {/* Priority Badge */}
-      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+      {/* Priority Badge - Hidden on mobile */}
+      <div className="hidden md:flex w-7 h-7 rounded-full bg-primary items-center justify-center">
         <span className="text-sm font-semibold text-primary-foreground">
           {index + 1}
         </span>
@@ -132,9 +179,19 @@ export function ProductItem({
       {/* Product Content */}
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <Badge variant="secondary" className="font-normal">
-            {product.routineStep}
-          </Badge>
+          {product.stepType === "product" && product.routineStep && (
+            <Badge variant="secondary" className="font-normal">
+              {product.routineStep}
+            </Badge>
+          )}
+          {product.stepType === "instruction_only" && (
+            <Badge
+              variant="secondary"
+              className="font-normal bg-blue-100 text-blue-700 border-blue-200"
+            >
+              No Product
+            </Badge>
+          )}
           {product.frequency && (
             <Badge variant="outline" className="font-normal">
               {getFrequencyLabel(product.frequency)}
@@ -144,21 +201,17 @@ export function ProductItem({
             </Badge>
           )}
         </div>
-        <h4 className="font-semibold text-gray-900 mb-1">
-          {product.productUrl ? (
-            <a
-              href={product.productUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {product.productName}
-            </a>
-          ) : (
-            product.productName
+        {product.stepType === "product" && product.productName && (
+          <h4 className="font-semibold text-gray-900 mb-1">
+            {product.productName}
+          </h4>
+        )}
+        {product.stepType === "instruction_only" &&
+          (product.stepName || product.routineStep) && (
+            <h4 className="font-semibold text-gray-900 mb-1">
+              {product.stepName || product.routineStep}
+            </h4>
           )}
-        </h4>
         {product.instructions && (
           <p className="text-sm text-gray-600">{product.instructions}</p>
         )}

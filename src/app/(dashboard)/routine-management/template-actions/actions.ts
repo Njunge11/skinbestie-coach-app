@@ -38,20 +38,26 @@ export type UpdateTemplateInput = {
 };
 
 export type CreateTemplateProductInput = {
-  routineStep: string;
-  productName: string;
+  stepType?: "instruction_only" | "product";
+  stepName?: string;
+  routineStep?: string;
+  productName?: string;
   productUrl?: string | null;
-  instructions: string;
+  instructions?: string | null;
+  productPurchaseInstructions?: string | null;
   frequency: string;
   days?: string[] | null;
   timeOfDay: "morning" | "evening";
 };
 
 export type UpdateTemplateProductInput = {
+  stepType?: "instruction_only" | "product";
+  stepName?: string;
   routineStep?: string;
   productName?: string;
   productUrl?: string | null;
-  instructions?: string;
+  instructions?: string | null;
+  productPurchaseInstructions?: string | null;
   frequency?: string;
   days?: string[] | null;
 };
@@ -269,40 +275,86 @@ export async function getTemplateProducts(
 }
 
 // Zod schemas for template products
-const createTemplateProductSchema = z.object({
-  templateId: uuidSchema,
-  routineStep: requiredStringSchema,
-  productName: requiredStringSchema,
-  productUrl: z.preprocess(
-    (val) => (val === "" || val === null || val === undefined ? null : val),
-    z.string().url().nullable().optional(),
-  ),
-  instructions: requiredStringSchema,
-  frequency: z.enum([
-    "daily",
-    "2x per week",
-    "3x per week",
-    "4x per week",
-    "5x per week",
-    "6x per week",
-    "specific_days",
-  ]),
-  days: z.array(z.string()).nullable().optional(),
-  timeOfDay: z.enum(["morning", "evening"]),
-});
+const stepTypeSchema = z.enum(["instruction_only", "product"]);
+
+const createTemplateProductSchema = z
+  .object({
+    templateId: uuidSchema,
+    stepType: stepTypeSchema.optional(),
+    stepName: z.string().trim().optional(),
+    routineStep: z.string().trim().optional(),
+    productName: z.string().trim().optional(),
+    productUrl: z.preprocess(
+      (val) => (val === "" || val === null || val === undefined ? null : val),
+      z.string().url().nullable().optional(),
+    ),
+    instructions: z.preprocess(
+      (val) => (val === "" || val === null || val === undefined ? null : val),
+      z.string().nullable().optional(),
+    ),
+    productPurchaseInstructions: z.preprocess(
+      (val) => (val === "" || val === null || val === undefined ? null : val),
+      z.string().nullable().optional(),
+    ),
+    frequency: z.enum([
+      "daily",
+      "1x per week",
+      "2x per week",
+      "3x per week",
+      "4x per week",
+      "5x per week",
+      "6x per week",
+      "specific_days",
+    ]),
+    days: z.array(z.string()).nullable().optional(),
+    timeOfDay: z.enum(["morning", "evening"]),
+  })
+  .refine(
+    (data) => {
+      const stepType = data.stepType || "product";
+      if (stepType === "product") {
+        return (
+          data.routineStep !== undefined &&
+          data.routineStep.trim() !== "" &&
+          data.productName !== undefined &&
+          data.productName.trim() !== ""
+        );
+      } else {
+        return (
+          data.instructions !== null &&
+          data.instructions !== undefined &&
+          data.instructions.trim() !== ""
+        );
+      }
+    },
+    {
+      message:
+        "Product type requires routineStep and productName; Instruction type requires instructions",
+    },
+  );
 
 const updateTemplateProductSchema = z.object({
   productId: uuidSchema,
-  routineStep: requiredStringSchema.optional(),
-  productName: requiredStringSchema.optional(),
+  stepType: stepTypeSchema.optional(),
+  stepName: z.string().trim().optional(),
+  routineStep: z.string().trim().optional(),
+  productName: z.string().trim().optional(),
   productUrl: z.preprocess(
     (val) => (val === "" || val === null || val === undefined ? null : val),
     z.string().url().nullable().optional(),
   ),
-  instructions: requiredStringSchema.optional(),
+  instructions: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? null : val),
+    z.string().nullable().optional(),
+  ),
+  productPurchaseInstructions: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? null : val),
+    z.string().nullable().optional(),
+  ),
   frequency: z
     .enum([
       "daily",
+      "1x per week",
       "2x per week",
       "3x per week",
       "4x per week",
@@ -337,10 +389,13 @@ export async function createTemplateProduct(
   // Validate input with Zod
   const validation = createTemplateProductSchema.safeParse({
     templateId,
+    stepType: input.stepType,
+    stepName: input.stepName,
     routineStep: input.routineStep,
     productName: input.productName,
     productUrl: input.productUrl,
     instructions: input.instructions,
+    productPurchaseInstructions: input.productPurchaseInstructions,
     frequency: input.frequency,
     days: input.days,
     timeOfDay: input.timeOfDay,
@@ -370,10 +425,14 @@ export async function createTemplateProduct(
 
     const newProduct: NewRoutineTemplateProduct = {
       templateId: validation.data.templateId,
-      routineStep: validation.data.routineStep,
-      productName: validation.data.productName,
+      stepType: validation.data.stepType || "product",
+      stepName: validation.data.stepName ?? null,
+      routineStep: validation.data.routineStep ?? null,
+      productName: validation.data.productName ?? null,
       productUrl: validation.data.productUrl || null,
-      instructions: validation.data.instructions,
+      instructions: validation.data.instructions || null,
+      productPurchaseInstructions:
+        validation.data.productPurchaseInstructions || null,
       frequency: validation.data.frequency,
       days: validation.data.days || null,
       timeOfDay: validation.data.timeOfDay,
@@ -416,12 +475,20 @@ export async function updateTemplateProduct(
       updatedAt: now(),
     };
 
+    if (validation.data.stepType !== undefined) {
+      updateData.stepType = validation.data.stepType;
+    }
+
+    if (validation.data.stepName !== undefined) {
+      updateData.stepName = validation.data.stepName || null;
+    }
+
     if (validation.data.routineStep !== undefined) {
-      updateData.routineStep = validation.data.routineStep;
+      updateData.routineStep = validation.data.routineStep || null;
     }
 
     if (validation.data.productName !== undefined) {
-      updateData.productName = validation.data.productName;
+      updateData.productName = validation.data.productName || null;
     }
 
     if (validation.data.productUrl !== undefined) {
@@ -430,6 +497,11 @@ export async function updateTemplateProduct(
 
     if (validation.data.instructions !== undefined) {
       updateData.instructions = validation.data.instructions;
+    }
+
+    if (validation.data.productPurchaseInstructions !== undefined) {
+      updateData.productPurchaseInstructions =
+        validation.data.productPurchaseInstructions;
     }
 
     if (validation.data.frequency !== undefined) {

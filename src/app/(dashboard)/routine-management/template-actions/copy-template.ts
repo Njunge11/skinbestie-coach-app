@@ -5,26 +5,9 @@ import { makeTemplateRepo } from "./template.repo";
 import {
   makeRoutineRepo,
   type Routine,
+  type RoutineProduct,
+  type NewRoutineProductInput,
 } from "@/app/(dashboard)/subscribers/[id]/routine-info-actions/routine.repo";
-import { db } from "@/lib/db";
-import { skincareRoutineProducts, skincareRoutines } from "@/lib/db/schema";
-
-// Type for routine product
-type RoutineProduct = {
-  id: string;
-  routineId: string;
-  userProfileId: string;
-  routineStep: string;
-  productName: string;
-  productUrl: string | null;
-  instructions: string;
-  frequency: string;
-  days: string[] | null;
-  timeOfDay: string;
-  order: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 // Dependency injection for testing (follows TESTING.md)
 export type CopyTemplateDeps = {
@@ -94,7 +77,6 @@ export async function copyTemplateToUser(
 
   try {
     // Fetch template and validate BEFORE transaction
-    // (Read-only operations, failure here doesn't corrupt data)
     const template = await templateRepo.findById(validation.data.templateId);
     if (!template) {
       return { success: false, error: "Template not found" };
@@ -113,57 +95,43 @@ export async function copyTemplateToUser(
       validation.data.templateId,
     );
 
-    // Wrap ONLY write operations in transaction for atomicity
-    const result = await db.transaction(async (tx) => {
-      const timestamp = now();
+    // Prepare routine data
+    const timestamp = now();
+    const routineData = {
+      userProfileId: validation.data.userId,
+      name: validation.data.name,
+      startDate: validation.data.startDate,
+      endDate: validation.data.endDate || null,
+      status: "draft" as const,
+      savedAsTemplate: false,
+    };
 
-      // Create new routine using tx directly (not repo)
-      // CRITICAL: Must use tx, not routineRepo.create() which uses global db
-      const [newRoutine] = await tx
-        .insert(skincareRoutines)
-        .values({
-          userProfileId: validation.data.userId,
-          name: validation.data.name,
-          startDate: validation.data.startDate,
-          endDate: validation.data.endDate || null,
-          status: "draft",
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        })
-        .returning();
-
-      if (!newRoutine) {
-        throw new Error("Failed to create routine");
-      }
-
-      // Batch insert all products atomically using tx
-      // This is more efficient than N individual INSERTs
-      const productValues = templateProducts.map((templateProduct) => ({
-        routineId: newRoutine.id,
+    // Prepare product data - map template products to routine products
+    // CRITICAL: Preserve ALL fields including stepType, stepName, productPurchaseInstructions
+    const productData: NewRoutineProductInput[] = templateProducts.map(
+      (templateProduct) => ({
         userProfileId: validation.data.userId,
+        stepType: templateProduct.stepType,
+        stepName: templateProduct.stepName,
         routineStep: templateProduct.routineStep,
         productName: templateProduct.productName,
         productUrl: templateProduct.productUrl,
         instructions: templateProduct.instructions,
+        productPurchaseInstructions:
+          templateProduct.productPurchaseInstructions,
         frequency: templateProduct.frequency,
         days: templateProduct.days,
         timeOfDay: templateProduct.timeOfDay,
         order: templateProduct.order,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }));
+      }),
+    );
 
-      // Single batch INSERT - much faster than N individual INSERTs
-      const copiedProducts = await tx
-        .insert(skincareRoutineProducts)
-        .values(productValues)
-        .returning();
-
-      return {
-        routine: newRoutine as Routine,
-        products: copiedProducts as RoutineProduct[],
-      };
-    });
+    // Use repo method which handles transaction internally
+    const result = await routineRepo.createRoutineFromTemplate(
+      routineData,
+      productData,
+      timestamp,
+    );
 
     return {
       success: true,
@@ -171,8 +139,6 @@ export async function copyTemplateToUser(
     };
   } catch (error) {
     console.error("Error copying template:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to copy template";
-    return { success: false, error: errorMessage };
+    return { success: false, error: "Failed to copy template" };
   }
 }

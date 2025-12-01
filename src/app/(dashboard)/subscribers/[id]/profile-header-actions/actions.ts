@@ -33,6 +33,7 @@ export type UserProfileData = {
   concerns: string[];
   occupation: string;
   bio: string;
+  feedbackSurveyVisible: boolean;
   createdAt: Date;
 };
 
@@ -96,6 +97,7 @@ export async function getUserProfile(
       concerns: user.concerns || [],
       occupation: user.occupation || "",
       bio: user.bio || "",
+      feedbackSurveyVisible: user.feedbackSurveyVisible,
       createdAt: user.createdAt,
     };
 

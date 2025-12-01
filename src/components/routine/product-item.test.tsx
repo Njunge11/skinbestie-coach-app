@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@/test/utils";
-import userEvent from "@testing-library/user-event";
+import { render, screen, setupUser } from "@/test/utils";
 import React from "react";
 import { ProductItem, Product } from "./product-item";
 
@@ -11,6 +10,7 @@ describe("ProductItem", () => {
 
     const product: Product = {
       id: "product-1",
+      stepType: "product" as const,
       routineStep: "Cleanse",
       productName: "CeraVe Hydrating Cleanser",
       productUrl: "https://example.com/product",
@@ -49,12 +49,13 @@ describe("ProductItem", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
   });
 
-  it("user views product with URL as clickable link", () => {
+  it("user views product with URL as plain text (no hyperlink)", () => {
     const onEdit = vi.fn();
     const onDelete = vi.fn();
 
     const product: Product = {
       id: "product-1",
+      stepType: "product" as const,
       routineStep: "Treat",
       productName: "Vitamin C Serum",
       productUrl: "https://example.com/serum",
@@ -74,12 +75,11 @@ describe("ProductItem", () => {
       />,
     );
 
-    // User sees product name as a link
-    const productLink = screen.getByRole("link", { name: "Vitamin C Serum" });
-    expect(productLink).toBeInTheDocument();
-    expect(productLink).toHaveAttribute("href", "https://example.com/serum");
-    expect(productLink).toHaveAttribute("target", "_blank");
-    expect(productLink).toHaveAttribute("rel", "noopener noreferrer");
+    // User sees product name as plain text (not a link)
+    expect(screen.getByText("Vitamin C Serum")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Vitamin C Serum" }),
+    ).not.toBeInTheDocument();
   });
 
   it("user views product without URL as plain text", () => {
@@ -88,6 +88,7 @@ describe("ProductItem", () => {
 
     const product: Product = {
       id: "product-1",
+      stepType: "product" as const,
       routineStep: "Moisturise",
       productName: "Simple Face Cream",
       productUrl: null,
@@ -115,12 +116,13 @@ describe("ProductItem", () => {
   });
 
   it("user clicks to edit product and sees edit form", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onEdit = vi.fn();
     const onDelete = vi.fn();
 
     const product: Product = {
       id: "product-1",
+      stepType: "product" as const,
       routineStep: "Toner",
       productName: "Hydrating Toner",
       productUrl: "https://example.com/toner",
@@ -157,12 +159,13 @@ describe("ProductItem", () => {
   });
 
   it("user saves edited product and returns to view mode", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onEdit = vi.fn();
     const onDelete = vi.fn();
 
     const product: Product = {
       id: "product-1",
+      stepType: "product" as const,
       routineStep: "Moisturise",
       productName: "Simple Moisturizer",
       productUrl: null,
@@ -194,7 +197,7 @@ describe("ProductItem", () => {
     await user.type(nameInput, "Updated Moisturizer");
 
     // User changes the instructions
-    const instructionsInput = screen.getByLabelText(/^instructions$/i);
+    const instructionsInput = screen.getByLabelText(/^instructions.*$/i);
     await user.clear(instructionsInput);
     await user.type(instructionsInput, "Apply twice daily");
 

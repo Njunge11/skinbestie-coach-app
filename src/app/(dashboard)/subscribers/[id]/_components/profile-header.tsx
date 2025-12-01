@@ -3,15 +3,20 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { InviteBookingModal } from "@/app/(dashboard)/_components/invite-booking-modal";
 import type { Client } from "../types";
 
 interface ProfileHeaderProps {
   client: Client;
+  onToggleSurveyVisibility?: () => Promise<void>;
 }
 
-export function ProfileHeader({ client }: ProfileHeaderProps) {
+export function ProfileHeader({
+  client,
+  onToggleSurveyVisibility,
+}: ProfileHeaderProps) {
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   const copyToClipboard = (text: string, message: string) => {
@@ -88,6 +93,27 @@ export function ProfileHeader({ client }: ProfileHeaderProps) {
                   </span>
                 </>
               )}
+            </div>
+
+            {/* Survey Visibility Toggle */}
+            <div className="flex items-center gap-3 mt-3 pt-3 border-t">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="survey-visible"
+                  checked={client.feedbackSurveyVisible}
+                  onCheckedChange={() => {
+                    if (onToggleSurveyVisibility) {
+                      onToggleSurveyVisibility();
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="survey-visible"
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  Show Feedback Survey
+                </label>
+              </div>
             </div>
 
             {/* Mobile/Tablet buttons - shown only on mobile/tablet at the bottom */}

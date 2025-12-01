@@ -9,7 +9,8 @@ import {
 } from "../actions";
 import { makeRoutineRepo } from "../routine.repo";
 import { makeRoutineProductsRepo } from "../../compliance-actions/routine-products.repo";
-import { makeUserProfileRepo } from "../../compliance-actions/user-profile.repo";
+import { makeUserProfileRepo as makeComplianceUserProfileRepo } from "../../compliance-actions/user-profile.repo";
+import { makeUserProfileRepo } from "../../profile-header-actions/user-profile.repo";
 import {
   createTestDatabase,
   cleanupTestDatabase,
@@ -52,13 +53,14 @@ describe("Routine System - Complex Integration Tests (PGlite)", () => {
     publishDeps = {
       routineRepo: makeRoutineRepo({ db }),
       productRepo: makeRoutineProductsRepo({ db }),
-      userRepo: makeUserProfileRepo({ db }),
+      userRepo: makeComplianceUserProfileRepo({ db }),
       db: db,
       now: () => fixedNow,
     };
 
     routineDeps = {
       repo: makeRoutineRepo({ db }),
+      userProfileRepo: makeUserProfileRepo({ db }),
       db: db,
       now: () => fixedNow,
     };
@@ -66,7 +68,7 @@ describe("Routine System - Complex Integration Tests (PGlite)", () => {
     productDeps = {
       repo: makeRoutineProductsRepo({ db }),
       routineRepo: makeRoutineRepo({ db }),
-      userRepo: makeUserProfileRepo({ db }),
+      userRepo: makeComplianceUserProfileRepo({ db }),
       db: db,
       now: () => fixedNow,
     };

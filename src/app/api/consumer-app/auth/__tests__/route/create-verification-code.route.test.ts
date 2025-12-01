@@ -10,7 +10,6 @@ vi.mock("../../auth.service");
 
 describe("POST /api/consumer-app/auth/create-verification-code", () => {
   const testIdentifier = "test@example.com";
-  const testCode = "123456";
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -63,6 +63,34 @@ export function makeSurveysRepo(deps: SurveysRepoDeps = {}) {
     },
 
     /**
+     * Get the published survey with all its questions
+     */
+    async getPublishedSurvey() {
+      // Get published survey
+      const surveyResult = await db
+        .select()
+        .from(schema.surveys)
+        .where(eq(schema.surveys.status, "published"))
+        .limit(1);
+
+      if (surveyResult.length === 0) {
+        return null;
+      }
+
+      // Get questions ordered by order field
+      const questions = await db
+        .select()
+        .from(schema.surveyQuestions)
+        .where(eq(schema.surveyQuestions.surveyId, surveyResult[0].id))
+        .orderBy(asc(schema.surveyQuestions.order));
+
+      return {
+        ...surveyResult[0],
+        questions,
+      };
+    },
+
+    /**
      * Add questions to a survey
      */
     async addQuestions(

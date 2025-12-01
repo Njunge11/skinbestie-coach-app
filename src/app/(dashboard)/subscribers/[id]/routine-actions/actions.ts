@@ -98,20 +98,26 @@ type Result<T> = SuccessResult<T> | ErrorResult;
 // Input types
 export type CreateRoutineProductInput = {
   routineId: string;
-  routineStep: string;
-  productName: string;
-  productUrl: string | null;
-  instructions: string;
+  stepType: "instruction_only" | "product";
+  stepName?: string;
+  routineStep?: string;
+  productName?: string;
+  productUrl?: string | null;
+  instructions?: string | null;
+  productPurchaseInstructions?: string | null;
   frequency: string;
   days: string[] | null;
   timeOfDay: "morning" | "evening";
 };
 
 export type UpdateRoutineProductInput = {
+  stepType?: "instruction_only" | "product";
+  stepName?: string;
   routineStep?: string;
   productName?: string;
   productUrl?: string | null;
-  instructions?: string;
+  instructions?: string | null;
+  productPurchaseInstructions?: string | null;
   frequency?: string;
   days?: string[] | null;
 };
@@ -120,6 +126,7 @@ export type UpdateRoutineProductInput = {
 const uuidSchema = z.string().uuid();
 const requiredStringSchema = z.string().trim().min(1);
 const timeOfDaySchema = z.enum(["morning", "evening"]);
+const stepTypeSchema = z.enum(["instruction_only", "product"]);
 const routineStepSchema = z.enum([
   "Cleanse",
   "Treat",
@@ -132,54 +139,107 @@ const routineStepSchema = z.enum([
   "Lip care",
 ]);
 
-const createRoutineProductSchema = z.object({
-  userId: uuidSchema,
-  routineId: uuidSchema,
-  routineStep: routineStepSchema,
-  productName: requiredStringSchema,
-  productUrl: z.preprocess(
-    (val) => (val === "" ? null : val),
-    z.string().url().nullable(),
-  ),
-  instructions: requiredStringSchema,
-  productPurchaseInstructions: z
-    .preprocess((val) => (val === "" ? null : val), z.string().nullable())
-    .optional(),
-  frequency: z.enum([
-    "daily",
-    "2x per week",
-    "3x per week",
-    "4x per week",
-    "5x per week",
-    "6x per week",
-    "specific_days",
-  ]),
-  days: z.array(z.string()).nullable(),
-  timeOfDay: timeOfDaySchema,
-});
-
-const updateRoutineProductSchema = z.object({
-  productId: uuidSchema,
-  routineStep: routineStepSchema.optional(),
-  productName: z.string().trim().min(1).optional(),
-  productUrl: z.preprocess(
-    (val) => (val === "" ? undefined : val),
-    z.string().url().nullable().optional(),
-  ),
-  instructions: z.string().trim().min(1).optional(),
-  frequency: z
-    .enum([
+const createRoutineProductSchema = z
+  .object({
+    userId: uuidSchema,
+    routineId: uuidSchema,
+    stepType: stepTypeSchema,
+    stepName: z.string().trim().optional(),
+    routineStep: routineStepSchema.optional(),
+    productName: z.string().trim().optional(),
+    productUrl: z.preprocess(
+      (val) => (val === "" ? null : val),
+      z.string().url().nullable().optional(),
+    ),
+    instructions: z.preprocess(
+      (val) => (val === "" ? null : val),
+      z.string().nullable().optional(),
+    ),
+    productPurchaseInstructions: z
+      .preprocess((val) => (val === "" ? null : val), z.string().nullable())
+      .optional(),
+    frequency: z.enum([
       "daily",
+      "1x per week",
       "2x per week",
       "3x per week",
       "4x per week",
       "5x per week",
       "6x per week",
       "specific_days",
-    ])
-    .optional(),
-  days: z.array(z.string()).nullable().optional(),
-});
+    ]),
+    days: z.array(z.string()).nullable(),
+    timeOfDay: timeOfDaySchema,
+  })
+  .refine(
+    (data) => {
+      // For "product" step type: routineStep and productName are required
+      if (data.stepType === "product") {
+        return (
+          data.routineStep !== undefined &&
+          data.routineStep.trim().length > 0 &&
+          data.productName !== undefined &&
+          data.productName.trim().length > 0
+        );
+      }
+      return true;
+    },
+    {
+      message: "Routine step and product name are required for product type",
+      path: ["stepType"],
+    },
+  );
+
+const updateRoutineProductSchema = z
+  .object({
+    productId: uuidSchema,
+    stepType: stepTypeSchema.optional(),
+    stepName: z.string().trim().optional(),
+    routineStep: routineStepSchema.optional(),
+    productName: z.string().trim().optional(),
+    productUrl: z.preprocess(
+      (val) => (val === "" ? undefined : val),
+      z.string().url().nullable().optional(),
+    ),
+    instructions: z.preprocess(
+      (val) => (val === "" ? null : val),
+      z.string().nullable().optional(),
+    ),
+    productPurchaseInstructions: z
+      .preprocess((val) => (val === "" ? null : val), z.string().nullable())
+      .optional(),
+    frequency: z
+      .enum([
+        "daily",
+        "1x per week",
+        "2x per week",
+        "3x per week",
+        "4x per week",
+        "5x per week",
+        "6x per week",
+        "specific_days",
+      ])
+      .optional(),
+    days: z.array(z.string()).nullable().optional(),
+  })
+  .refine(
+    (data) => {
+      // For "product" step type: routineStep and productName must not be empty if provided
+      if (data.stepType === "product") {
+        const hasRoutineStep =
+          data.routineStep && data.routineStep.trim().length > 0;
+        const hasProductName =
+          data.productName && data.productName.trim().length > 0;
+        // Both must be present if stepType is being set to product
+        return hasRoutineStep && hasProductName;
+      }
+      return true;
+    },
+    {
+      message: "Routine step and product name are required for product type",
+      path: ["stepType"],
+    },
+  );
 
 const deleteRoutineProductSchema = z.object({
   productId: uuidSchema,
@@ -273,6 +333,10 @@ export async function createRoutineProduct(
   });
 
   if (!validation.success) {
+    console.error("🚨 Validation failed in createRoutineProduct:");
+    console.error("Input data:", { userId, ...input });
+    console.error("Validation error object:", validation.error);
+    console.error("Validation errors array:", validation.error.issues);
     return { success: false, error: "Invalid data" };
   }
 
@@ -330,10 +394,12 @@ export async function createRoutineProduct(
       const newProduct: NewRoutineProduct = {
         routineId: validation.data.routineId,
         userProfileId: validation.data.userId,
-        routineStep: validation.data.routineStep,
-        productName: validation.data.productName,
+        stepType: validation.data.stepType,
+        stepName: validation.data.stepName ?? null,
+        routineStep: validation.data.routineStep ?? null,
+        productName: validation.data.productName ?? null,
         productUrl: validation.data.productUrl ?? null,
-        instructions: validation.data.instructions,
+        instructions: validation.data.instructions ?? null,
         productPurchaseInstructions:
           validation.data.productPurchaseInstructions ?? null,
         frequency: validation.data.frequency,
@@ -464,20 +530,33 @@ export async function updateRoutineProduct(
         updatedAt: now(),
       };
 
+      if (validation.data.stepType !== undefined) {
+        updateData.stepType = validation.data.stepType;
+      }
+
+      if (validation.data.stepName !== undefined) {
+        updateData.stepName = validation.data.stepName ?? null;
+      }
+
       if (validation.data.routineStep !== undefined) {
-        updateData.routineStep = validation.data.routineStep;
+        updateData.routineStep = validation.data.routineStep ?? null;
       }
 
       if (validation.data.productName !== undefined) {
-        updateData.productName = validation.data.productName;
+        updateData.productName = validation.data.productName ?? null;
       }
 
       if (validation.data.productUrl !== undefined) {
-        updateData.productUrl = validation.data.productUrl ?? undefined;
+        updateData.productUrl = validation.data.productUrl ?? null;
       }
 
       if (validation.data.instructions !== undefined) {
         updateData.instructions = validation.data.instructions;
+      }
+
+      if (validation.data.productPurchaseInstructions !== undefined) {
+        updateData.productPurchaseInstructions =
+          validation.data.productPurchaseInstructions;
       }
 
       if (validation.data.frequency !== undefined) {
@@ -485,7 +564,7 @@ export async function updateRoutineProduct(
       }
 
       if (validation.data.days !== undefined) {
-        updateData.days = validation.data.days ?? undefined;
+        updateData.days = validation.data.days ?? null;
       }
 
       // Update product using tx (transaction object)
@@ -500,11 +579,12 @@ export async function updateRoutineProduct(
       }
 
       // If routine is published, delete old steps and regenerate in SAME transaction
+      // Only regenerate for "product" type, not "instruction_only"
       if (routine.status === "published") {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Delete pending and missed steps from today onwards using tx
+        // Always delete existing steps (cleanup)
         await tx
           .delete(routineStepCompletions)
           .where(

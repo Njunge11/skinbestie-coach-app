@@ -20,6 +20,8 @@ describe("ProfileService - Unit Tests", () => {
     email: "john@example.com",
     nickname: null,
     phoneNumber: "+1234567890",
+    productsReceived: false,
+    routineStartDateSet: false,
     updatedAt: new Date("2025-01-15T10:00:00Z"),
   };
 

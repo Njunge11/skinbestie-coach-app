@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi } from "vitest";
 import { VerificationCodeState } from "./verification-code-state";
 
@@ -27,7 +27,7 @@ describe("VerificationCodeState", () => {
   });
 
   it("allows user to type 6-digit code", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <VerificationCodeState onContinue={vi.fn()} onResendCode={vi.fn()} />,
     );
@@ -50,7 +50,7 @@ describe("VerificationCodeState", () => {
   });
 
   it("calls onSubmit and onContinue when form is valid", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleSubmit = vi.fn();
     const handleContinue = vi.fn();
     render(
@@ -76,7 +76,7 @@ describe("VerificationCodeState", () => {
   });
 
   it("shows loading state while submitting", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const submitPromise = new Promise<void>(() => {
       // Never resolves - testing loading state
     });
@@ -100,7 +100,7 @@ describe("VerificationCodeState", () => {
   });
 
   it("shows error when code is not 6 digits", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <VerificationCodeState onContinue={vi.fn()} onResendCode={vi.fn()} />,
     );
@@ -114,7 +114,7 @@ describe("VerificationCodeState", () => {
   });
 
   it("prevents form submission when code contains non-numeric characters", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleContinue = vi.fn();
     const handleSubmit = vi.fn();
 
@@ -135,7 +135,7 @@ describe("VerificationCodeState", () => {
   });
 
   it("shows error when code is empty", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(
       <VerificationCodeState onContinue={vi.fn()} onResendCode={vi.fn()} />,
     );
@@ -148,7 +148,7 @@ describe("VerificationCodeState", () => {
   });
 
   it("calls onResendCode when resend button is clicked", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleResendCode = vi.fn();
     render(
       <VerificationCodeState

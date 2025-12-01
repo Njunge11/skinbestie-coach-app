@@ -27,6 +27,12 @@ export const UserProfileUpdateSchema = z.object({
   // Step 6
   hasCompletedBooking: z.boolean().optional().nullable(),
 
+  // Products received tracking
+  productsReceived: z.boolean().optional(),
+
+  // Routine start date set tracking
+  routineStartDateSet: z.boolean().optional(),
+
   // Tracking
   completedSteps: z.array(z.string()).optional(),
   isCompleted: z.boolean().optional(),

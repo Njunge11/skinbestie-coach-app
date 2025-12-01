@@ -17,6 +17,10 @@ export async function PATCH(request: NextRequest) {
 
     // 2. Parse and validate request body
     const body = await request.json();
+    console.log(
+      "📥 [PROFILE PATCH] Request body:",
+      JSON.stringify(body, null, 2),
+    );
 
     const validation = patchProfileRequestSchema.safeParse(body);
 
@@ -32,12 +36,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     // 3. Extract userId and updates
-    const { userId, dateOfBirth, completedAt, ...updates } = validation.data;
+    const { userId, completedAt, ...updates } = validation.data;
 
     // Convert string dates to Date objects if present
     const profileUpdates = {
       ...updates,
-      ...(dateOfBirth ? { dateOfBirth: new Date(dateOfBirth) } : {}),
       ...(completedAt ? { completedAt: new Date(completedAt) } : {}),
     };
 
@@ -47,11 +50,17 @@ export async function PATCH(request: NextRequest) {
 
     // 5. Return appropriate response
     if (!result.success) {
+      console.error("❌ [PROFILE PATCH] Update failed:", result.error);
       if (result.error === "User not found") {
         return errors.notFound("User");
       }
       return errors.internalError(result.error);
     }
+
+    console.log(
+      "✅ [PROFILE PATCH] Success response:",
+      JSON.stringify({ success: true, data: result.data }, null, 2),
+    );
 
     return NextResponse.json({
       success: true,

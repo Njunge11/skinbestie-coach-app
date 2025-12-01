@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,8 +23,17 @@ interface AddRoutineModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   templates: Template[];
-  onCreateFromTemplate: (templateId: string, routineName: string, startDate: Date, endDate: Date | null) => Promise<void>;
-  onCreateBlank: (routineName: string, startDate: Date, endDate: Date | null) => Promise<void>;
+  onCreateFromTemplate: (
+    templateId: string,
+    routineName: string,
+    startDate: Date,
+    endDate: Date | null,
+  ) => Promise<void>;
+  onCreateBlank: (
+    routineName: string,
+    startDate: Date,
+    endDate: Date | null,
+  ) => Promise<void>;
 }
 
 type View = "start" | "template" | "info";
@@ -47,8 +61,8 @@ export function AddRoutineModal({
     }
   }, [templates, selectedTemplateId]);
 
-  const filteredTemplates = templates.filter(template =>
-    template.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredTemplates = templates.filter((template) =>
+    template.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleOptionClick = (option: "template" | "blank") => {
@@ -76,7 +90,7 @@ export function AddRoutineModal({
 
   const handleContinueFromTemplate = () => {
     // Pre-fill routine name with template name
-    const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+    const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
     if (selectedTemplate) {
       setRoutineName(selectedTemplate.name);
     }
@@ -97,7 +111,12 @@ export function AddRoutineModal({
       const endDateObj = endDate ? new Date(endDate) : null;
 
       if (useTemplate && selectedTemplateId) {
-        await onCreateFromTemplate(selectedTemplateId, routineName.trim(), startDateObj, endDateObj);
+        await onCreateFromTemplate(
+          selectedTemplateId,
+          routineName.trim(),
+          startDateObj,
+          endDateObj,
+        );
       } else {
         await onCreateBlank(routineName.trim(), startDateObj, endDateObj);
       }
@@ -133,8 +152,12 @@ export function AddRoutineModal({
         {view === "start" && (
           <>
             <DialogHeader className="px-6 pt-6 pb-4 border-b">
-              <DialogTitle className="text-xl font-semibold">New routine</DialogTitle>
-              <p className="text-muted-foreground text-sm mt-1">Choose a starting point.</p>
+              <DialogTitle className="text-xl font-semibold">
+                New routine
+              </DialogTitle>
+              <p className="text-muted-foreground text-sm mt-1">
+                Choose a starting point.
+              </p>
             </DialogHeader>
 
             <div className="p-6 space-y-3">
@@ -147,8 +170,12 @@ export function AddRoutineModal({
                     <LayoutTemplate className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-base font-semibold mb-0.5">From template</h3>
-                    <p className="text-muted-foreground text-sm">Use a template as starting point. Customize it as needed.</p>
+                    <h3 className="text-base font-semibold mb-0.5">
+                      From template
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      Use a template as starting point. Customise it as needed.
+                    </p>
                   </div>
                 </div>
               </button>
@@ -162,8 +189,12 @@ export function AddRoutineModal({
                     <FilePlus className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-base font-semibold mb-0.5">Blank routine</h3>
-                    <p className="text-muted-foreground text-sm">Start from scratch.</p>
+                    <h3 className="text-base font-semibold mb-0.5">
+                      Blank routine
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      Start from scratch.
+                    </p>
                   </div>
                 </div>
               </button>
@@ -174,9 +205,12 @@ export function AddRoutineModal({
         {view === "template" && (
           <>
             <DialogHeader className="px-6 pt-6 pb-4 border-b">
-              <DialogTitle className="text-xl font-semibold">Select a template</DialogTitle>
+              <DialogTitle className="text-xl font-semibold">
+                Select a template
+              </DialogTitle>
               <p className="text-muted-foreground text-sm mt-1">
-                Select an existing template to use as a starting point. You can customize it as needed.
+                Select an existing template to use as a starting point. You can
+                customise it as needed.
               </p>
             </DialogHeader>
 
@@ -193,13 +227,18 @@ export function AddRoutineModal({
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ROUTINE TEMPLATES</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    ROUTINE TEMPLATES
+                  </h3>
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
                     {filteredTemplates.length}
                   </span>
                 </div>
 
-                <RadioGroup value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <RadioGroup
+                  value={selectedTemplateId}
+                  onValueChange={setSelectedTemplateId}
+                >
                   <div className="border rounded-lg overflow-hidden">
                     <div className="divide-y max-h-[320px] overflow-y-auto">
                       {filteredTemplates.length === 0 ? (
@@ -238,7 +277,12 @@ export function AddRoutineModal({
             </div>
 
             <div className="border-t px-6 py-3 flex items-center justify-between bg-background">
-              <Button variant="ghost" size="sm" onClick={handleGoBackFromTemplate} className="gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleGoBackFromTemplate}
+                className="gap-2"
+              >
                 <ArrowLeft className="h-4 w-4" />
                 Go back
               </Button>
@@ -246,7 +290,11 @@ export function AddRoutineModal({
                 <Button variant="ghost" size="sm" onClick={handleCancel}>
                   Cancel
                 </Button>
-                <Button size="sm" onClick={handleContinueFromTemplate} disabled={!selectedTemplateId}>
+                <Button
+                  size="sm"
+                  onClick={handleContinueFromTemplate}
+                  disabled={!selectedTemplateId}
+                >
                   Continue
                 </Button>
               </div>
@@ -258,17 +306,21 @@ export function AddRoutineModal({
           <>
             <DialogHeader className="px-6 pt-6 pb-4 border-b">
               <DialogTitle className="text-xl font-semibold">
-                {useTemplate ? "Customize routine" : "Create routine"}
+                {useTemplate ? "Customise routine" : "Create routine"}
               </DialogTitle>
               <p className="text-muted-foreground text-sm mt-1">
-                {useTemplate ? "Customize the routine details." : "Enter the routine details."}
+                {useTemplate
+                  ? "Customise the routine details."
+                  : "Enter the routine details."}
               </p>
             </DialogHeader>
 
             <form onSubmit={handleSubmit}>
               <div className="px-6 py-4 space-y-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="routine-name" className="text-sm">Routine Name *</Label>
+                  <Label htmlFor="routine-name" className="text-sm">
+                    Routine Name *
+                  </Label>
                   <Input
                     id="routine-name"
                     value={routineName}
@@ -278,7 +330,9 @@ export function AddRoutineModal({
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="routine-startDate" className="text-sm">Start Date *</Label>
+                  <Label htmlFor="routine-startDate" className="text-sm">
+                    Start Date *
+                  </Label>
                   <Input
                     id="routine-startDate"
                     type="date"
@@ -288,7 +342,9 @@ export function AddRoutineModal({
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="routine-endDate" className="text-sm">End Date (Optional)</Label>
+                  <Label htmlFor="routine-endDate" className="text-sm">
+                    End Date (Optional)
+                  </Label>
                   <Input
                     id="routine-endDate"
                     type="date"

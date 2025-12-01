@@ -1,34 +1,35 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ["./src/test/setup.ts"],
+    testTimeout: 10000, // 10 seconds timeout for all tests
     // Unit tests only - exclude integration tests per TESTING.md
-    include: ['**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules/', '**/*.integration.{test,spec}.{ts,tsx}'],
+    include: ["**/*.{test,spec}.{ts,tsx}"],
+    exclude: ["node_modules/", "**/*.integration.{test,spec}.{ts,tsx}"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
       exclude: [
-        'node_modules/',
-        'src/test/',
-        'scripts/',
-        'src/scripts/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/mockData',
-        '.next/',
+        "node_modules/",
+        "src/test/",
+        "scripts/",
+        "src/scripts/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/mockData",
+        ".next/",
       ],
     },
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });

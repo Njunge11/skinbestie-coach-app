@@ -1,0 +1,1 @@
+ALTER TABLE "skincare_routine_products" ADD COLUMN "step_name" text;

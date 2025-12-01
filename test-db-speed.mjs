@@ -11,7 +11,7 @@ console.log('Testing database query performance...\n');
 async function testQuery(name, query) {
   const start = Date.now();
   try {
-    const result = await query();
+    await query();
     const duration = Date.now() - start;
     console.log(`✅ ${name}: ${duration}ms`);
     return duration;

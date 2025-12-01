@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi } from "vitest";
 import { ForgotPasswordEmailState } from "./forgot-password-email-state";
 
@@ -18,7 +18,7 @@ describe("ForgotPasswordEmailState", () => {
   });
 
   it("allows user to type email address", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<ForgotPasswordEmailState onContinue={vi.fn()} />);
 
     const emailInput = screen.getByLabelText(/email address/i);
@@ -28,7 +28,7 @@ describe("ForgotPasswordEmailState", () => {
   });
 
   it("calls onSubmit and onContinue when form is valid", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleSubmit = vi.fn();
     const handleContinue = vi.fn();
     render(
@@ -56,7 +56,7 @@ describe("ForgotPasswordEmailState", () => {
   });
 
   it("shows loading state while submitting", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const submitPromise = new Promise<void>(() => {
       // Never resolves - testing loading state
     });
@@ -79,7 +79,7 @@ describe("ForgotPasswordEmailState", () => {
   });
 
   it("prevents form submission when email is invalid", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const handleContinue = vi.fn();
     const handleSubmit = vi.fn();
 
@@ -100,7 +100,7 @@ describe("ForgotPasswordEmailState", () => {
   });
 
   it("shows error when email is empty", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     render(<ForgotPasswordEmailState onContinue={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
