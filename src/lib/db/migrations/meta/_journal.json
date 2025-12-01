@@ -344,6 +344,13 @@
       "when": 1764352832266,
       "tag": "0048_futuristic_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1764604256553,
+      "tag": "0049_pink_stranger",
+      "breakpoints": true
     }
   ]
 }

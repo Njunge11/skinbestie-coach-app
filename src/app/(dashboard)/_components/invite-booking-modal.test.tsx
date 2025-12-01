@@ -448,10 +448,15 @@ describe("InviteBookingModal - UI Tests", () => {
       />,
     );
 
-    // Wait for modal to be ready
-    expect(await screen.findByRole("combobox")).toBeInTheDocument();
+    // Wait for modal to be ready and button to be enabled (first event type is pre-selected)
+    await waitFor(() => {
+      const generateButton = screen.getByRole("button", {
+        name: /generate link/i,
+      });
+      expect(generateButton).not.toBeDisabled();
+    });
 
-    // User can immediately click generate (first event type is pre-selected)
+    // User clicks generate
     const generateButton = screen.getByRole("button", {
       name: /generate link/i,
     });

@@ -210,12 +210,7 @@ export function ProductForm({
       <div className="space-y-2">
         <label htmlFor="instructions" className="text-sm font-medium">
           Instructions
-          {stepType === "instruction_only" && (
-            <span className="text-red-500"> *</span>
-          )}
-          {stepType === "product" && (
-            <span className="text-gray-500 text-xs"> (optional)</span>
-          )}
+          <span className="text-gray-500 text-xs"> (optional)</span>
         </label>
         <Textarea
           id="instructions"

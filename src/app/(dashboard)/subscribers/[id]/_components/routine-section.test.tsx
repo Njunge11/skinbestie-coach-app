@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, setupUser } from "@/test/utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RoutineSection } from "./routine-section";
 import type { RoutineProduct } from "../types";
@@ -35,11 +34,6 @@ describe("RoutineSection - Complete User Workflows", () => {
       description: "Clear and balanced skin",
     },
   ];
-
-  // Configure userEvent to skip delays between actions for faster tests.
-  // This prevents timeouts in tests with many sequential user interactions.
-  // See: https://testing-library.com/docs/user-event/options/#delay
-  const setupUser = () => userEvent.setup({ delay: null });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1139,7 +1133,7 @@ describe("RoutineSection - Complete User Workflows", () => {
     // User sees form for non-product step
     expect(screen.getByText(/add non-product step/i)).toBeInTheDocument();
 
-    // User fills in instructions (required for instruction_only type)
+    // User fills in instructions (optional for instruction_only type)
     await user.type(
       screen.getByPlaceholderText(/e\.g\., apply toner to clean skin/i),
       "Pat face dry with clean towel",
@@ -1243,30 +1237,18 @@ describe("RoutineSection - Complete User Workflows", () => {
       .closest("button");
     await user.click(nonProductStepCard as HTMLElement);
 
-    // User does NOT fill in instructions (which are required for instruction_only)
-    // User clicks Add without filling required fields
+    // User does NOT fill in instructions (instructions are now optional for instruction_only)
+    // User clicks Add - should succeed with just frequency (default is "daily")
     await user.click(screen.getByRole("button", { name: /^add$/i }));
 
-    // Server action should not be called (validation failed)
-    expect(mockOnAddProduct).not.toHaveBeenCalled();
-
-    // User now fills in instructions
-    await user.type(
-      screen.getByPlaceholderText(/e\.g\., apply toner to clean skin/i),
-      "Wait 2 minutes before next step",
-    );
-
-    // User clicks Add again
-    await user.click(screen.getByRole("button", { name: /^add$/i }));
-
-    // Server action should now be called
+    // Server action should be called (validation passes with just frequency)
     expect(mockOnAddProduct).toHaveBeenCalledWith("morning", {
       stepType: "instruction_only",
       stepName: undefined,
       routineStep: undefined,
       productName: "",
       productUrl: "",
-      instructions: "Wait 2 minutes before next step",
+      instructions: null,
       productPurchaseInstructions: "",
       frequency: "daily",
       days: undefined,

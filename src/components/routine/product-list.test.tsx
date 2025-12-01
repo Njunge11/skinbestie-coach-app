@@ -1,13 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@/test/utils";
-import userEvent from "@testing-library/user-event";
+import { render, screen, setupUser } from "@/test/utils";
 import React from "react";
 import { ProductList } from "./product-list";
 import type { Product } from "./product-item";
 
 describe("ProductList", () => {
   it("user adds first product to empty list", async () => {
-    const user = userEvent.setup({ delay: null });
+    const user = setupUser();
     const onAdd = vi.fn();
     const onUpdate = vi.fn();
     const onDelete = vi.fn();
@@ -80,7 +79,7 @@ describe("ProductList", () => {
   });
 
   it("user adds second product to existing list", async () => {
-    const user = userEvent.setup({ delay: null });
+    const user = setupUser();
     const onAdd = vi.fn();
     const onUpdate = vi.fn();
     const onDelete = vi.fn();
@@ -170,7 +169,7 @@ describe("ProductList", () => {
   });
 
   it("user cancels adding product and modal closes", async () => {
-    const user = userEvent.setup({ delay: null });
+    const user = setupUser();
     const onAdd = vi.fn();
     const onUpdate = vi.fn();
     const onDelete = vi.fn();
