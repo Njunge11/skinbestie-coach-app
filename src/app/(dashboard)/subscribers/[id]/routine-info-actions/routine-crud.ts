@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { makeRoutineRepo, type Routine, type NewRoutine } from "./routine.repo";
+import { makeUserProfileRepo } from "../profile-header-actions/user-profile.repo";
 import type { Result } from "@/lib/result";
 import {
   type CreateRoutineInput,
@@ -12,6 +13,7 @@ import {
 // Default dependencies (production)
 const defaultRoutineDeps = {
   repo: makeRoutineRepo(),
+  userProfileRepo: makeUserProfileRepo(),
   db: db,
   now: () => new Date(),
 };
@@ -93,12 +95,15 @@ export async function createRoutine(
 
 /**
  * Delete a routine by ID
+ *
+ * Deletes the routine and resets user profile flags (productsReceived, routineStartDateSet).
+ * Uses a transaction to ensure atomicity - either everything succeeds or everything rolls back.
  */
 export async function deleteRoutine(
   routineId: string,
   deps: RoutineDeps = defaultRoutineDeps,
 ): Promise<Result<void>> {
-  const { repo } = deps;
+  const { db } = deps;
 
   // Validate input with Zod
   const validation = uuidSchema.safeParse(routineId);
@@ -108,16 +113,37 @@ export async function deleteRoutine(
   }
 
   try {
-    // Delete routine
-    const deletedRoutine = await repo.deleteById(validation.data);
+    // Use transaction for atomicity
+    await db.transaction(async (tx) => {
+      // Create repos with transaction context
+      const txRoutineRepo = makeRoutineRepo({ db: tx });
+      const txUserProfileRepo = makeUserProfileRepo({ db: tx });
 
-    if (!deletedRoutine) {
-      return { success: false, error: "Routine not found" };
-    }
+      // Get routine to extract userProfileId before deletion
+      const routine = await txRoutineRepo.findById(validation.data);
+
+      if (!routine) {
+        throw new Error("Routine not found");
+      }
+
+      // Delete routine (cascade deletes products & completions automatically)
+      await txRoutineRepo.deleteById(validation.data);
+
+      // Reset user profile flags
+      await txUserProfileRepo.update(routine.userProfileId, {
+        productsReceived: false,
+        routineStartDateSet: false,
+      });
+    });
 
     return { success: true, data: undefined };
   } catch (error) {
     console.error("Error deleting routine:", error);
+
+    if (error instanceof Error && error.message === "Routine not found") {
+      return { success: false, error: "Routine not found" };
+    }
+
     return { success: false, error: "Failed to delete routine" };
   }
 }

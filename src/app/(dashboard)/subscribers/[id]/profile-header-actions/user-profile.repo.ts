@@ -1,7 +1,7 @@
 // Real repository using Drizzle ORM (production)
 
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db as defaultDb, type DrizzleDB } from "@/lib/db";
 import {
   userProfiles,
   type UserProfile as UserProfileBase,
@@ -32,9 +32,13 @@ export type UserProfile = Pick<
   | "completedAt"
   | "createdAt"
   | "updatedAt"
+  | "productsReceived"
+  | "routineStartDateSet"
 >;
 
-export function makeUserProfileRepo() {
+export function makeUserProfileRepo({
+  db = defaultDb,
+}: { db?: DrizzleDB } = {}) {
   return {
     async getById(id: string): Promise<UserProfile | null> {
       const [user] = await db
