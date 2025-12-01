@@ -454,11 +454,6 @@ export const skincareRoutineProducts = pgTable(
       "product_step_requirements",
       sql`${table.stepType} = 'instruction_only' OR (${table.routineStep} IS NOT NULL AND ${table.productName} IS NOT NULL)`,
     ),
-    // When step_type = 'instruction_only', instructions must not be null
-    instructionOnlyRequirements: check(
-      "instruction_only_requirements",
-      sql`${table.stepType} = 'product' OR ${table.instructions} IS NOT NULL`,
-    ),
   }),
 );
 

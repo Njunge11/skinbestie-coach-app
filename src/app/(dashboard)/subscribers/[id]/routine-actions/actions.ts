@@ -188,23 +188,6 @@ const createRoutineProductSchema = z
       message: "Routine step and product name are required for product type",
       path: ["stepType"],
     },
-  )
-  .refine(
-    (data) => {
-      // For "instruction_only" step type: instructions are required
-      if (data.stepType === "instruction_only") {
-        return (
-          data.instructions !== undefined &&
-          data.instructions !== null &&
-          data.instructions.trim().length > 0
-        );
-      }
-      return true;
-    },
-    {
-      message: "Instructions are required for instruction-only type",
-      path: ["instructions"],
-    },
   );
 
 const updateRoutineProductSchema = z
@@ -255,23 +238,6 @@ const updateRoutineProductSchema = z
     {
       message: "Routine step and product name are required for product type",
       path: ["stepType"],
-    },
-  )
-  .refine(
-    (data) => {
-      // For "instruction_only" step type: instructions must not be empty
-      if (data.stepType === "instruction_only") {
-        return (
-          data.instructions !== undefined &&
-          data.instructions !== null &&
-          data.instructions.trim().length > 0
-        );
-      }
-      return true;
-    },
-    {
-      message: "Instructions are required for instruction-only type",
-      path: ["instructions"],
     },
   );
 

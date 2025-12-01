@@ -101,13 +101,9 @@ export function ProductItem({
         editData.frequency !== undefined &&
         editData.frequency.trim() !== "";
     } else {
-      // Instruction-only type: instructions and frequency are required
+      // Instruction-only type: only frequency is required
       isValid =
-        editData.instructions !== undefined &&
-        editData.instructions !== null &&
-        editData.instructions.trim() !== "" &&
-        editData.frequency !== undefined &&
-        editData.frequency.trim() !== "";
+        editData.frequency !== undefined && editData.frequency.trim() !== "";
     }
 
     // Validate days are selected when frequency is not daily

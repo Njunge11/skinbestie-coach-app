@@ -44,10 +44,10 @@ export function AddStepModal({
     days: undefined,
   });
 
-  // Reset state when modal opens (not on close, to avoid timing issues)
+  // Reset state when modal opens or closes
   const handleOpenChange = (open: boolean) => {
-    if (open) {
-      // Modal is opening - reset to initial state
+    if (!open) {
+      // Modal is closing - reset to initial state
       setCurrentStep("select-type");
       setStepType(null);
       setFormData({
@@ -90,13 +90,9 @@ export function AddStepModal({
         formData.frequency !== undefined &&
         formData.frequency.trim() !== "";
     } else {
-      // Instruction-only type: instructions and frequency are required
+      // Instruction-only type: only frequency is required
       isValid =
-        formData.instructions !== undefined &&
-        formData.instructions !== null &&
-        formData.instructions.trim() !== "" &&
-        formData.frequency !== undefined &&
-        formData.frequency.trim() !== "";
+        formData.frequency !== undefined && formData.frequency.trim() !== "";
     }
 
     // Validate days are selected when frequency is not daily
@@ -173,7 +169,7 @@ export function AddStepModal({
                 <h3 className="font-semibold text-base mb-2">Product Step</h3>
                 <p className="text-sm text-muted-foreground">
                   Add a step that uses a skincare product like cleanser, serum,
-                  moisturizer, or sunscreen.
+                  moisturise, or sunscreen.
                 </p>
               </button>
 

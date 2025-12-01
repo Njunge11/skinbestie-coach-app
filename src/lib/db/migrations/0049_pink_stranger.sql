@@ -1,0 +1,1 @@
+ALTER TABLE "skincare_routine_products" DROP CONSTRAINT "instruction_only_requirements";
