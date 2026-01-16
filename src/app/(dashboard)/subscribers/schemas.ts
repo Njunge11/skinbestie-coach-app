@@ -11,8 +11,12 @@ export const UserProfileCreateSchema = z.object({
 
 // Update profile with optional step data
 export const UserProfileUpdateSchema = z.object({
+  // Nickname
+  nickname: z.string().optional().nullable(),
+
   // Step 2
   skinType: z.array(z.string()).optional().nullable(),
+  hasCompletedSkinTest: z.boolean().optional().nullable(),
 
   // Step 3
   concerns: z.array(z.string()).optional().nullable(),
