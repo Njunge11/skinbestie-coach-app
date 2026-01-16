@@ -20,6 +20,7 @@ export const createSurveyRequestSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().nullable().optional(),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
+  createdBy: z.string().uuid("Valid admin UUID required"),
   questions: z.array(questionSchema).default([]),
 });
 

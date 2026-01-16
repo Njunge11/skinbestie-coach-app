@@ -1,11 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@/test/utils";
-import userEvent from "@testing-library/user-event";
+import { render, screen, setupUser } from "@/test/utils";
 import { CreateTemplateDialog } from "./create-template-dialog";
 
 describe("CreateTemplateDialog", () => {
   it("user creates template with name and description", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
@@ -14,7 +13,7 @@ describe("CreateTemplateDialog", () => {
         open={true}
         onOpenChange={onOpenChange}
         onSubmit={onSubmit}
-      />
+      />,
     );
 
     // User fills in template name
@@ -39,7 +38,7 @@ describe("CreateTemplateDialog", () => {
   });
 
   it("user creates template with name only", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
@@ -48,7 +47,7 @@ describe("CreateTemplateDialog", () => {
         open={true}
         onOpenChange={onOpenChange}
         onSubmit={onSubmit}
-      />
+      />,
     );
 
     // User fills in only template name (description is optional)
@@ -69,7 +68,7 @@ describe("CreateTemplateDialog", () => {
   });
 
   it("user cannot submit empty template name", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
@@ -78,11 +77,13 @@ describe("CreateTemplateDialog", () => {
         open={true}
         onOpenChange={onOpenChange}
         onSubmit={onSubmit}
-      />
+      />,
     );
 
     // Create Template button should be disabled initially
-    const createButton = screen.getByRole("button", { name: /create template/i });
+    const createButton = screen.getByRole("button", {
+      name: /create template/i,
+    });
     expect(createButton).toBeDisabled();
 
     // User types whitespace only
@@ -97,12 +98,13 @@ describe("CreateTemplateDialog", () => {
   });
 
   it("user sees loading state during submission", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     let resolveSubmit: () => void;
     const onSubmit = vi.fn().mockImplementation(
-      () => new Promise<void>((resolve) => {
-        resolveSubmit = resolve;
-      })
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSubmit = resolve;
+        }),
     );
     const onOpenChange = vi.fn();
 
@@ -111,7 +113,7 @@ describe("CreateTemplateDialog", () => {
         open={true}
         onOpenChange={onOpenChange}
         onSubmit={onSubmit}
-      />
+      />,
     );
 
     // User fills in template name
@@ -119,12 +121,18 @@ describe("CreateTemplateDialog", () => {
     await user.type(nameInput, "New Template");
 
     // User clicks Create Template button
-    const createButton = screen.getByRole("button", { name: /create template/i });
+    const createButton = screen.getByRole("button", {
+      name: /create template/i,
+    });
     await user.click(createButton);
 
     // Button should show loading state
-    expect(screen.getByRole("button", { name: /creating\.\.\./i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /creating\.\.\./i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /creating\.\.\./i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /creating\.\.\./i }),
+    ).toBeDisabled();
 
     // Resolve the submission
     resolveSubmit!();
@@ -134,7 +142,7 @@ describe("CreateTemplateDialog", () => {
   });
 
   it("user cancels template creation", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
 
@@ -143,7 +151,7 @@ describe("CreateTemplateDialog", () => {
         open={true}
         onOpenChange={onOpenChange}
         onSubmit={onSubmit}
-      />
+      />,
     );
 
     // User fills in some data

@@ -6,14 +6,21 @@ import { POST, GET } from "../route";
 import * as surveysService from "@/app/api/admin/surveys/surveys.service";
 import type { MockSurveysService } from "@/app/api/admin/surveys/__tests__/test-types";
 
-// Mock the surveys service
+// Mock dependencies
 vi.mock("@/app/api/admin/surveys/surveys.service");
+vi.mock("../../../../shared/auth", () => ({
+  validateApiKey: vi.fn(),
+}));
+
+import { validateApiKey } from "../../../../shared/auth";
 
 describe("POST /api/consumer-app/surveys/[id]/responses", () => {
   const mockMakeSurveysService = vi.mocked(surveysService.makeSurveysService);
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: API key is valid
+    vi.mocked(validateApiKey).mockResolvedValue(true);
   });
 
   it("should submit responses successfully", async () => {
@@ -303,6 +310,8 @@ describe("GET /api/consumer-app/surveys/[id]/responses", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: API key is valid
+    vi.mocked(validateApiKey).mockResolvedValue(true);
   });
 
   it("should get user submission history successfully", async () => {

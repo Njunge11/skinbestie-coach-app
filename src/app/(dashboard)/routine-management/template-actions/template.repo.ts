@@ -21,10 +21,13 @@ export type RoutineTemplateProduct = Pick<
   RoutineTemplateProductBase,
   | "id"
   | "templateId"
+  | "stepType"
+  | "stepName"
   | "routineStep"
   | "productName"
   | "productUrl"
   | "instructions"
+  | "productPurchaseInstructions"
   | "frequency"
   | "days"
   | "timeOfDay"
@@ -112,10 +115,14 @@ export function makeTemplateRepo() {
         .select({
           id: routineTemplateProducts.id,
           templateId: routineTemplateProducts.templateId,
+          stepType: routineTemplateProducts.stepType,
+          stepName: routineTemplateProducts.stepName,
           routineStep: routineTemplateProducts.routineStep,
           productName: routineTemplateProducts.productName,
           productUrl: routineTemplateProducts.productUrl,
           instructions: routineTemplateProducts.instructions,
+          productPurchaseInstructions:
+            routineTemplateProducts.productPurchaseInstructions,
           frequency: routineTemplateProducts.frequency,
           days: routineTemplateProducts.days,
           timeOfDay: routineTemplateProducts.timeOfDay,
@@ -143,10 +150,14 @@ export function makeTemplateRepo() {
         .select({
           id: routineTemplateProducts.id,
           templateId: routineTemplateProducts.templateId,
+          stepType: routineTemplateProducts.stepType,
+          stepName: routineTemplateProducts.stepName,
           routineStep: routineTemplateProducts.routineStep,
           productName: routineTemplateProducts.productName,
           productUrl: routineTemplateProducts.productUrl,
           instructions: routineTemplateProducts.instructions,
+          productPurchaseInstructions:
+            routineTemplateProducts.productPurchaseInstructions,
           frequency: routineTemplateProducts.frequency,
           days: routineTemplateProducts.days,
           timeOfDay: routineTemplateProducts.timeOfDay,

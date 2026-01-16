@@ -135,6 +135,14 @@ vi.mock("@/lib/auth", () => ({
   auth: vi.fn().mockResolvedValue(null),
 }));
 
+// Mock react-remove-scroll to prevent slow DOM traversal in jsdom
+// Radix UI Dialog uses this internally and it iterates through every DOM element
+// when modal opens, causing massive slowdowns in tests
+// See: https://github.com/radix-ui/primitives/issues/2356
+vi.mock("react-remove-scroll", () => ({
+  RemoveScroll: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Don't mock @/app/(dashboard)/actions globally - let individual tests handle it
 
 // Polyfills for jsdom
@@ -161,6 +169,77 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() {}
   disconnect() {}
 };
+
+// PointerEvent polyfill for Radix UI components
+// Radix UI uses onPointerDown which requires PointerEvent to exist in jsdom
+// See: https://www.luisball.com/blog/using-radixui-with-react-testing-library
+class MockPointerEvent extends MouseEvent {
+  readonly pointerId: number;
+  readonly width: number;
+  readonly height: number;
+  readonly pressure: number;
+  readonly tangentialPressure: number;
+  readonly tiltX: number;
+  readonly tiltY: number;
+  readonly twist: number;
+  readonly pointerType: string;
+  readonly isPrimary: boolean;
+
+  constructor(type: string, params: PointerEventInit = {}) {
+    super(type, params);
+    this.pointerId = params.pointerId ?? 0;
+    this.width = params.width ?? 1;
+    this.height = params.height ?? 1;
+    this.pressure = params.pressure ?? 0;
+    this.tangentialPressure = params.tangentialPressure ?? 0;
+    this.tiltX = params.tiltX ?? 0;
+    this.tiltY = params.tiltY ?? 0;
+    this.twist = params.twist ?? 0;
+    this.pointerType = params.pointerType ?? "mouse";
+    this.isPrimary = params.isPrimary ?? true;
+  }
+
+  getCoalescedEvents(): PointerEvent[] {
+    return [];
+  }
+
+  getPredictedEvents(): PointerEvent[] {
+    return [];
+  }
+}
+
+global.PointerEvent = MockPointerEvent as unknown as typeof PointerEvent;
+
+// Mock matchMedia for prefers-reduced-motion and other media queries
+// This helps Radix UI and other libraries skip animations in tests
+// See: https://vitest.dev/guide/mocking.html
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: query === "(prefers-reduced-motion: reduce)",
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // deprecated but still used by some libraries
+    removeListener: vi.fn(), // deprecated but still used by some libraries
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Inject CSS to disable animations and transitions in tests
+// This ensures CSS animations complete instantly
+// See: https://web.dev/articles/prefers-reduced-motion
+const disableAnimationsStyle = document.createElement("style");
+disableAnimationsStyle.innerHTML = `
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+`;
+document.head.appendChild(disableAnimationsStyle);
 
 // Store verification codes sent via email for testing
 export const sentVerificationCodes = new Map<string, string>(); // email -> code

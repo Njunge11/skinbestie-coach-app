@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Plus,
-  Check,
-  ChevronsUpDown,
-  Trash2,
-  CalendarDays,
-} from "lucide-react";
+import { Plus, Trash2, CalendarDays } from "lucide-react";
+import { type ProductFormData } from "@/components/routine/product-form";
+import { ProductItem } from "@/components/routine/product-item";
 import {
   DndContext,
   closestCenter,
@@ -25,32 +21,10 @@ import {
 } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { RoutineItem } from "./routine-item";
+import { Switch } from "@/components/ui/switch";
 import { AddRoutineModal } from "./add-routine-modal";
+import { AddStepModal } from "./add-step-modal";
 import { EditRoutineDialog } from "./edit-routine-dialog";
 import { DeleteRoutineDialog } from "./delete-routine-dialog";
 import {
@@ -63,13 +37,7 @@ import type {
   RoutineProduct,
   RoutineProductFormData,
   RoutineFormData,
-  Frequency,
 } from "../types";
-import {
-  ROUTINE_STEPS,
-  FREQUENCIES,
-  DAYS_OF_WEEK,
-} from "@/lib/routine-constants";
 
 interface Template {
   id: string;
@@ -105,6 +73,7 @@ interface RoutineSectionProps {
     timeOfDay: "morning" | "evening",
     reorderedProducts: RoutineProduct[],
   ) => Promise<void>;
+  onSaveAsTemplate?: () => Promise<void>;
 }
 
 export function RoutineSection({
@@ -120,26 +89,19 @@ export function RoutineSection({
   onUpdateProduct,
   onDeleteProduct,
   onReorderProducts,
+  onSaveAsTemplate,
 }: RoutineSectionProps) {
   const [isAddRoutineOpen, setIsAddRoutineOpen] = useState(false);
   const [isEditRoutineOpen, setIsEditRoutineOpen] = useState(false);
   const [isDeleteRoutineOpen, setIsDeleteRoutineOpen] = useState(false);
+  const [isAddStepOpen, setIsAddStepOpen] = useState(false);
+  const [addStepTimeOfDay, setAddStepTimeOfDay] = useState<
+    "morning" | "evening"
+  >("morning");
 
   // Split products into morning and evening
   const morningProducts = products.filter((p) => p.timeOfDay === "morning");
   const eveningProducts = products.filter((p) => p.timeOfDay === "evening");
-
-  const [addingTo, setAddingTo] = useState<"morning" | "evening" | null>(null);
-  const [openRoutineStep, setOpenRoutineStep] = useState(false);
-  const [newProduct, setNewProduct] = useState<RoutineProductFormData>({
-    routineStep: "",
-    productName: "",
-    productUrl: "",
-    instructions: "",
-    productPurchaseInstructions: "",
-    frequency: "daily",
-    days: undefined,
-  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -152,32 +114,36 @@ export function RoutineSection({
     }),
   );
 
-  const handleAdd = (timeOfDay: "morning" | "evening") => {
-    // Validate all required fields
-    if (
-      newProduct.routineStep &&
-      newProduct.routineStep.trim() &&
-      newProduct.productName.trim() &&
-      newProduct.instructions.trim() &&
-      newProduct.frequency.trim()
-    ) {
-      onAddProduct(timeOfDay, newProduct);
-
-      setNewProduct({
-        routineStep: "",
-        productName: "",
-        productUrl: "",
-        instructions: "",
-        productPurchaseInstructions: "",
-        frequency: "daily",
-        days: undefined,
-      });
-      setAddingTo(null);
-    }
+  const handleAddStep = (data: ProductFormData) => {
+    // Convert ProductFormData to RoutineProductFormData for onAddProduct
+    const routineProductData: RoutineProductFormData = {
+      stepType: data.stepType || "product",
+      stepName: data.stepName,
+      routineStep: data.routineStep || undefined,
+      productName: data.productName || "",
+      productUrl: data.productUrl || "",
+      instructions: data.instructions,
+      productPurchaseInstructions: data.productPurchaseInstructions || "",
+      frequency: data.frequency || "daily",
+      days: data.days,
+    };
+    onAddProduct(addStepTimeOfDay, routineProductData);
   };
 
-  const handleEdit = (id: string, data: RoutineProductFormData) => {
-    onUpdateProduct(id, data);
+  const handleEdit = (id: string, data: ProductFormData) => {
+    // Convert ProductFormData to RoutineProductFormData
+    const routineProductData: RoutineProductFormData = {
+      stepType: data.stepType || "product",
+      stepName: data.stepName,
+      routineStep: data.routineStep,
+      productName: data.productName,
+      productUrl: data.productUrl || "",
+      instructions: data.instructions,
+      productPurchaseInstructions: data.productPurchaseInstructions || "",
+      frequency: data.frequency || "daily",
+      days: data.days,
+    };
+    onUpdateProduct(id, routineProductData);
   };
 
   const handleDelete = (id: string) => {
@@ -204,241 +170,15 @@ export function RoutineSection({
     }
   };
 
-  const handleCancel = () => {
-    setAddingTo(null);
-    setNewProduct({
-      routineStep: "",
-      productName: "",
-      productUrl: "",
-      instructions: "",
-      productPurchaseInstructions: "",
-      frequency: "daily",
-      days: undefined,
-    });
-  };
-
   const handleDeleteRoutine = () => {
     onDeleteRoutine();
     setIsDeleteRoutineOpen(false);
   };
 
-  const renderAddForm = (timeOfDay: "morning" | "evening") => (
-    <div className="rounded-lg border border-gray-200 p-4 space-y-3">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Routine Step</label>
-        <Popover open={openRoutineStep} onOpenChange={setOpenRoutineStep}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={openRoutineStep}
-              className="w-full justify-between font-normal mt-2"
-            >
-              {newProduct.routineStep || "Select routine step..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-[var(--radix-popover-trigger-width)] p-0"
-            align="start"
-          >
-            <Command>
-              <CommandInput placeholder="Search routine step..." />
-              <CommandList>
-                <CommandEmpty>No routine step found.</CommandEmpty>
-                <CommandGroup>
-                  {ROUTINE_STEPS.map((step) => (
-                    <CommandItem
-                      key={step}
-                      value={step}
-                      onSelect={() => {
-                        setNewProduct((prev) => ({
-                          ...prev,
-                          routineStep: step,
-                        }));
-                        setOpenRoutineStep(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          newProduct.routineStep === step
-                            ? "opacity-100"
-                            : "opacity-0",
-                        )}
-                      />
-                      {step}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="product-name" className="text-sm font-medium">
-          Product Name
-        </label>
-        <Input
-          id="product-name"
-          placeholder="Product name"
-          value={newProduct.productName}
-          onChange={(e) =>
-            setNewProduct((prev) => ({ ...prev, productName: e.target.value }))
-          }
-          className="font-medium mt-2"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="product-url" className="text-sm font-medium">
-          Product URL (optional)
-        </label>
-        <Input
-          id="product-url"
-          placeholder="Product URL (optional)"
-          value={newProduct.productUrl || ""}
-          onChange={(e) =>
-            setNewProduct((prev) => ({ ...prev, productUrl: e.target.value }))
-          }
-          type="url"
-          className="text-sm mt-2"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="instructions" className="text-sm font-medium">
-          Instructions
-        </label>
-        <Textarea
-          id="instructions"
-          placeholder="e.g., Apply to damp skin, massage gently"
-          value={newProduct.instructions}
-          onChange={(e) =>
-            setNewProduct((prev) => ({ ...prev, instructions: e.target.value }))
-          }
-          rows={2}
-          className="text-sm resize-none mt-2"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label
-          htmlFor="product-purchase-instructions"
-          className="text-sm font-medium"
-        >
-          Purchase Instructions (optional)
-        </label>
-        <p className="text-xs text-gray-500">
-          Where to buy this product or any special purchasing notes
-        </p>
-        <Textarea
-          id="product-purchase-instructions"
-          placeholder="e.g., Available at Sephora, Use code SAVE10 for discount"
-          value={newProduct.productPurchaseInstructions || ""}
-          onChange={(e) =>
-            setNewProduct((prev) => ({
-              ...prev,
-              productPurchaseInstructions: e.target.value,
-            }))
-          }
-          rows={2}
-          className="text-sm resize-none mt-2"
-        />
-      </div>
-
-      <div className="space-y-2 mt-4">
-        <label className="text-sm font-medium">Frequency</label>
-        <Select
-          value={newProduct.frequency}
-          onValueChange={(value) =>
-            setNewProduct((prev) => ({
-              ...prev,
-              frequency: value as Frequency,
-              days: value === "daily" ? undefined : prev.days || [],
-            }))
-          }
-        >
-          <SelectTrigger className="mt-2">
-            <SelectValue placeholder="Select frequency" />
-          </SelectTrigger>
-          <SelectContent>
-            {FREQUENCIES.map((freq) => (
-              <SelectItem key={freq.value} value={freq.value}>
-                {freq.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {newProduct.frequency !== "daily" && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Select Days
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {DAYS_OF_WEEK.map((day) => {
-              const isSelected = newProduct.days?.includes(day.value);
-              const maxDays = newProduct.frequency === "2x per week" ? 2 : 3;
-              const canSelect =
-                isSelected || (newProduct.days?.length || 0) < maxDays;
-
-              return (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => {
-                    setNewProduct((prev) => {
-                      const currentDays = prev.days || [];
-                      if (isSelected) {
-                        return {
-                          ...prev,
-                          days: currentDays.filter((d) => d !== day.value),
-                        };
-                      } else if (canSelect) {
-                        return {
-                          ...prev,
-                          days: [...currentDays, day.value],
-                        };
-                      }
-                      return prev;
-                    });
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                    isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200",
-                    !canSelect &&
-                      !isSelected &&
-                      "opacity-50 cursor-not-allowed",
-                  )}
-                  disabled={!canSelect && !isSelected}
-                >
-                  {day.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-gray-500">
-            Select {newProduct.frequency === "2x per week" ? "2" : "3"} days
-          </p>
-        </div>
-      )}
-
-      <div className="flex gap-2 mt-4">
-        <Button size="sm" onClick={() => handleAdd(timeOfDay)}>
-          Add
-        </Button>
-        <Button size="sm" variant="outline" onClick={handleCancel}>
-          Cancel
-        </Button>
-      </div>
-    </div>
-  );
+  const openAddStepModal = (timeOfDay: "morning" | "evening") => {
+    setAddStepTimeOfDay(timeOfDay);
+    setIsAddStepOpen(true);
+  };
 
   // Empty state when no routine exists
   if (!routine) {
@@ -519,6 +259,24 @@ export function RoutineSection({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {routine.status === "published" && !routine.savedAsTemplate && (
+                <div className="flex items-center gap-2 mr-2">
+                  <Switch
+                    id="save-template"
+                    onCheckedChange={(checked) => {
+                      if (checked && onSaveAsTemplate) {
+                        onSaveAsTemplate();
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="save-template"
+                    className="text-xs font-medium text-gray-700 cursor-pointer"
+                  >
+                    Save as Template
+                  </label>
+                </div>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -565,7 +323,7 @@ export function RoutineSection({
               >
                 <div className="space-y-2">
                   {morningProducts.map((product, index) => (
-                    <RoutineItem
+                    <ProductItem
                       key={product.id}
                       product={product}
                       index={index}
@@ -574,26 +332,22 @@ export function RoutineSection({
                     />
                   ))}
 
-                  {morningProducts.length === 0 && addingTo !== "morning" && (
+                  {morningProducts.length === 0 && (
                     <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                       <p className="text-xs text-gray-400">No routine set</p>
                     </div>
                   )}
 
-                  {addingTo === "morning" ? (
-                    renderAddForm("morning")
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setAddingTo("morning")}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {morningProducts.length === 0
-                        ? "Add Step"
-                        : "Add Another Step"}
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => openAddStepModal("morning")}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {morningProducts.length === 0
+                      ? "Add Step"
+                      : "Add Another Step"}
+                  </Button>
                 </div>
               </SortableContext>
             </DndContext>
@@ -619,7 +373,7 @@ export function RoutineSection({
               >
                 <div className="space-y-2">
                   {eveningProducts.map((product, index) => (
-                    <RoutineItem
+                    <ProductItem
                       key={product.id}
                       product={product}
                       index={index}
@@ -628,26 +382,22 @@ export function RoutineSection({
                     />
                   ))}
 
-                  {eveningProducts.length === 0 && addingTo !== "evening" && (
+                  {eveningProducts.length === 0 && (
                     <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                       <p className="text-xs text-gray-400">No routine set</p>
                     </div>
                   )}
 
-                  {addingTo === "evening" ? (
-                    renderAddForm("evening")
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setAddingTo("evening")}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {eveningProducts.length === 0
-                        ? "Add Step"
-                        : "Add Another Step"}
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => openAddStepModal("evening")}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {eveningProducts.length === 0
+                      ? "Add Step"
+                      : "Add Another Step"}
+                  </Button>
                 </div>
               </SortableContext>
             </DndContext>
@@ -668,6 +418,13 @@ export function RoutineSection({
         onOpenChange={setIsDeleteRoutineOpen}
         onConfirm={handleDeleteRoutine}
         routineName={routine.name}
+      />
+
+      <AddStepModal
+        open={isAddStepOpen}
+        onOpenChange={setIsAddStepOpen}
+        timeOfDay={addStepTimeOfDay}
+        onAdd={handleAddStep}
       />
     </>
   );

@@ -64,6 +64,11 @@ export function makeUserProfile(
     hasCompletedSkinTest: false,
     hasCompletedBooking: false,
     isSubscribed: null,
+    productsReceived: false,
+    routineStartDateSet: false,
+
+    // Survey visibility
+    feedbackSurveyVisible: false,
 
     // Completion tracking
     completedSteps: [],
@@ -126,6 +131,7 @@ export function makeClient(overrides: Partial<Client> = {}): Client {
     currentWeek: 1,
     startDate: new Date().toISOString().split("T")[0],
     hasRoutine: false,
+    feedbackSurveyVisible: false,
     tags: [],
     createdAt: new Date(),
     ...overrides,
@@ -158,6 +164,7 @@ export function makeRoutine(overrides: Partial<Routine> = {}): Routine {
     startDate,
     endDate: null,
     status: "draft",
+    savedAsTemplate: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -174,6 +181,8 @@ export function makeRoutineProduct(
     id: crypto.randomUUID(),
     routineId: crypto.randomUUID(),
     userProfileId: crypto.randomUUID(),
+    stepType: "product",
+    stepName: null,
     routineStep: "cleanse",
     productName: "Test Cleanser",
     productUrl: null,
@@ -266,10 +275,13 @@ export function makeRoutineTemplateProduct(
   return {
     id: crypto.randomUUID(),
     templateId: crypto.randomUUID(),
+    stepType: "product",
+    stepName: null,
     routineStep: "cleanse",
     productName: "Test Product",
     productUrl: null,
     instructions: "Apply to skin",
+    productPurchaseInstructions: null,
     frequency: "daily",
     days: null,
     timeOfDay: "morning",

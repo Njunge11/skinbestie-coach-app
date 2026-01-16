@@ -591,8 +591,8 @@ export async function getComplianceStats(
       if (!productStats.has(completion.routineProductId)) {
         productStats.set(completion.routineProductId, {
           routineProductId: completion.routineProductId,
-          routineStep: product.routineStep,
-          productName: product.productName,
+          routineStep: product.routineStep ?? "",
+          productName: product.productName ?? "",
           timeOfDay: product.timeOfDay,
           frequency: product.frequency,
           completions: [],

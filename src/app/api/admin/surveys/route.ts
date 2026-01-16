@@ -29,10 +29,9 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validation.data;
 
-    // Step 3: Get admin ID from session email
-    // TODO: In real implementation, fetch admin from database
-    // For now, we'll use a placeholder
-    const adminId = "450e8400-e29b-41d4-a716-446655440000";
+    // Step 3: Get admin ID from request body
+    // TODO: In production, fetch admin ID from authenticated session
+    const adminId = validatedData.createdBy;
 
     // Step 4: Call service to create survey
     const service = makeSurveysService();

@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ComplianceSection } from "./compliance-section";
 import type { ComplianceStats } from "../compliance-actions/actions";
@@ -103,7 +103,7 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user views compliance data and switches between time periods", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const mockGetComplianceStats = vi.spyOn(
       complianceActions,
       "getComplianceStats",
@@ -163,7 +163,7 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user expands step details to see breakdown then collapses", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const mockGetComplianceStats = vi.spyOn(
       complianceActions,
       "getComplianceStats",
@@ -216,7 +216,7 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user views step with missed dates and sees date badges", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const mockGetComplianceStats = vi.spyOn(
       complianceActions,
       "getComplianceStats",
@@ -247,7 +247,7 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user views step with many missed dates and sees truncated list", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const mockGetComplianceStats = vi.spyOn(
       complianceActions,
       "getComplianceStats",
@@ -401,7 +401,7 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user verifies compliance calculations are accurate across different views", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const mockGetComplianceStats = vi.spyOn(
       complianceActions,
       "getComplianceStats",
@@ -460,7 +460,7 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user sees colored cards for different compliance metrics", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const mockGetComplianceStats = vi.spyOn(
       complianceActions,
       "getComplianceStats",
@@ -516,7 +516,7 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user navigates through all time periods sequentially", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const mockGetComplianceStats = vi.spyOn(
       complianceActions,
       "getComplianceStats",
@@ -595,7 +595,7 @@ describe("ComplianceSection - UI Tests", () => {
   });
 
   it("user expands step with no missed dates and does not see missed section", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const mockGetComplianceStats = vi.spyOn(
       complianceActions,
       "getComplianceStats",

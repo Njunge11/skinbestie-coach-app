@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CheckCircle2, GitCompare, ImageIcon, Camera } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "./empty-state";
 import { PhotoDetailModal } from "./photo-detail-modal";
 import { ComparePhotosModal } from "./compare-photos-modal";
 import type { Photo } from "../types";
@@ -61,18 +62,11 @@ export function ProgressPhotos({
         </CardHeader>
         <CardContent>
           {photos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="rounded-full bg-gray-100 p-6 mb-4">
-                <ImageIcon className="w-12 h-12 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No progress photos yet
-              </h3>
-              <p className="text-sm text-gray-500 max-w-sm">
-                Progress photos will appear here once the subscriber uploads
-                them. Photos help track skin improvements over time.
-              </p>
-            </div>
+            <EmptyState
+              icon={ImageIcon}
+              title="No progress photos yet"
+              description="Progress photos will appear here once the subscriber uploads them. Photos help track skin improvements over time."
+            />
           ) : (
             <>
               {isCompareMode && (

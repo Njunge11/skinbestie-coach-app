@@ -12,6 +12,7 @@ import {
   pgEnum,
   primaryKey,
   jsonb,
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type { AdapterAccountType } from "next-auth/adapters";
@@ -24,6 +25,7 @@ export const routineStatusEnum = pgEnum("routine_status", [
 ]);
 export const frequencyEnum = pgEnum("frequency", [
   "daily",
+  "1x per week",
   "2x per week",
   "3x per week",
   "4x per week",
@@ -32,6 +34,10 @@ export const frequencyEnum = pgEnum("frequency", [
   "specific_days",
 ]);
 export const timeOfDayEnum = pgEnum("time_of_day", ["morning", "evening"]);
+export const stepTypeEnum = pgEnum("step_type", [
+  "instruction_only",
+  "product",
+]);
 export const completionStatusEnum = pgEnum("completion_status", [
   "pending",
   "on-time",
@@ -197,6 +203,19 @@ export const userProfiles = pgTable(
     // Skin test completion tracking
     hasCompletedSkinTest: boolean("has_completed_skin_test"),
 
+    // Products received tracking
+    productsReceived: boolean("products_received").notNull().default(false),
+
+    // Routine start date set tracking
+    routineStartDateSet: boolean("routine_start_date_set")
+      .notNull()
+      .default(false),
+
+    // Feedback survey visibility (controlled by coach)
+    feedbackSurveyVisible: boolean("feedback_survey_visible")
+      .notNull()
+      .default(false),
+
     // Additional profile fields
     nickname: text("nickname"),
     occupation: text("occupation"),
@@ -345,6 +364,9 @@ export const skincareRoutines = pgTable(
     status: routineStatusEnum("status").notNull().default("draft"), // "draft" or "published"
     productPurchaseInstructions: text("product_purchase_instructions"), // Optional instructions for purchasing products
 
+    // Template tracking
+    savedAsTemplate: boolean("saved_as_template").notNull().default(false), // Track if routine was saved as template
+
     // Timestamps
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -377,14 +399,20 @@ export const skincareRoutineProducts = pgTable(
       .notNull()
       .references(() => userProfiles.id, { onDelete: "cascade" }),
 
-    // Product details (all required except productUrl and productPurchaseInstructions)
-    routineStep: text("routine_step").notNull(),
-    productName: text("product_name").notNull(),
-    productUrl: text("product_url"), // Optional link to product
-    instructions: text("instructions").notNull(),
-    productPurchaseInstructions: text("product_purchase_instructions"), // Optional instructions for purchasing this product
+    // Step type (determines which fields are required)
+    stepType: stepTypeEnum("step_type").notNull().default("product"), // "instruction_only" or "product"
 
-    // Frequency and scheduling
+    // Step name (optional for "instruction_only" type only)
+    stepName: text("step_name"), // Optional name for instruction-only steps
+
+    // Product details (required fields depend on stepType)
+    routineStep: text("routine_step"), // Required for "product", optional for "instruction_only"
+    productName: text("product_name"), // Required for "product", null for "instruction_only"
+    productUrl: text("product_url"), // Optional for "product", null for "instruction_only"
+    instructions: text("instructions"), // Required for "instruction_only", optional for "product"
+    productPurchaseInstructions: text("product_purchase_instructions"), // Optional for "product", null for "instruction_only"
+
+    // Frequency and scheduling (always required)
     frequency: frequencyEnum("frequency").notNull(), // "daily", "2x per week", "3x per week", "specific_days"
     days: text("days").array().$type<string[]>(), // ["Monday", "Wednesday"] for non-daily
 
@@ -419,6 +447,13 @@ export const skincareRoutineProducts = pgTable(
     uniqueOrderPerRoutineAndTime: uniqueIndex(
       "skincare_routine_products_routine_time_order_idx",
     ).on(table.routineId, table.timeOfDay, table.order),
+
+    // Check constraints for step type validation
+    // When step_type = 'product', routine_step and product_name must not be null
+    productStepRequirements: check(
+      "product_step_requirements",
+      sql`${table.stepType} = 'instruction_only' OR (${table.routineStep} IS NOT NULL AND ${table.productName} IS NOT NULL)`,
+    ),
   }),
 );
 
@@ -464,11 +499,18 @@ export const routineTemplateProducts = pgTable(
       .notNull()
       .references(() => routineTemplates.id, { onDelete: "cascade" }),
 
-    // Product details (same as skincareRoutineProducts)
-    routineStep: text("routine_step").notNull(),
-    productName: text("product_name").notNull(),
+    // Step type (determines which fields are required)
+    stepType: stepTypeEnum("step_type").notNull().default("product"), // "instruction_only" or "product"
+
+    // Step name (optional for "instruction_only" type only)
+    stepName: text("step_name"), // Optional name for instruction-only steps
+
+    // Product details (required fields depend on stepType)
+    routineStep: text("routine_step"), // Required for "product", optional for "instruction_only"
+    productName: text("product_name"), // Required for "product", null for "instruction_only"
     productUrl: text("product_url"), // Optional link to product
-    instructions: text("instructions").notNull(),
+    instructions: text("instructions"), // Optional usage instructions for "product", required for "instruction_only"
+    productPurchaseInstructions: text("product_purchase_instructions"), // Optional purchase instructions
 
     // Frequency and scheduling
     frequency: frequencyEnum("frequency").notNull(), // "daily", "2x per week", "3x per week", "specific_days"

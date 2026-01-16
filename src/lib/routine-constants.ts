@@ -12,6 +12,7 @@ export const ROUTINE_STEPS = [
 
 export const FREQUENCIES = [
   { value: "daily", label: "Daily" },
+  { value: "1x per week", label: "1x per week" },
   { value: "2x per week", label: "2x per week" },
   { value: "3x per week", label: "3x per week" },
   { value: "4x per week", label: "4x per week" },

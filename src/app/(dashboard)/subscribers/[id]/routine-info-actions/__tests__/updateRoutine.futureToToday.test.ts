@@ -7,7 +7,8 @@ import {
 } from "../actions";
 import { makeRoutineRepo } from "../routine.repo";
 import { makeRoutineProductsRepo } from "../../compliance-actions/routine-products.repo";
-import { makeUserProfileRepo } from "../../compliance-actions/user-profile.repo";
+import { makeUserProfileRepo as makeComplianceUserProfileRepo } from "../../compliance-actions/user-profile.repo";
+import { makeUserProfileRepo } from "../../profile-header-actions/user-profile.repo";
 import {
   createTestDatabase,
   cleanupTestDatabase,
@@ -39,6 +40,7 @@ describe("updateRoutine - Future to Today Date Change (PGlite)", () => {
 
     deps = {
       repo: makeRoutineRepo({ db }),
+      userProfileRepo: makeUserProfileRepo({ db }),
       db: db,
       now: () => fixedNow,
     };
@@ -46,7 +48,7 @@ describe("updateRoutine - Future to Today Date Change (PGlite)", () => {
     publishDeps = {
       routineRepo: makeRoutineRepo({ db }),
       productRepo: makeRoutineProductsRepo({ db }),
-      userRepo: makeUserProfileRepo({ db }),
+      userRepo: makeComplianceUserProfileRepo({ db }),
       db: db,
       now: () => fixedNow,
     };

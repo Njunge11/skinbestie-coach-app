@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { setupUser } from "@/test/utils";
 import { CoachNotes } from "./coach-notes";
 import type { CoachNote } from "../types";
 
@@ -27,7 +27,7 @@ describe("CoachNotes - User Workflows", () => {
   ];
 
   it("user creates a new coach note", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onAddNote = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -37,11 +37,13 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={onAddNote}
         onUpdateNote={vi.fn()}
         onDeleteNote={vi.fn()}
-      />
+      />,
     );
 
     // User sees existing notes
-    expect(screen.getByText("Client is responding well to tretinoin")).toBeInTheDocument();
+    expect(
+      screen.getByText("Client is responding well to tretinoin"),
+    ).toBeInTheDocument();
 
     // User clicks add button
     await user.click(screen.getByRole("button", { name: /add note/i }));
@@ -59,12 +61,12 @@ describe("CoachNotes - User Workflows", () => {
     // Server action was called with correct data
     expect(onAddNote).toHaveBeenCalledWith(
       mockAdminId,
-      "Increased hydration in evening routine"
+      "Increased hydration in evening routine",
     );
   });
 
   it("user edits an existing coach note", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onUpdateNote = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -74,7 +76,7 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={vi.fn()}
         onUpdateNote={onUpdateNote}
         onDeleteNote={vi.fn()}
-      />
+      />,
     );
 
     // User sees the note they want to edit
@@ -85,7 +87,9 @@ describe("CoachNotes - User Workflows", () => {
     await user.click(noteText);
 
     // User sees the textarea with current content
-    const textarea = screen.getByDisplayValue("Reduced frequency due to irritation");
+    const textarea = screen.getByDisplayValue(
+      "Reduced frequency due to irritation",
+    );
     expect(textarea).toBeInTheDocument();
 
     // User modifies the content
@@ -98,12 +102,12 @@ describe("CoachNotes - User Workflows", () => {
     // Server action was called with correct data
     expect(onUpdateNote).toHaveBeenCalledWith(
       "note-2",
-      "Reduced frequency to every other day"
+      "Reduced frequency to every other day",
     );
   });
 
   it("user deletes a coach note", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onDeleteNote = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -113,14 +117,18 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={vi.fn()}
         onUpdateNote={vi.fn()}
         onDeleteNote={onDeleteNote}
-      />
+      />,
     );
 
     // User sees the note they want to delete
-    expect(screen.getByText("Client is responding well to tretinoin")).toBeInTheDocument();
+    expect(
+      screen.getByText("Client is responding well to tretinoin"),
+    ).toBeInTheDocument();
 
     // User clicks delete button for first note
-    const deleteButtons = screen.getAllByRole("button", { name: /delete note/i });
+    const deleteButtons = screen.getAllByRole("button", {
+      name: /delete note/i,
+    });
     await user.click(deleteButtons[0]);
 
     // Server action was called with correct note ID
@@ -128,7 +136,7 @@ describe("CoachNotes - User Workflows", () => {
   });
 
   it("user cancels adding a note without saving", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onAddNote = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -138,7 +146,7 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={onAddNote}
         onUpdateNote={vi.fn()}
         onDeleteNote={vi.fn()}
-      />
+      />,
     );
 
     // User clicks add button
@@ -152,14 +160,16 @@ describe("CoachNotes - User Workflows", () => {
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
     // Add form is no longer visible
-    expect(screen.queryByPlaceholderText(/add a note/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(/add a note/i),
+    ).not.toBeInTheDocument();
 
     // Server action was NOT called
     expect(onAddNote).not.toHaveBeenCalled();
   });
 
   it("user cancels editing a note without saving changes", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onUpdateNote = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -169,7 +179,7 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={vi.fn()}
         onUpdateNote={onUpdateNote}
         onDeleteNote={vi.fn()}
-      />
+      />,
     );
 
     // User clicks on note to edit
@@ -177,7 +187,9 @@ describe("CoachNotes - User Workflows", () => {
     await user.click(noteText);
 
     // User modifies the content
-    const textarea = screen.getByDisplayValue("Reduced frequency due to irritation");
+    const textarea = screen.getByDisplayValue(
+      "Reduced frequency due to irritation",
+    );
     await user.clear(textarea);
     await user.type(textarea, "Different content");
 
@@ -185,17 +197,21 @@ describe("CoachNotes - User Workflows", () => {
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
     // Edit form is no longer visible
-    expect(screen.queryByDisplayValue("Different content")).not.toBeInTheDocument();
+    expect(
+      screen.queryByDisplayValue("Different content"),
+    ).not.toBeInTheDocument();
 
     // Original note text is still visible
-    expect(screen.getByText("Reduced frequency due to irritation")).toBeInTheDocument();
+    expect(
+      screen.getByText("Reduced frequency due to irritation"),
+    ).toBeInTheDocument();
 
     // Server action was NOT called
     expect(onUpdateNote).not.toHaveBeenCalled();
   });
 
   it("user cannot save note with only whitespace", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onAddNote = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -205,7 +221,7 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={onAddNote}
         onUpdateNote={vi.fn()}
         onDeleteNote={vi.fn()}
-      />
+      />,
     );
 
     // User sees empty state
@@ -236,7 +252,7 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={vi.fn()}
         onUpdateNote={vi.fn()}
         onDeleteNote={vi.fn()}
-      />
+      />,
     );
 
     // User sees formatted dates for their notes
@@ -254,19 +270,23 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={vi.fn()}
         onUpdateNote={vi.fn()}
         onDeleteNote={vi.fn()}
-      />
+      />,
     );
 
     // User sees helpful empty state message
     expect(screen.getByText(/no notes yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/add notes to track observations and changes/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/add notes to track observations and changes/i),
+    ).toBeInTheDocument();
 
     // User can still add notes
-    expect(screen.getByRole("button", { name: /add note/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /add note/i }),
+    ).toBeInTheDocument();
   });
 
   it("user completes full workflow: add, edit, then delete a note", async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onAddNote = vi.fn().mockResolvedValue(undefined);
     const onUpdateNote = vi.fn().mockResolvedValue(undefined);
     const onDeleteNote = vi.fn().mockResolvedValue(undefined);
@@ -281,12 +301,15 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={onAddNote}
         onUpdateNote={onUpdateNote}
         onDeleteNote={onDeleteNote}
-      />
+      />,
     );
 
     // ===== STEP 1: User adds a new note =====
     await user.click(screen.getByRole("button", { name: /add note/i }));
-    await user.type(screen.getByPlaceholderText(/add a note/i), "New observation");
+    await user.type(
+      screen.getByPlaceholderText(/add a note/i),
+      "New observation",
+    );
     await user.click(screen.getByRole("button", { name: /save/i }));
 
     expect(onAddNote).toHaveBeenCalledWith(mockAdminId, "New observation");
@@ -311,7 +334,7 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={onAddNote}
         onUpdateNote={onUpdateNote}
         onDeleteNote={onDeleteNote}
-      />
+      />,
     );
 
     // User sees the new note
@@ -346,7 +369,7 @@ describe("CoachNotes - User Workflows", () => {
         onAddNote={onAddNote}
         onUpdateNote={onUpdateNote}
         onDeleteNote={onDeleteNote}
-      />
+      />,
     );
 
     // User sees the updated content
@@ -354,7 +377,9 @@ describe("CoachNotes - User Workflows", () => {
     expect(screen.queryByText("New observation")).not.toBeInTheDocument();
 
     // ===== STEP 3: User deletes the note =====
-    const deleteButtons = screen.getAllByRole("button", { name: /delete note/i });
+    const deleteButtons = screen.getAllByRole("button", {
+      name: /delete note/i,
+    });
     await user.click(deleteButtons[1]); // Delete the second note (the one they added)
 
     expect(onDeleteNote).toHaveBeenCalledWith("note-3");

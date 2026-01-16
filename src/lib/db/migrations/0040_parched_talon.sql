@@ -1,0 +1,1 @@
+ALTER TABLE "user_profiles" ADD COLUMN "routine_start_date_set" boolean DEFAULT false NOT NULL;

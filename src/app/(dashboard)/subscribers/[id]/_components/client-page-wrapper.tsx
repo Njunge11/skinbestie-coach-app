@@ -10,6 +10,7 @@ import { RoutineSection } from "./routine-section";
 import { ComplianceSection } from "./compliance-section";
 import { CoachNotesPanel } from "./coach-notes-panel";
 import { ProfileTags } from "./profile-tags/profile-tags";
+import { ProductRecommendationsTable } from "./product-recommendations-table";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import {
@@ -25,6 +26,7 @@ import {
   updateRoutine as updateRoutineAction,
   deleteRoutine as deleteRoutineAction,
   publishRoutine as publishRoutineAction,
+  saveRoutineAsTemplate as saveRoutineAsTemplateAction,
 } from "../routine-info-actions/actions";
 import { copyTemplateToUser } from "@/app/(dashboard)/routine-management/template-actions/copy-template";
 import {
@@ -43,6 +45,7 @@ import {
   addProfileTag,
   removeProfileTag,
 } from "../profile-tags-actions/actions";
+import { toggleSurveyVisibility } from "../survey-visibility-actions/actions";
 import type {
   Client,
   Goal,
@@ -384,6 +387,22 @@ export function ClientPageWrapper({
     }
   };
 
+  const handleSaveAsTemplate = async () => {
+    if (!routine) return;
+
+    // Call server action
+    const result = await saveRoutineAsTemplateAction(routine.id, adminId);
+
+    if (!result.success) {
+      console.error("Failed to save routine as template:", result.error);
+      toast.error(result.error || "Failed to save routine as template");
+    } else {
+      // Update routine to mark it as saved
+      setRoutine((prev) => (prev ? { ...prev, savedAsTemplate: true } : prev));
+      toast.success("Routine saved as template successfully");
+    }
+  };
+
   const handleCreateRoutineFromTemplate = async (
     templateId: string,
     routineName: string,
@@ -476,9 +495,14 @@ export function ClientPageWrapper({
       id: `temp-${Date.now()}`,
       routineId: routine.id,
       userProfileId: userId,
-      ...data,
+      stepType: data.stepType,
+      stepName: data.stepName ?? null,
+      routineStep: data.routineStep ?? null,
+      productName: data.productName ?? null,
       productUrl: data.productUrl ?? null,
+      instructions: data.instructions ?? null,
       productPurchaseInstructions: data.productPurchaseInstructions ?? null,
+      frequency: data.frequency,
       days: data.days ?? null,
       timeOfDay,
       order: sameTimeProducts.length,
@@ -705,10 +729,37 @@ export function ClientPageWrapper({
     }
   };
 
+  const handleToggleSurveyVisibility = async () => {
+    // Optimistic update
+    const previousClient = client;
+    setClient((prev) => ({
+      ...prev,
+      feedbackSurveyVisible: !prev.feedbackSurveyVisible,
+    }));
+
+    // Call server action
+    const result = await toggleSurveyVisibility(userId);
+
+    if (result.success) {
+      toast.success(
+        result.data.feedbackSurveyVisible
+          ? "Feedback survey is now visible to client"
+          : "Feedback survey is now hidden from client",
+      );
+    } else {
+      // Revert on failure
+      setClient(previousClient);
+      toast.error(result.error);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
       <div className="space-y-6">
-        <ProfileHeader client={client} />
+        <ProfileHeader
+          client={client}
+          onToggleSurveyVisibility={handleToggleSurveyVisibility}
+        />
 
         <ProfileTags
           tags={tags}
@@ -754,6 +805,7 @@ export function ClientPageWrapper({
             onUpdateProduct={handleUpdateRoutineProduct}
             onDeleteProduct={handleDeleteRoutineProduct}
             onReorderProducts={handleReorderRoutineProducts}
+            onSaveAsTemplate={handleSaveAsTemplate}
           />
 
           <ProgressPhotos
@@ -764,6 +816,8 @@ export function ClientPageWrapper({
             onPhotoSelect={handlePhotoSelect}
             onToggleCompareMode={handleToggleCompareMode}
           />
+
+          <ProductRecommendationsTable products={optimisticRoutineProducts} />
         </div>
 
         {/* Floating Action Button for Coach Notes */}

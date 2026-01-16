@@ -274,6 +274,83 @@
       "when": 1762852552401,
       "tag": "0038_pale_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1763015178845,
+      "tag": "0039_dashing_giant_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1763018283225,
+      "tag": "0040_parched_talon",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1763075221351,
+      "tag": "0041_nasty_jackal",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1763117414226,
+      "tag": "0042_mixed_karnak",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1763994306345,
+      "tag": "0043_fresh_spirit",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1763995854839,
+      "tag": "0044_eager_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1764297235114,
+      "tag": "0045_complex_vertigo",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1764318780881,
+      "tag": "0046_shiny_proteus",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1764324260762,
+      "tag": "0047_sloppy_unus",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1764352832266,
+      "tag": "0048_futuristic_thor",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1764604256553,
+      "tag": "0049_pink_stranger",
+      "breakpoints": true
     }
   ]
 }
